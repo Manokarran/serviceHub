@@ -18,6 +18,28 @@ export type HeaderLayout = 'horizontal' | 'vertical'
 
 export type HeroLayout = 'centered' | 'split-left' | 'split-right'
 
+export interface SplitVisualConfig {
+  splitVisualAnimation?: HeroSplitVisualAnimation
+  splitVisualColorStart?: string
+  splitVisualColorEnd?: string
+}
+
+export type HeroSplitVisualAnimation =
+  | 'static'
+  | 'floating-circles'
+  | 'orbiting-dots'
+  | 'pulse-rings'
+  | 'gradient-shift'
+  | 'morphing-blobs'
+  | 'aurora'
+  | 'mesh-gradient'
+  | 'wave-lines'
+  | 'dot-grid'
+  | 'shimmer'
+  | 'constellation'
+  | 'geometric'
+  | 'particles-rise'
+
 export type SectionLayout = 'default' | 'split-horizontal' | 'split-vertical'
 
 export type SectionBorderStyle = 'none' | 'subtle' | 'outline' | 'elevated' | 'inset'
@@ -48,6 +70,8 @@ export interface BlockBackgroundProps {
   /** @deprecated Use `background` — kept for persisted documents before migration */
   backgroundColor?: string
   backgroundType?: BackgroundType
+  /** Solid background opacity (0–100). Lower values reveal page background animation. */
+  backgroundOpacity?: number
   /** Photo background opacity (0–100). Only used when backgroundType is `photo`. */
   backgroundPhotoOpacity?: number
   /** Photo animation; falls back to site Image Blocks hover effect when unset. */
@@ -61,6 +85,7 @@ export interface HeaderBlockProps {
   navLinks: NavLinkItem[]
   layout: HeaderLayout
   backgroundColor: string
+  backgroundOpacity?: number
   textColor: string
   fixed: boolean
   borderRadius?: number
@@ -74,6 +99,7 @@ export interface FooterBlockProps {
   navLinks: NavLinkItem[]
   layout: HeaderLayout
   backgroundColor: string
+  backgroundOpacity?: number
   textColor: string
   fixed: boolean
   borderRadius?: number
@@ -88,15 +114,19 @@ export interface HeroBlockProps {
   alignment: TextAlign
   layout: HeroLayout
   minHeight: number
+  splitVisualAnimation?: HeroSplitVisualAnimation
+  splitVisualColorStart?: string
+  splitVisualColorEnd?: string
   background: string
   backgroundType: BackgroundType
+  backgroundOpacity?: number
   backgroundPhotoOpacity?: number
   backgroundPhotoAnimation?: ImageHoverEffect
   /** @deprecated Use `background` — kept for persisted documents before migration */
   backgroundColor?: string
 }
 
-export interface SectionBlockProps extends BlockBackgroundProps {
+export interface SectionBlockProps extends BlockBackgroundProps, SplitVisualConfig {
   background: string
   backgroundType: BackgroundType
   paddingY: number

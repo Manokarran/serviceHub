@@ -1,3 +1,5 @@
+import type { HeroSplitVisualAnimation } from '../types'
+
 export type ButtonShape = 'square' | 'rounded' | 'pill'
 export type ButtonStyle = 'solid' | 'outline' | 'ghost'
 export type FontSource = 'heading' | 'body'
@@ -18,6 +20,7 @@ export type SiteStylesView =
   | 'forms-customize'
   | 'misc'
   | 'misc-animations'
+  | 'misc-page-background'
   | 'misc-spacing'
   | 'misc-canvas'
   | 'misc-image-blocks'
@@ -68,6 +71,10 @@ export interface SiteMisc {
   imageCornerRadius: number
   imageHoverEffect: ImageHoverEffect
   imageAspectRatio: ImageAspectRatio
+  /** Full-page animated background visible behind transparent blocks */
+  pageSplitVisualAnimation?: HeroSplitVisualAnimation
+  pageSplitVisualColorStart?: string
+  pageSplitVisualColorEnd?: string
 }
 
 export interface SiteStyles {

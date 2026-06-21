@@ -106,6 +106,22 @@ export function getPhotoOpacity(props: BlockBackgroundProps): number {
   return Math.min(100, Math.max(0, opacity))
 }
 
+export function getBlockBackgroundOpacity(props: { backgroundOpacity?: number }): number {
+  const opacity = props.backgroundOpacity ?? 100
+
+  return Math.min(100, Math.max(0, opacity))
+}
+
+export function applyBackgroundAlpha(color: string, opacityPercent: number): string {
+  const fraction = Math.min(100, Math.max(0, opacityPercent)) / 100
+
+  if (fraction >= 1 || !isSimpleColor(color)) {
+    return color
+  }
+
+  return alpha(color, fraction)
+}
+
 export const SECTION_PHOTO_LAYER_CLASS = 'builder-section-photo'
 
 export function getPhotoLayerSx(opacityPercent: number): SxProps<Theme> {
@@ -166,11 +182,16 @@ export function getBlockBackgroundShellSx(
   const background = getBlockBackground(props, fallbackColor)
   const usesSimpleColor = isSimpleColor(background)
   const hasMedia = isMediaBackground(props)
+  const backgroundOpacity = getBlockBackgroundOpacity(props)
 
   return {
     position: 'relative',
     overflow: 'hidden',
-    ...(usesSimpleColor && !hasMedia ? { backgroundColor: background } : {}),
+    ...(usesSimpleColor && !hasMedia
+      ? { backgroundColor: applyBackgroundAlpha(background, backgroundOpacity) }
+      : !hasMedia
+        ? { backgroundColor: 'transparent' }
+        : {}),
     ...(hasMedia ? getPhotoHoverSectionSx(photoAnimation, photoOpacity) : {})
   }
 }
@@ -307,11 +328,16 @@ export function getSectionColumnShellSx(
   const bg = getSectionColumnBackground(props, column)
   const splitStyle = props.splitStyle ?? 'gap'
   const radius = Math.max(0, (props.borderRadius ?? 0) - 2)
+  const backgroundOpacity = getBlockBackgroundOpacity(props)
 
   return {
     flex: column === 'primary' ? props.splitRatio : 100 - props.splitRatio,
     minWidth: 0,
-    ...(bg ? (isSimpleColor(bg) ? { backgroundColor: bg } : { background: bg }) : {}),
+    ...(bg
+      ? isSimpleColor(bg)
+        ? { backgroundColor: applyBackgroundAlpha(bg, backgroundOpacity) }
+        : { background: bg }
+      : {}),
     ...(splitStyle === 'contrast' && radius > 0 ? { borderRadius: radius } : {}),
     ...(editMode && splitStyle === 'contrast'
       ? {

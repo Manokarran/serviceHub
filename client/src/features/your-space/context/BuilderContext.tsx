@@ -79,6 +79,7 @@ type BuilderAction =
   | { type: 'SET_PUBLISH_ERROR'; error: string | null }
   | { type: 'SET_VERSIONS'; versions: PublishedVersionSummary[] }
   | { type: 'RESET_TO_STARTER' }
+  | { type: 'RESET_TO_EMPTY' }
 
 function builderReducer(state: BuilderState, action: BuilderAction): BuilderState {
   switch (action.type) {
@@ -196,6 +197,15 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         saveError: null,
         publishError: null
       }
+    case 'RESET_TO_EMPTY':
+      return {
+        ...state,
+        blocks: [],
+        selectedBlockId: null,
+        isDirty: true,
+        saveError: null,
+        publishError: null
+      }
     default:
       return state
   }
@@ -220,6 +230,7 @@ type BuilderContextValue = BuilderState & {
   restoreVersionToDraft: (blocks: Block[], savedAt: string) => void
   setVersions: (versions: PublishedVersionSummary[]) => void
   resetToStarter: () => void
+  resetToEmpty: () => void
 }
 
 const BuilderContext = createContext<BuilderContextValue | null>(null)
@@ -494,8 +505,12 @@ export function BuilderProvider({
     dispatch({ type: 'RESET_TO_STARTER' })
   }, [])
 
+  const resetToEmpty = useCallback(() => {
+    dispatch({ type: 'RESET_TO_EMPTY' })
+  }, [])
+
   useEffect(() => {
-    if (!state.isDirty || state.isLoading || state.blocks.length === 0) {
+    if (!state.isDirty || state.isLoading) {
       return
     }
 
@@ -526,7 +541,8 @@ export function BuilderProvider({
       publishPage,
       restoreVersionToDraft,
       setVersions,
-      resetToStarter
+      resetToStarter,
+      resetToEmpty
     }),
     [
       state,
@@ -547,7 +563,8 @@ export function BuilderProvider({
       publishPage,
       restoreVersionToDraft,
       setVersions,
-      resetToStarter
+      resetToStarter,
+      resetToEmpty
     ]
   )
 

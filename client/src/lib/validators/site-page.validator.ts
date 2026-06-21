@@ -1,6 +1,26 @@
 import { z } from 'zod'
 
-const blockTypeSchema = z.enum(['section', 'header', 'hero', 'heading', 'text', 'button'])
+import { HERO_SPLIT_VISUAL_ANIMATION_OPTIONS } from '@/features/your-space/constants/heroVisual'
+
+const blockTypeSchema = z.enum([
+  'section',
+  'header',
+  'footer',
+  'hero',
+  'heading',
+  'text',
+  'button',
+  'image',
+  'video',
+  'logo'
+])
+
+const heroSplitVisualAnimationSchema = z.enum(
+  HERO_SPLIT_VISUAL_ANIMATION_OPTIONS.map(option => option.value) as [
+    (typeof HERO_SPLIT_VISUAL_ANIMATION_OPTIONS)[number]['value'],
+    ...(typeof HERO_SPLIT_VISUAL_ANIMATION_OPTIONS)[number]['value'][]
+  ]
+)
 
 export const sitePageBlockSchema = z.object({
   id: z.string().min(1).max(128),
@@ -57,9 +77,13 @@ export const siteStylesSchema = z.object({
   misc: z.object({
     animation: z.enum(['none', 'fade', 'slide-up', 'scale']),
     spacingScale: z.enum(['compact', 'default', 'spacious']),
+    canvasCornerRadius: z.number().min(0).max(48).optional(),
     imageCornerRadius: z.number().min(0).max(32),
     imageHoverEffect: z.enum(['none', 'zoom', 'fade']),
-    imageAspectRatio: z.enum(['auto', '16/9', '4/3', '1/1'])
+    imageAspectRatio: z.enum(['auto', '16/9', '4/3', '1/1']),
+    pageSplitVisualAnimation: heroSplitVisualAnimationSchema.optional(),
+    pageSplitVisualColorStart: z.string().max(32).optional(),
+    pageSplitVisualColorEnd: z.string().max(32).optional()
   })
 })
 

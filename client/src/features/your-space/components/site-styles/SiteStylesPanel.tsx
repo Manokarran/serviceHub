@@ -41,6 +41,7 @@ import {
   StylePanelHeader,
   StyleSectionCard
 } from './StyleSectionCard'
+import { SitePageBackgroundPanel } from './SitePageBackgroundPanel'
 
 type Props = {
   onClose?: () => void
@@ -162,9 +163,27 @@ export function SiteStylesPanel({ onClose }: Props) {
                 '&:hover': { borderColor: 'primary.main' }
               }}
             >
-              <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, mb: 0.25, m: 0 }}>
-                {preset.name}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
+                <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, m: 0 }}>
+                  {preset.name}
+                </Typography>
+                {preset.id === 'plain' && (
+                  <Typography
+                    component='span'
+                    sx={{
+                      ...BUILDER_TYPOGRAPHY.label,
+                      fontSize: '0.625rem',
+                      px: 0.625,
+                      py: 0.125,
+                      borderRadius: 0.5,
+                      color: 'text.secondary',
+                      backgroundColor: alpha(theme.palette.text.primary, 0.06)
+                    }}
+                  >
+                    Default
+                  </Typography>
+                )}
+              </Box>
               <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.secondary', fontWeight: 400, display: 'block', mb: 1, m: 0 }}>
                 {preset.description}
               </Typography>
@@ -481,6 +500,7 @@ export function SiteStylesPanel({ onClose }: Props) {
         <StylePanelHeader title='Miscellaneous' onBack={() => setView('home')} onClose={onClose} />
         <Box sx={{ flex: 1, overflowY: 'auto', px: 2 }}>
           <StyleNavRow label='Animations' onClick={() => setView('misc-animations')} />
+          <StyleNavRow label='Background animation' onClick={() => setView('misc-page-background')} />
           <StyleNavRow label='Spacing' onClick={() => setView('misc-spacing')} />
           <StyleNavRow label='Page canvas' onClick={() => setView('misc-canvas')} />
           <StyleNavRow label='Image Blocks' onClick={() => setView('misc-image-blocks')} />
@@ -510,6 +530,17 @@ export function SiteStylesPanel({ onClose }: Props) {
               <MenuItem value='scale'>Scale in</MenuItem>
             </Select>
           </FormControl>
+        </StylePanelBody>
+      </Box>
+    )
+  }
+
+  if (view === 'misc-page-background') {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <StylePanelHeader title='Background animation' onBack={() => setView('misc')} onClose={onClose} />
+        <StylePanelBody>
+          <SitePageBackgroundPanel />
         </StylePanelBody>
       </Box>
     )

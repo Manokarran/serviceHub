@@ -163,7 +163,8 @@ export function applySiteThemeToBlockProps<T extends BlockType>(
       return {
         ...props,
         backgroundColor: colors.swatch1,
-        textColor: colors.text
+        textColor: colors.text,
+        backgroundOpacity: 0
       }
     case 'footer':
       return {
@@ -176,13 +177,15 @@ export function applySiteThemeToBlockProps<T extends BlockType>(
         ...props,
         background: colors.accent,
         backgroundType: 'color',
-        textColor: '#ffffff'
+        textColor: '#ffffff',
+        backgroundOpacity: 0
       }
     case 'section':
       return {
         ...props,
-        background: colors.swatch2,
-        backgroundType: 'color'
+        background: 'transparent',
+        backgroundType: 'color',
+        backgroundOpacity: 0
       }
     case 'heading':
       return {

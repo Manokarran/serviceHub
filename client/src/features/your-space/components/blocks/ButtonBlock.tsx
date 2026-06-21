@@ -4,6 +4,7 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 
 import type { ButtonBlockProps } from '../../types'
+import { InlineEditableText } from '../inline/InlineEditableText'
 import { useSiteStyles } from '../SiteStylesScope'
 import { getSiteButtonSx, mapBlockVariantToButtonRole } from '../../utils/siteStylesHelpers'
 
@@ -14,6 +15,7 @@ type Props = {
 export function ButtonBlock({ props }: Props) {
   const siteStyles = useSiteStyles()
   const role = mapBlockVariantToButtonRole(props.variant)
+  const labelSx = { font: 'inherit', color: 'inherit' }
 
   return (
     <Box
@@ -28,9 +30,10 @@ export function ButtonBlock({ props }: Props) {
         component='a'
         href={props.link || '#'}
         variant={props.variant}
+        onClick={e => e.preventDefault()}
         sx={getSiteButtonSx(role, siteStyles, props.color, props.borderRadius)}
       >
-        {props.text}
+        <InlineEditableText value={props.text} field='text' placeholder='Button' sx={labelSx} />
       </Button>
     </Box>
   )

@@ -5,6 +5,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 
 import type { FooterBlockProps } from '../../types'
+import { applyBackgroundAlpha, getBlockBackgroundOpacity } from '../../utils/sectionStyleHelpers'
 import { getFixedBlockShellSx } from '../../utils/mediaBlockHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
 import { getChromeJustify, getHorizontalOrder, getNavJustify, SiteBrandLogo } from './SiteBrandLogo'
@@ -31,7 +32,7 @@ export function FooterBlock({ props }: Props) {
           flexWrap: 'wrap',
           px: 4,
           py: isVertical ? 3 : 2.5,
-          backgroundColor: props.backgroundColor,
+          backgroundColor: applyBackgroundAlpha(props.backgroundColor, getBlockBackgroundOpacity(props)),
           color: props.textColor,
           borderTop: '1px solid rgba(255,255,255,0.08)',
           ...(props.borderRadius ? { borderRadius: `${props.borderRadius}px`, overflow: 'hidden' } : {})

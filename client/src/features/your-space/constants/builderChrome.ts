@@ -109,7 +109,7 @@ export function builderCanvasFrameOuterSx(theme: Theme, borderRadius: number): S
 export function builderCanvasFrameInnerSx(theme: Theme, borderRadius: number): SxProps<Theme> {
   return {
     borderRadius: Math.max(0, borderRadius - 1),
-    backgroundColor: 'background.paper',
+    backgroundColor: 'transparent',
     overflow: 'hidden',
     minHeight: 'inherit',
     width: '100%'

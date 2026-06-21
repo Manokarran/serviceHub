@@ -9,6 +9,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 import { builderControlTrackSx } from '../constants/builderChrome'
 import { ComponentPaletteContent } from './ComponentPalette'
 import { PropertyPanelContent } from './PropertyPanel'
+import type { PropertyPanelTab } from './property/PropertyPanelUi'
 import { SiteStylesPanel } from './site-styles/SiteStylesPanel'
 
 type Props = {
@@ -16,6 +17,8 @@ type Props = {
   propertiesOpen: boolean
   stylesOpen: boolean
   hasSelectedBlock: boolean
+  propertyPanelFocusTab?: PropertyPanelTab | null
+  onPropertyPanelFocusTabConsumed?: () => void
   onPaletteOpen: () => void
   onPaletteClose: () => void
   onPropertiesOpen: () => void
@@ -29,6 +32,8 @@ export function BuilderMobileDrawers({
   propertiesOpen,
   stylesOpen,
   hasSelectedBlock,
+  propertyPanelFocusTab,
+  onPropertyPanelFocusTabConsumed,
   onPaletteOpen,
   onPaletteClose,
   onPropertiesOpen,
@@ -108,7 +113,11 @@ export function BuilderMobileDrawers({
         }}
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', maxHeight: '75vh' }}>
-          <PropertyPanelContent onClose={onPropertiesClose} />
+          <PropertyPanelContent
+            onClose={onPropertiesClose}
+            focusTab={propertyPanelFocusTab}
+            onFocusTabConsumed={onPropertyPanelFocusTabConsumed}
+          />
         </Box>
       </Box>
 

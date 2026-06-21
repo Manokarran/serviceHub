@@ -5,6 +5,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 
 import type { HeaderBlockProps } from '../../types'
+import { applyBackgroundAlpha, getBlockBackgroundOpacity } from '../../utils/sectionStyleHelpers'
 import { getFixedBlockShellSx } from '../../utils/mediaBlockHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
 import { getChromeJustify, getHorizontalOrder, getNavJustify, SiteBrandLogo } from './SiteBrandLogo'
@@ -31,7 +32,7 @@ export function HeaderBlock({ props }: Props) {
           flexWrap: isVertical ? 'nowrap' : 'wrap',
           px: 4,
           py: isVertical ? 3 : 2,
-          backgroundColor: props.backgroundColor,
+          backgroundColor: applyBackgroundAlpha(props.backgroundColor, getBlockBackgroundOpacity(props)),
           color: props.textColor,
           borderBottom: '1px solid rgba(0,0,0,0.06)',
           ...(props.borderRadius ? { borderRadius: `${props.borderRadius}px`, overflow: 'hidden' } : {})

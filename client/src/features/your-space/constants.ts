@@ -2,12 +2,14 @@ import type { Block, PaletteItem, SectionLayout } from './types'
 import { DEFAULT_SECTION_STYLE } from './utils/sectionStyleHelpers'
 
 const SECTION_BASE_PROPS = {
-  background: '#ffffff',
+  background: 'transparent',
   backgroundType: 'color' as const,
+  backgroundOpacity: 0,
   paddingY: 64,
   paddingX: 24,
   maxWidth: 'lg' as const,
   splitRatio: 50,
+  splitVisualAnimation: 'static' as const,
   ...DEFAULT_SECTION_STYLE,
   children: [],
   primaryChildren: [],
@@ -58,6 +60,7 @@ export const PALETTE_ITEMS: PaletteItem[] = [
       ],
       layout: 'horizontal',
       backgroundColor: '#ffffff',
+      backgroundOpacity: 0,
       textColor: '#1a1a2e',
       fixed: false
     }
@@ -99,10 +102,12 @@ export const PALETTE_ITEMS: PaletteItem[] = [
       buttonLink: '#',
       background: '#6366f1',
       backgroundType: 'color',
+      backgroundOpacity: 0,
       textColor: '#ffffff',
       alignment: 'center',
       layout: 'centered',
-      minHeight: 480
+      minHeight: 480,
+      splitVisualAnimation: 'aurora'
     }
   },
   {
@@ -164,7 +169,7 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     id: 'video',
     type: 'video',
     label: 'Video',
-    description: 'Embedded video clip',
+    description: 'Upload a clip or embed from YouTube/Vimeo',
     icon: 'ri-video-line',
     category: 'media',
     defaultProps: {
@@ -228,6 +233,7 @@ export const STARTER_BLOCKS: Block[] = [
       ],
       layout: 'horizontal',
       backgroundColor: '#ffffff',
+      backgroundOpacity: 0,
       textColor: '#1a1a2e',
       fixed: false
     }
@@ -242,6 +248,7 @@ export const STARTER_BLOCKS: Block[] = [
       buttonLink: '#',
       background: '#6366f1',
       backgroundType: 'color',
+      backgroundOpacity: 0,
       textColor: '#ffffff',
       alignment: 'center',
       layout: 'centered',

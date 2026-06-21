@@ -17,46 +17,12 @@ import {
   isVideoBackground
 } from '../../utils/sectionStyleHelpers'
 import { getSiteButtonSx } from '../../utils/siteStylesHelpers'
+import { resolveHeroVisualColors } from '../../utils/heroVisualHelpers'
 import { BlockBackgroundLayers } from './BlockBackgroundLayers'
+import { HeroVisualPanel } from './HeroVisualPanel'
 
 type Props = {
   props: HeroBlockProps
-}
-
-function HeroVisualPanel({ accentColor }: { accentColor: string }) {
-  return (
-    <Box
-      sx={{
-        flex: 1,
-        minHeight: 280,
-        background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 50%, ${accentColor}88 100%)`,
-        position: 'relative',
-        overflow: 'hidden',
-        display: { xs: 'none', md: 'block' }
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: '15%',
-          borderRadius: 3,
-          border: '1px solid rgba(255,255,255,0.25)',
-          backgroundColor: 'rgba(255,255,255,0.08)'
-        }}
-      />
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: '20%',
-          right: '15%',
-          width: 96,
-          height: 96,
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255,255,255,0.12)'
-        }}
-      />
-    </Box>
-  )
 }
 
 function shouldShowSplitVisualPanel(props: HeroBlockProps): boolean {
@@ -79,6 +45,7 @@ export function HeroBlock({ props }: Props) {
   const photoAnimation = hasMedia ? getPhotoAnimation(props, siteStyles.misc.imageHoverEffect) : 'none'
   const background = getBlockBackground(props, '#6366f1')
   const buttonAccent = isSimpleColor(background) ? background : siteStyles.colors.accent
+  const visualColors = resolveHeroVisualColors(props, siteStyles.colors.accent)
 
   const content = (
     <>
@@ -191,7 +158,13 @@ export function HeroBlock({ props }: Props) {
         >
           {content}
         </Box>
-        {showSplitVisual && <HeroVisualPanel accentColor={siteStyles.colors.accent} />}
+        {showSplitVisual && (
+          <HeroVisualPanel
+            animation={props.splitVisualAnimation}
+            colorStart={visualColors.start}
+            colorEnd={visualColors.end}
+          />
+        )}
       </Box>
     </Box>
   )

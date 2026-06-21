@@ -427,3 +427,32 @@ export function flattenBlocks(blocks: Block[]): Block[] {
 
   return result
 }
+
+export function findParentSectionId(blocks: Block[], targetId: string): string | null {
+  for (const block of blocks) {
+    if (block.type !== 'section') {
+      continue
+    }
+
+    const props = block.props as SectionBlockProps
+    const columnLists = [props.children ?? [], props.primaryChildren ?? [], props.secondaryChildren ?? []]
+
+    for (const columnChildren of columnLists) {
+      if (columnChildren.some(child => child.id === targetId)) {
+        return block.id
+      }
+
+      for (const child of columnChildren) {
+        if (child.type === 'section') {
+          const nestedSectionId = findParentSectionId([child], targetId)
+
+          if (nestedSectionId) {
+            return nestedSectionId
+          }
+        }
+      }
+    }
+  }
+
+  return null
+}

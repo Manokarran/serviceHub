@@ -145,6 +145,7 @@ export function BuilderToolbar({ tenantName, siteUrl, displayUrl, isFullscreen, 
     restoreVersionToDraft,
     setVersions,
     resetToStarter,
+    resetToEmpty,
     blocks,
     versions
   } = useBuilder()
@@ -388,14 +389,25 @@ export function BuilderToolbar({ tenantName, siteUrl, displayUrl, isFullscreen, 
         <MenuItem
           onClick={() => {
             handleMenuClose()
-            resetToStarter()
+            resetToEmpty()
           }}
           disabled={blocks.length === 0}
         >
           <ListItemIcon>
+            <i className='ri-layout-line' />
+          </ListItemIcon>
+          <ListItemText>Reset to empty layout</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleMenuClose()
+            resetToStarter()
+          }}
+        >
+          <ListItemIcon>
             <i className='ri-refresh-line' />
           </ListItemIcon>
-          <ListItemText>Reset template</ListItemText>
+          <ListItemText>Reset to starter template</ListItemText>
         </MenuItem>
       </Menu>
 

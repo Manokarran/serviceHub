@@ -4,7 +4,19 @@ import type { BlockType } from '@/features/your-space/types'
 
 import type { ISitePageDocument, ISitePageVersionDocument } from './site-page.types'
 
-const BLOCK_TYPES: BlockType[] = ['section', 'header', 'hero', 'heading', 'text', 'button']
+const BLOCK_TYPES: BlockType[] = [
+  'section',
+  'header',
+  'footer',
+  'hero',
+  'heading',
+  'text',
+  'button',
+  'image',
+  'video',
+  'logo'
+]
+
 
 const sitePageBlockSchema = new Schema(
   {

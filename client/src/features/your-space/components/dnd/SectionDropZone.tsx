@@ -6,7 +6,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 
 import type { Block, SectionBlockProps } from '../../types'
 import type { BlockColumn } from '../../utils/blockTreeUtils'
-import { getSectionColumnBackground, isSimpleColor } from '../../utils/sectionStyleHelpers'
+import { getSectionColumnBackground, getBlockBackgroundOpacity, applyBackgroundAlpha, isSimpleColor } from '../../utils/sectionStyleHelpers'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { BlockInsertDropZone } from './BlockInsertDropZone'
 import { SortableBlockList } from './SortableBlockList'
@@ -26,6 +26,8 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
   const columnBg = getSectionColumnBackground(sectionProps, column === 'default' ? 'primary' : column)
   const splitStyle = sectionProps.splitStyle ?? 'gap'
   const showBuilderChrome = editMode && splitStyle !== 'contrast'
+  const backgroundOpacity = getBlockBackgroundOpacity(sectionProps)
+  const isTransparentSection = backgroundOpacity < 100
   const location = { container: 'section' as const, sectionId, column }
 
   if (!editMode) {
@@ -47,11 +49,13 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
         borderColor: showBuilderChrome ? alpha(theme.palette.primary.main, 0.14) : 'transparent',
         ...(columnBg
           ? isSimpleColor(columnBg)
-            ? { backgroundColor: columnBg }
+            ? { backgroundColor: applyBackgroundAlpha(columnBg, backgroundOpacity) }
             : {}
-          : {
-              backgroundColor: alpha(theme.palette.text.primary, 0.02)
-            }),
+          : isTransparentSection
+            ? { backgroundColor: 'transparent' }
+            : showBuilderChrome
+              ? { backgroundColor: alpha(theme.palette.text.primary, 0.02) }
+              : { backgroundColor: 'transparent' }),
         transition: 'border-color 0.15s, background-color 0.15s',
         p: children.length === 0 ? 2 : 0.75
       }}

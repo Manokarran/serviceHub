@@ -7,6 +7,7 @@ import { getOptimizedImageUrl, getOptimizedVideoUrl } from '@/lib/imagekit/urls'
 import { useCachedMediaUrl } from '@/hooks/useCachedMediaUrl'
 import {
   getBlockBackground,
+  getBlockBackgroundOpacity,
   getPhotoLayerSx,
   isPhotoBackground,
   isSimpleColor,
@@ -70,6 +71,8 @@ export function BlockBackgroundLayers({ props, photoOpacity, fallbackColor = '#f
   }
 
   if (!isSimpleColor(background)) {
+    const backgroundOpacity = getBlockBackgroundOpacity(props) / 100
+
     return (
       <Box
         aria-hidden
@@ -77,7 +80,8 @@ export function BlockBackgroundLayers({ props, photoOpacity, fallbackColor = '#f
           position: 'absolute',
           inset: 0,
           zIndex: 0,
-          pointerEvents: 'none'
+          pointerEvents: 'none',
+          opacity: backgroundOpacity
         }}
         style={{ background }}
       />

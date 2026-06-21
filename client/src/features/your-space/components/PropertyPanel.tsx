@@ -17,10 +17,14 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import { PALETTE_ITEMS } from '../constants'
+import { HeroLayoutControls } from './HeroLayoutControls'
+import { SectionLayoutControls } from './SectionLayoutControls'
+import { HERO_LAYOUT_OPTIONS } from '../constants/heroLayout'
 import { BUILDER_PROPERTY_PANEL_SX, BUILDER_PROPERTY_PANEL_WIDTH, BUILDER_TYPOGRAPHY } from '../constants/builderLayout'
 import { builderFormOutlineSx, builderSidePanelSx, builderSoftCardSx } from '../constants/builderChrome'
 import { useBuilder } from '../context/BuilderContext'
 import { useSiteStyles } from './SiteStylesScope'
+import { BackgroundOpacityField } from './property/BackgroundOpacityField'
 import {
   CompactButton,
   CornerRadiusField,
@@ -41,7 +45,6 @@ import type {
   HeaderLayout,
   HeadingBlockProps,
   HeroBlockProps,
-  HeroLayout,
   ImageBlockProps,
   ImageHoverEffect,
   LogoBlockProps,
@@ -61,6 +64,7 @@ import { MediaSourceField } from './property/MediaSourceField'
 import { SECTION_BORDER_OPTIONS, SECTION_SPLIT_STYLE_OPTIONS } from '../utils/sectionStyleHelpers'
 import { getBlockBackground } from '../utils/sectionStyleHelpers'
 import { getButtonBorderRadius, mapBlockVariantToButtonRole } from '../utils/siteStylesHelpers'
+import { getVideoSourceLabel, isEmbedVideoUrl, parseVideoUrl } from '../utils/videoUrlHelpers'
 
 const FIELD_SX = {
   '& .MuiInputBase-root': { borderRadius: 1 }
@@ -222,18 +226,6 @@ const IMAGE_HOVER_OPTIONS: LayoutOption<ImageHoverEffect>[] = [
   { value: 'fade', label: 'Fade', icon: 'ri-contrast-drop-2-line' }
 ]
 
-const HERO_LAYOUT_OPTIONS: LayoutOption<HeroLayout>[] = [
-  { value: 'centered', label: 'Centered', icon: 'ri-align-center' },
-  { value: 'split-left', label: 'Split left', icon: 'ri-layout-left-line' },
-  { value: 'split-right', label: 'Split right', icon: 'ri-layout-right-line' }
-]
-
-const SECTION_LAYOUT_OPTIONS: LayoutOption<SectionLayout>[] = [
-  { value: 'default', label: 'Single', icon: 'ri-layout-row-line' },
-  { value: 'split-horizontal', label: 'Double', icon: 'ri-layout-column-line' },
-  { value: 'split-vertical', label: 'Stacked', icon: 'ri-layout-grid-line' }
-]
-
 const SECTION_SPLIT_STYLE_OPTIONS_TYPED: LayoutOption<SectionSplitStyle>[] = SECTION_SPLIT_STYLE_OPTIONS
 
 const SECTION_BORDER_OPTIONS_TYPED: LayoutOption<SectionBorderStyle>[] = SECTION_BORDER_OPTIONS
@@ -348,6 +340,10 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
       return (
         <PropertyFields>
           <ColorField label='Background' value={props.backgroundColor} onChange={v => update({ backgroundColor: v })} />
+          <BackgroundOpacityField
+            value={props.backgroundOpacity ?? 0}
+            onChange={backgroundOpacity => update({ backgroundOpacity })}
+          />
           <ColorField label='Text color' value={props.textColor} onChange={v => update({ textColor: v })} />
           <CornerRadiusField
             value={props.borderRadius}
@@ -401,6 +397,10 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
       return (
         <PropertyFields>
           <ColorField label='Background' value={props.backgroundColor} onChange={v => update({ backgroundColor: v })} />
+          <BackgroundOpacityField
+            value={props.backgroundOpacity ?? 100}
+            onChange={backgroundOpacity => update({ backgroundOpacity })}
+          />
           <ColorField label='Text color' value={props.textColor} onChange={v => update({ textColor: v })} />
           <CornerRadiusField
             value={props.borderRadius}
@@ -437,12 +437,7 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
       if (activeTab === 'layout') {
         return (
           <PropertyFields>
-            <LayoutOptionGroup value={props.layout ?? 'centered'} options={HERO_LAYOUT_OPTIONS} onChange={layout => update({ layout })} />
-            {props.layout === 'centered' && <AlignSelect value={props.alignment} onChange={v => update({ alignment: v })} />}
-            <Box>
-              <PropertyFieldLabel>Min height: {props.minHeight}px</PropertyFieldLabel>
-              <Slider value={props.minHeight} min={300} max={700} step={20} onChange={(_, v) => update({ minHeight: v as number })} />
-            </Box>
+            <HeroLayoutControls props={props} accentColor={siteStyles.colors.accent} onUpdate={update} />
           </PropertyFields>
         )
       }
@@ -468,6 +463,10 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
               }
             }}
           />
+          <BackgroundOpacityField
+            value={props.backgroundOpacity ?? 0}
+            onChange={backgroundOpacity => update({ backgroundOpacity })}
+          />
           <ColorField label='Text color' value={props.textColor} onChange={v => update({ textColor: v })} />
         </PropertyFields>
       )
@@ -475,69 +474,11 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
     case 'section': {
       const props = block.props as SectionBlockProps
       const update = (changes: Partial<SectionBlockProps>) => updateBlock(block.id, changes)
-      const isSplit = props.layout === 'split-horizontal' || props.layout === 'split-vertical'
 
       if (activeTab === 'layout') {
         return (
           <PropertyFields>
-            <LayoutOptionGroup value={props.layout ?? 'default'} options={SECTION_LAYOUT_OPTIONS} onChange={layout => update({ layout })} />
-            {isSplit && (
-              <>
-                <PropertySection title='Split appearance' collapsible defaultOpen>
-                  <LayoutOptionGroup
-                    value={props.splitStyle ?? 'gap'}
-                    options={SECTION_SPLIT_STYLE_OPTIONS_TYPED}
-                    onChange={splitStyle => update({ splitStyle })}
-                  />
-                  {props.splitStyle === 'gap' && (
-                    <Box>
-                      <PropertyFieldLabel>Column gap: {props.splitGap ?? 24}px</PropertyFieldLabel>
-                      <Slider value={props.splitGap ?? 24} min={0} max={64} step={4} onChange={(_, v) => update({ splitGap: v as number })} />
-                    </Box>
-                  )}
-                  {props.splitStyle === 'divider' && (
-                    <ColorField label='Divider color' value={props.splitDividerColor ?? '#e2e8f0'} onChange={v => update({ splitDividerColor: v })} />
-                  )}
-                  {props.splitStyle === 'contrast' && (
-                    <>
-                      <ColorField
-                        label='Primary column tint'
-                        value={props.primaryColumnBackground || '#f1f5f9'}
-                        onChange={v => update({ primaryColumnBackground: v })}
-                      />
-                      <ColorField
-                        label='Secondary column tint'
-                        value={props.secondaryColumnBackground || '#e2e8f0'}
-                        onChange={v => update({ secondaryColumnBackground: v })}
-                      />
-                    </>
-                  )}
-                </PropertySection>
-                <Box>
-                  <PropertyFieldLabel>
-                    Column ratio: {props.splitRatio}% / {100 - props.splitRatio}%
-                  </PropertyFieldLabel>
-                  <Slider value={props.splitRatio ?? 50} min={30} max={70} step={5} onChange={(_, v) => update({ splitRatio: v as number })} />
-                </Box>
-              </>
-            )}
-            <FormControl size='small' fullWidth>
-              <InputLabel>Max width</InputLabel>
-              <Select label='Max width' value={props.maxWidth} onChange={e => update({ maxWidth: e.target.value as SectionBlockProps['maxWidth'] })}>
-                <MenuItem value='sm'>Small (640px)</MenuItem>
-                <MenuItem value='md'>Medium (768px)</MenuItem>
-                <MenuItem value='lg'>Large (1024px)</MenuItem>
-                <MenuItem value='full'>Full width</MenuItem>
-              </Select>
-            </FormControl>
-            <Box>
-              <PropertyFieldLabel>Vertical padding: {props.paddingY}px</PropertyFieldLabel>
-              <Slider value={props.paddingY} min={16} max={128} step={8} onChange={(_, v) => update({ paddingY: v as number })} />
-            </Box>
-            <Box>
-              <PropertyFieldLabel>Horizontal padding: {props.paddingX}px</PropertyFieldLabel>
-              <Slider value={props.paddingX} min={0} max={64} step={4} onChange={(_, v) => update({ paddingX: v as number })} />
-            </Box>
+            <SectionLayoutControls props={props} accentColor={siteStyles.colors.accent} onUpdate={update} />
           </PropertyFields>
         )
       }
@@ -562,6 +503,10 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
                 update({ backgroundPhotoAnimation: nextValue as SectionBlockProps['backgroundPhotoAnimation'] })
               }
             }}
+          />
+          <BackgroundOpacityField
+            value={props.backgroundOpacity ?? 100}
+            onChange={backgroundOpacity => update({ backgroundOpacity })}
           />
           <CornerRadiusField
             value={props.borderRadius}
@@ -722,14 +667,38 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
     case 'video': {
       const props = block.props as VideoBlockProps
       const update = (changes: Partial<VideoBlockProps>) => updateBlock(block.id, changes)
+      const parsedVideo = parseVideoUrl(props.src)
+      const embedLabel = getVideoSourceLabel(parsedVideo.type)
+      const isEmbed = isEmbedVideoUrl(props.src)
 
       if (activeTab === 'design') {
         return (
           <PropertyFields>
-            <MediaSourceField label='Video' value={props.src} onChange={src => update({ src })} acceptVideo />
+            <MediaSourceField
+              label='Video'
+              value={props.src}
+              onChange={src => update({ src })}
+              acceptVideo
+              urlPlaceholder='Upload, paste a file URL, or YouTube/Vimeo link'
+            />
+            {embedLabel && (
+              <Typography sx={{ ...BUILDER_TYPOGRAPHY.subtle, color: 'text.secondary' }}>
+                {embedLabel} embed detected
+              </Typography>
+            )}
             <FixedToggle label='Show controls' checked={props.controls} onChange={controls => update({ controls })} />
-            <FixedToggle label='Autoplay' checked={props.autoplay} onChange={autoplay => update({ autoplay })} />
-            <FixedToggle label='Muted' checked={props.muted} onChange={muted => update({ muted })} />
+            <FixedToggle
+              label='Autoplay'
+              checked={props.autoplay}
+              onChange={autoplay => update({ autoplay, ...(autoplay ? { muted: true } : {}) })}
+            />
+            {!isEmbed || !props.autoplay ? (
+              <FixedToggle label='Muted' checked={props.muted} onChange={muted => update({ muted })} />
+            ) : (
+              <Typography sx={{ ...BUILDER_TYPOGRAPHY.subtle, color: 'text.secondary' }}>
+                Muted is required when autoplay is enabled for embeds.
+              </Typography>
+            )}
             <FixedToggle label='Loop' checked={props.loop} onChange={loop => update({ loop })} />
           </PropertyFields>
         )
@@ -817,9 +786,11 @@ function EmptyState() {
 
 type PropertyContentProps = {
   onClose?: () => void
+  focusTab?: PropertyPanelTab | null
+  onFocusTabConsumed?: () => void
 }
 
-export function PropertyPanelContent({ onClose }: PropertyContentProps) {
+export function PropertyPanelContent({ onClose, focusTab, onFocusTabConsumed }: PropertyContentProps) {
   const theme = useTheme()
   const { selectedBlock, mode } = useBuilder()
   const [activeTab, setActiveTab] = useState<PropertyPanelTab>('design')
@@ -843,6 +814,15 @@ export function PropertyPanelContent({ onClose }: PropertyContentProps) {
       setActiveTab(current => (availableTabs.includes(current) ? current : availableTabs[0]))
     }
   }, [selectedBlock?.id, availableTabs])
+
+  useEffect(() => {
+    if (!focusTab || !availableTabs.includes(focusTab)) {
+      return
+    }
+
+    setActiveTab(focusTab)
+    onFocusTabConsumed?.()
+  }, [focusTab, availableTabs, onFocusTabConsumed])
 
   if (mode === 'preview') {
     return (
@@ -885,9 +865,11 @@ type Props = {
   open: boolean
   onClose: () => void
   onOpen: () => void
+  focusTab?: PropertyPanelTab | null
+  onFocusTabConsumed?: () => void
 }
 
-export function PropertyPanel({ open, onClose, onOpen }: Props) {
+export function PropertyPanel({ open, onClose, onOpen, focusTab, onFocusTabConsumed }: Props) {
   const theme = useTheme()
   const { mode } = useBuilder()
 
@@ -935,7 +917,11 @@ export function PropertyPanel({ open, onClose, onOpen }: Props) {
           <PropertyBodyText>Switch to Edit mode to customize blocks</PropertyBodyText>
         </Box>
       ) : (
-        <PropertyPanelContent onClose={onClose} />
+        <PropertyPanelContent
+          onClose={onClose}
+          focusTab={focusTab}
+          onFocusTabConsumed={onFocusTabConsumed}
+        />
       )}
     </Box>
   )

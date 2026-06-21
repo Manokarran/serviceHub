@@ -15,6 +15,7 @@ import { useBuilder } from '../context/BuilderContext'
 import { insertDropId } from '../utils/blockTreeUtils'
 import { getCanvasCornerRadius } from '../utils/siteStylesHelpers'
 import { SiteStylesScope } from './SiteStylesScope'
+import { SitePageBackgroundLayer } from './SitePageBackgroundLayer'
 import { BuilderCanvasToolbar } from './BuilderCanvasToolbar'
 import { BlockInsertDropZone } from './dnd/BlockInsertDropZone'
 import { SortableBlockList } from './dnd/SortableBlockList'
@@ -111,6 +112,15 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
             }
           >
         <SiteStylesScope siteStyles={siteStyles}>
+          <Box
+            sx={{
+              position: 'relative',
+              minHeight: blocks.length === 0 ? '100%' : undefined,
+              backgroundColor: siteStyles.colors.background
+            }}
+          >
+            {blocks.length > 0 && <SitePageBackgroundLayer />}
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
           {blocks.length === 0 ? (
             <Box
               sx={{
@@ -120,8 +130,9 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
                 justifyContent: 'center',
                 minHeight: 420,
                 gap: 2,
-                color: 'text.secondary',
-                p: 4
+                p: 4,
+                backgroundColor: 'transparent',
+                color: siteStyles.colors.swatch4
               }}
             >
               <BlockInsertDropZone id={insertDropId({ container: 'root', index: 0 })} />
@@ -133,16 +144,23 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                  color: 'primary.main'
+                  backgroundColor: alpha(siteStyles.colors.accent, 0.08),
+                  color: siteStyles.colors.accent
                 }}
               >
                 <i className='ri-drag-drop-line' style={{ fontSize: '1.5rem' }} />
               </Box>
-              <Typography variant='subtitle1' color='text.primary' sx={BUILDER_TYPOGRAPHY.title}>
+              <Typography
+                variant='subtitle1'
+                sx={{ ...BUILDER_TYPOGRAPHY.title, color: siteStyles.colors.text }}
+              >
                 Start building your page
               </Typography>
-              <Typography variant='body2' align='center' sx={{ maxWidth: 300, color: 'text.secondary' }}>
+              <Typography
+                variant='body2'
+                align='center'
+                sx={{ maxWidth: 300, color: siteStyles.colors.swatch4 }}
+              >
                 {isMobileLayout
                   ? 'Tap Components below to add blocks, then drag to reorder on the canvas.'
                   : 'Pick a block from the left panel and drag it anywhere on the canvas, or reorder blocks using the handle.'}
@@ -151,6 +169,8 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
           ) : (
             <SortableBlockList blocks={blocks} location={{ container: 'root' }} />
           )}
+            </Box>
+          </Box>
         </SiteStylesScope>
           </Box>
         </Box>

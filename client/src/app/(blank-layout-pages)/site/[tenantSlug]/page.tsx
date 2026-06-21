@@ -3,8 +3,11 @@ import { notFound } from 'next/navigation'
 
 import { PublicSiteEmptyState } from '@/features/your-space/components/PublicSiteEmptyState'
 import { PublicSiteRenderer } from '@/features/your-space/components/PublicSiteRenderer'
+import { DEFAULT_SITE_STYLES } from '@/features/your-space/constants/siteStylePresets'
 import type { Block } from '@/features/your-space/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
+import { normalizeBlocks } from '@/features/your-space/utils/blockMigration'
+import { mergeSiteStyles } from '@/features/your-space/utils/siteStylesHelpers'
 import { sitePageService } from '@/services/site-page'
 
 type PageProps = {
@@ -33,8 +36,11 @@ export default async function PublicSitePage({ params }: PageProps) {
     notFound()
   }
 
-  const blocks = JSON.parse(JSON.stringify(site.blocks)) as Block[]
-  const siteStyles = site.siteStyles ? (JSON.parse(JSON.stringify(site.siteStyles)) as SiteStyles) : null
+  const blocks = normalizeBlocks(JSON.parse(JSON.stringify(site.blocks)) as Block[])
+  const siteStyles = mergeSiteStyles(
+    site.siteStyles ? (JSON.parse(JSON.stringify(site.siteStyles)) as Partial<SiteStyles>) : {},
+    DEFAULT_SITE_STYLES
+  )
 
   if (blocks.length === 0) {
     return <PublicSiteEmptyState tenantName={site.tenant.name} />

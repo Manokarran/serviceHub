@@ -48,6 +48,7 @@ export function normalizeBlock(block: Block): Block {
         layout: props.layout ?? 'horizontal',
         fixed: props.fixed ?? false,
         borderRadius: props.borderRadius ?? 0,
+        backgroundOpacity: props.backgroundOpacity ?? 0,
         navLinks: normalizeNavLinks(props.navLinks)
       }
     }
@@ -66,6 +67,7 @@ export function normalizeBlock(block: Block): Block {
         layout: props.layout ?? 'horizontal',
         fixed: props.fixed ?? false,
         borderRadius: props.borderRadius ?? 0,
+        backgroundOpacity: props.backgroundOpacity ?? 100,
         navLinks: normalizeNavLinks(props.navLinks)
       }
     }
@@ -82,7 +84,11 @@ export function normalizeBlock(block: Block): Block {
         background,
         backgroundType: props.backgroundType ?? 'color',
         backgroundPhotoOpacity: props.backgroundPhotoOpacity ?? 100,
-        layout: props.layout ?? 'centered'
+        backgroundOpacity: props.backgroundOpacity ?? 0,
+        layout: props.layout ?? 'centered',
+        splitVisualAnimation: props.splitVisualAnimation ?? 'aurora',
+        splitVisualColorStart: props.splitVisualColorStart ?? '',
+        splitVisualColorEnd: props.splitVisualColorEnd ?? ''
       }
     }
   }
@@ -146,11 +152,15 @@ export function normalizeBlock(block: Block): Block {
         background,
         backgroundType: props.backgroundType ?? 'color',
         backgroundPhotoOpacity: props.backgroundPhotoOpacity ?? 100,
+        backgroundOpacity: props.backgroundOpacity ?? 100,
         layout: props.layout ?? 'default',
         splitRatio: props.splitRatio ?? 50,
         children: Array.isArray(props.children) ? props.children.map(normalizeBlock) : [],
         primaryChildren: Array.isArray(props.primaryChildren) ? props.primaryChildren.map(normalizeBlock) : [],
-        secondaryChildren: Array.isArray(props.secondaryChildren) ? props.secondaryChildren.map(normalizeBlock) : []
+        secondaryChildren: Array.isArray(props.secondaryChildren) ? props.secondaryChildren.map(normalizeBlock) : [],
+        splitVisualAnimation: props.splitVisualAnimation ?? 'aurora',
+        splitVisualColorStart: props.splitVisualColorStart ?? '',
+        splitVisualColorEnd: props.splitVisualColorEnd ?? ''
       }
     }
   }

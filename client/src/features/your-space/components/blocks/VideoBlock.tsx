@@ -7,6 +7,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 import { getOptimizedVideoUrl } from '@/lib/imagekit/urls'
 import type { VideoBlockProps } from '../../types'
 import { getMediaFrameSx } from '../../utils/mediaBlockHelpers'
+import { buildVideoEmbedUrl, parseVideoUrl } from '../../utils/videoUrlHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
@@ -18,7 +19,18 @@ export function VideoBlock({ props }: Props) {
   const siteStyles = useSiteStyles()
   const frameSx = getMediaFrameSx(siteStyles.misc, 'none', props.borderRadius)
   const cornerRadius = props.borderRadius ?? siteStyles.misc.imageCornerRadius
-  const optimizedSrc = props.src ? getOptimizedVideoUrl(props.src) : ''
+  const parsed = parseVideoUrl(props.src)
+  const embedUrl =
+    parsed.type !== 'file' && props.src
+      ? buildVideoEmbedUrl(parsed, {
+          autoplay: props.autoplay,
+          muted: props.muted,
+          loop: props.loop,
+          controls: props.controls
+        })
+      : null
+  const optimizedSrc = props.src && parsed.type === 'file' ? getOptimizedVideoUrl(props.src) : ''
+  const hasMedia = Boolean(embedUrl || optimizedSrc)
 
   return (
     <Box
@@ -29,18 +41,36 @@ export function VideoBlock({ props }: Props) {
         justifyContent: props.alignment === 'center' ? 'center' : props.alignment === 'right' ? 'flex-end' : 'flex-start'
       }}
     >
-      {optimizedSrc ? (
+      {hasMedia ? (
         <Box sx={{ width: '100%', maxWidth: 720, ...frameSx }}>
-          <Box
-            component='video'
-            src={optimizedSrc}
-            autoPlay={props.autoplay}
-            muted={props.muted}
-            loop={props.loop}
-            controls={props.controls}
-            playsInline
-            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', backgroundColor: '#000' }}
-          />
+          {embedUrl ? (
+            <Box
+              component='iframe'
+              src={embedUrl}
+              title='Embedded video'
+              allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+              allowFullScreen
+              sx={{
+                width: '100%',
+                height: '100%',
+                minHeight: 200,
+                border: 0,
+                display: 'block',
+                backgroundColor: '#000'
+              }}
+            />
+          ) : (
+            <Box
+              component='video'
+              src={optimizedSrc}
+              autoPlay={props.autoplay}
+              muted={props.muted}
+              loop={props.loop}
+              controls={props.controls}
+              playsInline
+              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', backgroundColor: '#000' }}
+            />
+          )}
         </Box>
       ) : (
         <Box

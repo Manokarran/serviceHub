@@ -3,7 +3,6 @@
 import Box from '@mui/material/Box'
 
 import type { Block, SectionBlockProps } from '../../types'
-import { useSiteStyles } from '../SiteStylesScope'
 import { getSectionColumnChildren } from '../../utils/blockTreeUtils'
 import {
   getBlockBackgroundShellSx,
@@ -17,9 +16,17 @@ import {
   isVideoBackground,
   shouldShowSplitDivider
 } from '../../utils/sectionStyleHelpers'
+import {
+  shouldRenderSectionBackgroundVisual,
+  shouldRenderSectionColumnVisual
+} from '../../utils/sectionVisualHelpers'
+import { resolveHeroVisualColors } from '../../utils/heroVisualHelpers'
+import { useSiteStyles } from '../SiteStylesScope'
 import { SectionDropZone } from '../dnd/SectionDropZone'
+import { SectionEditChip } from '../inline/SectionEditChip'
 import { BlockBackgroundLayers } from './BlockBackgroundLayers'
 import { BlockRenderer } from './BlockRenderer'
+import { HeroVisualPanel } from './HeroVisualPanel'
 
 const MAX_WIDTH_MAP = {
   sm: 640,
@@ -32,6 +39,60 @@ type SectionContentProps = {
   block: Block
   props: SectionBlockProps
   editMode: boolean
+}
+
+function SectionVisualColumn({
+  block,
+  props,
+  editMode,
+  column,
+  emptyLabel
+}: SectionContentProps & {
+  column: 'secondary'
+  emptyLabel: string
+}) {
+  const siteStyles = useSiteStyles()
+  const children = getSectionColumnChildren(block, column)
+  const showVisual = shouldRenderSectionColumnVisual(props, children.length > 0)
+  const visualColors = resolveHeroVisualColors(props, siteStyles.colors.accent)
+
+  if (showVisual) {
+    return (
+      <Box sx={{ position: 'relative', minHeight: 200, display: 'flex', flexDirection: 'column' }}>
+        <HeroVisualPanel
+          animation={props.splitVisualAnimation}
+          colorStart={visualColors.start}
+          colorEnd={visualColors.end}
+          mode='section-column'
+        />
+        {editMode && (
+          <Box sx={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+            <SectionDropZone
+              sectionId={block.id}
+              column={column}
+              children={children}
+              sectionProps={props}
+              editMode
+              emptyLabel={emptyLabel}
+            />
+          </Box>
+        )}
+      </Box>
+    )
+  }
+
+  return editMode ? (
+    <SectionDropZone
+      sectionId={block.id}
+      column={column}
+      children={children}
+      sectionProps={props}
+      editMode
+      emptyLabel={emptyLabel}
+    />
+  ) : (
+    children.map(child => <BlockRenderer key={child.id} block={child} preview />)
+  )
 }
 
 function SectionColumns({
@@ -49,7 +110,13 @@ function SectionColumns({
       <Box sx={getSectionColumnShellSx(props, 'primary', editMode)}>{renderColumn('primary', 'Drop blocks in the primary column')}</Box>
       {showDivider && <Box sx={getSectionDividerSx(props, props.layout)} aria-hidden />}
       <Box sx={getSectionColumnShellSx(props, 'secondary', editMode)}>
-        {renderColumn('secondary', 'Drop blocks in the secondary column')}
+        <SectionVisualColumn
+          block={block}
+          props={props}
+          editMode={editMode}
+          column='secondary'
+          emptyLabel='Drop blocks in the secondary column'
+        />
       </Box>
     </Box>
   )
@@ -108,16 +175,28 @@ function SectionShell({ block, preview }: Props) {
   const hasMedia = hasPhoto || hasVideo
   const photoOpacity = getPhotoOpacity(props)
   const photoAnimation = hasMedia ? getPhotoAnimation(props, siteStyles.misc.imageHoverEffect) : 'none'
+  const showBackgroundVisual = shouldRenderSectionBackgroundVisual(props)
+  const visualColors = resolveHeroVisualColors(props, siteStyles.colors.accent)
 
   return (
     <Box
       component='section'
       sx={{
+        position: 'relative',
         ...getBlockBackgroundShellSx(props, photoAnimation, photoOpacity),
         py: `${props.paddingY}px`,
         px: `${props.paddingX}px`
       }}
     >
+      {showBackgroundVisual && (
+        <HeroVisualPanel
+          animation={props.splitVisualAnimation}
+          colorStart={visualColors.start}
+          colorEnd={visualColors.end}
+          mode='section-background'
+        />
+      )}
+      {editMode && <SectionEditChip sectionId={block.id} />}
       <BlockBackgroundLayers props={props} photoOpacity={photoOpacity} />
       <Box
         sx={{

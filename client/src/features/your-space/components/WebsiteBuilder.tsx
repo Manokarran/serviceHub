@@ -32,6 +32,8 @@ import { BuilderMobileDrawers } from './BuilderMobileDrawers'
 import { BuilderSidebar } from './BuilderSidebar'
 import { BuilderToolbar } from './BuilderToolbar'
 import { PropertyPanel } from './PropertyPanel'
+import type { PropertyPanelTab } from '../components/property/PropertyPanelUi'
+import { BuilderShellProvider } from '../context/BuilderShellContext'
 import { useBuilderFullscreen } from '../hooks/useBuilderFullscreen'
 
 type WebsiteBuilderInnerProps = {
@@ -53,7 +55,20 @@ function WebsiteBuilderInner({ tenantName, siteUrl, displayUrl }: WebsiteBuilder
   const [stylesOpen, setStylesOpen] = useState(false)
   const [sidebarPanelOpen, setSidebarPanelOpen] = useState(true)
   const [propertyPanelOpen, setPropertyPanelOpen] = useState(true)
+  const [propertyPanelFocusTab, setPropertyPanelFocusTab] = useState<PropertyPanelTab | null>(null)
   const lastOpenedBlockId = useRef<string | null>(null)
+
+  const openPropertyPanel = useCallback((tab?: PropertyPanelTab) => {
+    setPropertyPanelOpen(true)
+
+    if (isMobileLayout) {
+      setPropertiesOpen(true)
+    }
+
+    if (tab) {
+      setPropertyPanelFocusTab(tab)
+    }
+  }, [isMobileLayout])
 
   const isEditMode = mode === 'edit'
 
@@ -65,8 +80,13 @@ function WebsiteBuilderInner({ tenantName, siteUrl, displayUrl }: WebsiteBuilder
       return
     }
 
-    if (isMobileLayout && isEditMode && selectedBlock.id !== lastOpenedBlockId.current) {
-      setPropertiesOpen(true)
+    if (isEditMode && selectedBlock.id !== lastOpenedBlockId.current) {
+      setPropertyPanelOpen(true)
+
+      if (isMobileLayout) {
+        setPropertiesOpen(true)
+      }
+
       lastOpenedBlockId.current = selectedBlock.id
     }
   }, [selectedBlock, isMobileLayout, isEditMode])
@@ -136,7 +156,8 @@ function WebsiteBuilderInner({ tenantName, siteUrl, displayUrl }: WebsiteBuilder
     : null
 
   return (
-    <DndContext
+    <BuilderShellProvider openPropertyPanel={openPropertyPanel}>
+      <DndContext
       sensors={sensors}
       collisionDetection={builderCollisionDetection}
       onDragStart={handleDragStart}
@@ -177,6 +198,8 @@ function WebsiteBuilderInner({ tenantName, siteUrl, displayUrl }: WebsiteBuilder
               open={propertyPanelOpen}
               onClose={() => setPropertyPanelOpen(false)}
               onOpen={() => setPropertyPanelOpen(true)}
+              focusTab={propertyPanelFocusTab}
+              onFocusTabConsumed={() => setPropertyPanelFocusTab(null)}
             />
           )}
         </Box>
@@ -186,6 +209,8 @@ function WebsiteBuilderInner({ tenantName, siteUrl, displayUrl }: WebsiteBuilder
             propertiesOpen={propertiesOpen}
             stylesOpen={stylesOpen}
             hasSelectedBlock={Boolean(selectedBlock)}
+            propertyPanelFocusTab={propertyPanelFocusTab}
+            onPropertyPanelFocusTabConsumed={() => setPropertyPanelFocusTab(null)}
             onPaletteOpen={() => setPaletteOpen(true)}
             onPaletteClose={() => setPaletteOpen(false)}
             onPropertiesOpen={() => setPropertiesOpen(true)}
@@ -219,6 +244,7 @@ function WebsiteBuilderInner({ tenantName, siteUrl, displayUrl }: WebsiteBuilder
         ) : null}
       </DragOverlay>
     </DndContext>
+    </BuilderShellProvider>
   )
 }
 

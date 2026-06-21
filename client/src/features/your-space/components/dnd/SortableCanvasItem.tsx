@@ -1,25 +1,26 @@
 'use client'
 
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
-import Typography from '@mui/material/Typography'
+import { CSS } from '@dnd-kit/utilities'
+import { useSortable } from '@dnd-kit/sortable'
 
 import { useBuilder } from '../../context/BuilderContext'
-import { BUILDER_TYPOGRAPHY } from '../../constants/builderLayout'
 import type { Block } from '../../types'
-import { BlockRenderer, getBlockLabel } from '../blocks/BlockRenderer'
+import { BlockRenderer } from '../blocks/BlockRenderer'
+import { CanvasBlockEditProvider } from '../inline/CanvasBlockEditContext'
+import { BlockInlineToolbar } from '../inline/BlockInlineToolbar'
 
 type Props = {
   block: Block
   nested?: boolean
+  toolbarPlacement?: 'above' | 'below'
   preview?: boolean
 }
 
-export function SortableCanvasItem({ block, nested = false, preview = false }: Props) {
-  const { selectedBlockId, mode, selectBlock, deleteBlock } = useBuilder()
+export function SortableCanvasItem({ block, nested = false, toolbarPlacement = 'above', preview = false }: Props) {
+  const { selectedBlockId, mode, selectBlock, deleteBlock, updateBlock } = useBuilder()
   const isSelected = selectedBlockId === block.id
   const isEditMode = mode === 'edit'
 
@@ -37,6 +38,8 @@ export function SortableCanvasItem({ block, nested = false, preview = false }: P
     return <BlockRenderer block={block} preview />
   }
 
+  const toolbarZIndex = block.type === 'section' ? 30 : 20
+
   return (
     <Box
       ref={setNodeRef}
@@ -49,66 +52,95 @@ export function SortableCanvasItem({ block, nested = false, preview = false }: P
       }}
       sx={{
         position: 'relative',
+        overflow: 'visible',
         opacity: isDragging ? 0.5 : 1,
         outline: isEditMode && isSelected ? '2px solid' : '2px solid transparent',
         outlineColor: isEditMode && isSelected ? 'primary.main' : 'transparent',
         outlineOffset: -2,
-        '&:hover .block-toolbar': isEditMode ? { opacity: 1 } : {}
+        '&:hover .block-inline-toolbar': isEditMode && !isSelected ? { opacity: 1, pointerEvents: 'auto' } : {}
       }}
     >
-      {isEditMode && (
+      {isEditMode && isSelected && (
         <Box
-          className='block-toolbar'
+          className='block-inline-toolbar'
+          sx={{
+            opacity: 1,
+            pointerEvents: 'auto',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: toolbarZIndex
+          }}
+        >
+          <BlockInlineToolbar
+            block={block}
+            nested={nested}
+            toolbarPlacement={toolbarPlacement}
+            onDelete={() => deleteBlock(block.id)}
+            dragHandleProps={{ ...attributes, ...listeners }}
+          />
+        </Box>
+      )}
+      {isEditMode && !isSelected && (
+        <Box
+          className='block-inline-toolbar'
           sx={{
             position: 'absolute',
-            top: nested ? 4 : 8,
-            right: nested ? 4 : 8,
+            top: 0,
+            left: 0,
+            right: 0,
             zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            opacity: isSelected ? 1 : 0,
-            transition: 'opacity 0.15s',
-            backgroundColor: 'background.paper',
-            borderRadius: 1,
-            boxShadow: 1,
-            px: 0.5,
-            py: 0.25
+            opacity: 0,
+            pointerEvents: 'none',
+            transition: 'opacity 0.15s'
           }}
         >
           <Box
-            {...attributes}
-            {...listeners}
             sx={{
+              position: 'absolute',
+              left: '50%',
+              transform: 'translate(-50%, -100%)',
+              top: -8,
               display: 'flex',
               alignItems: 'center',
-              gap: 0.5,
-              px: 1,
-              py: 0.5,
-              cursor: 'grab',
-              touchAction: 'none',
-              color: 'text.secondary'
+              gap: 0.25,
+              px: 0.75,
+              py: 0.375,
+              borderRadius: 1,
+              backgroundColor: 'background.paper',
+              boxShadow: 1
+            }}
+            onClick={e => {
+              e.stopPropagation()
+              selectBlock(block.id)
             }}
           >
-            <i className='ri-draggable' style={{ fontSize: '1rem' }} />
-            <Typography variant='caption' sx={BUILDER_TYPOGRAPHY.label}>
-              {getBlockLabel(block.type)}
-            </Typography>
-          </Box>
-          <Tooltip title='Delete'>
-            <IconButton
-              size='small'
-              onClick={e => {
-                e.stopPropagation()
-                deleteBlock(block.id)
+            <Tooltip title='Select block'>
+              <IconButton size='small' sx={{ width: 24, height: 24 }}>
+                <i className='ri-focus-3-line' style={{ fontSize: '0.8rem' }} />
+              </IconButton>
+            </Tooltip>
+            <Box
+              {...attributes}
+              {...listeners}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                px: 0.5,
+                cursor: 'grab',
+                touchAction: 'none',
+                color: 'text.secondary'
               }}
             >
-              <i className='ri-delete-bin-line' style={{ fontSize: '0.875rem' }} />
-            </IconButton>
-          </Tooltip>
+              <i className='ri-draggable' style={{ fontSize: '0.85rem' }} />
+            </Box>
+          </Box>
         </Box>
       )}
-      <BlockRenderer block={block} preview={mode === 'preview'} />
+      <CanvasBlockEditProvider block={block} updateProps={changes => updateBlock(block.id, changes)}>
+        <BlockRenderer block={block} preview={mode === 'preview'} />
+      </CanvasBlockEditProvider>
     </Box>
   )
 }

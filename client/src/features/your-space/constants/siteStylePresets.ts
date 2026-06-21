@@ -41,29 +41,32 @@ const DEFAULT_MISC: SiteStyles['misc'] = {
   canvasCornerRadius: 0,
   imageCornerRadius: 0,
   imageHoverEffect: 'none',
-  imageAspectRatio: 'auto'
+  imageAspectRatio: 'auto',
+  pageSplitVisualAnimation: 'static',
+  pageSplitVisualColorStart: '',
+  pageSplitVisualColorEnd: ''
 }
 
 export const DEFAULT_SITE_STYLES: SiteStyles = {
-  themeId: 'professional',
+  themeId: 'plain',
   fonts: {
     headingFamily: '"Inter", system-ui, sans-serif',
     bodyFamily: '"Inter", system-ui, sans-serif',
-    headingWeight: 700,
+    headingWeight: 600,
     bodyWeight: 400,
     headingScale: 1,
     bodySize: 16,
-    headingLetterSpacing: -0.02
+    headingLetterSpacing: -0.01
   },
   colors: {
     swatch1: '#ffffff',
-    swatch2: '#f8fafc',
-    swatch3: '#94a3b8',
-    swatch4: '#334155',
-    swatch5: '#0f172a',
-    accent: '#0f172a',
+    swatch2: '#ffffff',
+    swatch3: '#d4d4d8',
+    swatch4: '#52525b',
+    swatch5: '#18181b',
+    accent: '#18181b',
     background: '#ffffff',
-    text: '#0f172a'
+    text: '#18181b'
   },
   buttons: DEFAULT_BUTTONS,
   forms: DEFAULT_FORMS,
@@ -93,6 +96,31 @@ function createPreset(
 
 /** Squarespace-style theme presets — fonts, colors, and buttons applied together */
 export const SITE_THEME_PRESETS: SiteThemePreset[] = [
+  createPreset('plain', 'Plain', 'Clean white canvas — the default starting point', {
+    fonts: {
+      headingFamily: '"Inter", system-ui, sans-serif',
+      bodyFamily: '"Inter", system-ui, sans-serif',
+      headingWeight: 600,
+      bodyWeight: 400,
+      headingScale: 1,
+      bodySize: 16,
+      headingLetterSpacing: -0.01
+    },
+    colors: {
+      swatch1: '#ffffff',
+      swatch2: '#ffffff',
+      swatch3: '#d4d4d8',
+      swatch4: '#52525b',
+      swatch5: '#18181b',
+      accent: '#18181b',
+      background: '#ffffff',
+      text: '#18181b'
+    },
+    misc: {
+      ...DEFAULT_MISC,
+      pageSplitVisualAnimation: 'static'
+    }
+  }),
   createPreset('professional', 'Professional', 'Clean sans-serif with neutral palette', {
     fonts: {
       headingFamily: '"Inter", system-ui, sans-serif',
@@ -112,6 +140,181 @@ export const SITE_THEME_PRESETS: SiteThemePreset[] = [
       accent: '#0f172a',
       background: '#ffffff',
       text: '#0f172a'
+    }
+  }),
+  createPreset('corporate', 'Corporate', 'Trustworthy navy palette for business and finance', {
+    fonts: {
+      headingFamily: '"IBM Plex Sans", system-ui, sans-serif',
+      bodyFamily: '"IBM Plex Sans", system-ui, sans-serif',
+      headingWeight: 600,
+      bodyWeight: 400,
+      headingScale: 1,
+      bodySize: 16,
+      headingLetterSpacing: -0.01
+    },
+    colors: {
+      swatch1: '#ffffff',
+      swatch2: '#f0f4f8',
+      swatch3: '#94a3b8',
+      swatch4: '#334155',
+      swatch5: '#0f172a',
+      accent: '#1e40af',
+      background: '#ffffff',
+      text: '#0f172a'
+    },
+    buttons: {
+      ...DEFAULT_BUTTONS,
+      primary: { ...DEFAULT_BUTTONS.primary, shape: 'rounded' },
+      secondary: { ...DEFAULT_BUTTONS.secondary, shape: 'rounded' }
+    }
+  }),
+  createPreset('modern', 'Modern', 'SaaS-style indigo accents with crisp typography', {
+    fonts: {
+      headingFamily: '"DM Sans", system-ui, sans-serif',
+      bodyFamily: '"DM Sans", system-ui, sans-serif',
+      headingWeight: 700,
+      bodyWeight: 400,
+      headingScale: 1,
+      bodySize: 16,
+      headingLetterSpacing: -0.02
+    },
+    colors: {
+      swatch1: '#ffffff',
+      swatch2: '#f5f3ff',
+      swatch3: '#a5b4fc',
+      swatch4: '#4338ca',
+      swatch5: '#1e1b4b',
+      accent: '#6366f1',
+      background: '#ffffff',
+      text: '#1e1b4b'
+    },
+    buttons: {
+      ...DEFAULT_BUTTONS,
+      primary: { ...DEFAULT_BUTTONS.primary, shape: 'rounded' }
+    }
+  }),
+  createPreset('startup', 'Startup', 'Energetic palette for product launches and tech brands', {
+    fonts: {
+      headingFamily: '"Work Sans", system-ui, sans-serif',
+      bodyFamily: '"Work Sans", system-ui, sans-serif',
+      headingWeight: 700,
+      bodyWeight: 400,
+      headingScale: 1.02,
+      bodySize: 16,
+      headingLetterSpacing: -0.02
+    },
+    colors: {
+      swatch1: '#ffffff',
+      swatch2: '#eff6ff',
+      swatch3: '#60a5fa',
+      swatch4: '#1d4ed8',
+      swatch5: '#0c1a3a',
+      accent: '#2563eb',
+      background: '#ffffff',
+      text: '#0c1a3a'
+    }
+  }),
+  createPreset('wellness', 'Wellness', 'Calm sage greens for health, spa, and lifestyle brands', {
+    fonts: {
+      headingFamily: '"Raleway", system-ui, sans-serif',
+      bodyFamily: '"Raleway", system-ui, sans-serif',
+      headingWeight: 600,
+      bodyWeight: 400,
+      headingScale: 1,
+      bodySize: 16,
+      headingLetterSpacing: 0
+    },
+    colors: {
+      swatch1: '#ffffff',
+      swatch2: '#f0fdf4',
+      swatch3: '#86efac',
+      swatch4: '#15803d',
+      swatch5: '#14532d',
+      accent: '#16a34a',
+      background: '#ffffff',
+      text: '#14532d'
+    },
+    buttons: {
+      ...DEFAULT_BUTTONS,
+      primary: { ...DEFAULT_BUTTONS.primary, shape: 'pill' },
+      secondary: { ...DEFAULT_BUTTONS.secondary, shape: 'pill' }
+    }
+  }),
+  createPreset('creative', 'Creative', 'Bold violet tones for agencies and portfolios', {
+    fonts: {
+      headingFamily: '"Outfit", system-ui, sans-serif',
+      bodyFamily: '"Outfit", system-ui, sans-serif',
+      headingWeight: 700,
+      bodyWeight: 400,
+      headingScale: 1.05,
+      bodySize: 16,
+      headingLetterSpacing: -0.02
+    },
+    colors: {
+      swatch1: '#ffffff',
+      swatch2: '#faf5ff',
+      swatch3: '#c4b5fd',
+      swatch4: '#6d28d9',
+      swatch5: '#2e1065',
+      accent: '#7c3aed',
+      background: '#ffffff',
+      text: '#2e1065'
+    },
+    buttons: {
+      ...DEFAULT_BUTTONS,
+      primary: { ...DEFAULT_BUTTONS.primary, shape: 'pill' }
+    }
+  }),
+  createPreset('luxury', 'Luxury', 'Refined serif with charcoal and gold accents', {
+    fonts: {
+      headingFamily: '"Cormorant Garamond", Georgia, serif',
+      bodyFamily: '"Raleway", system-ui, sans-serif',
+      headingWeight: 600,
+      bodyWeight: 400,
+      headingScale: 1.15,
+      bodySize: 16,
+      headingLetterSpacing: 0.02
+    },
+    colors: {
+      swatch1: '#fafafa',
+      swatch2: '#f5f5f5',
+      swatch3: '#ca8a04',
+      swatch4: '#525252',
+      swatch5: '#171717',
+      accent: '#a16207',
+      background: '#fafafa',
+      text: '#171717'
+    },
+    buttons: {
+      ...DEFAULT_BUTTONS,
+      primary: { ...DEFAULT_BUTTONS.primary, shape: 'square', style: 'outline', borderWidth: 1 },
+      secondary: { ...DEFAULT_BUTTONS.secondary, shape: 'square' }
+    }
+  }),
+  createPreset('editorial', 'Editorial', 'Magazine-style serif headings with readable body copy', {
+    fonts: {
+      headingFamily: '"Crimson Pro", Georgia, serif',
+      bodyFamily: '"Source Sans 3", system-ui, sans-serif',
+      headingWeight: 600,
+      bodyWeight: 400,
+      headingScale: 1.1,
+      bodySize: 16,
+      headingLetterSpacing: 0
+    },
+    colors: {
+      swatch1: '#ffffff',
+      swatch2: '#fafafa',
+      swatch3: '#737373',
+      swatch4: '#404040',
+      swatch5: '#171717',
+      accent: '#171717',
+      background: '#ffffff',
+      text: '#171717'
+    },
+    buttons: {
+      ...DEFAULT_BUTTONS,
+      primary: { ...DEFAULT_BUTTONS.primary, shape: 'square' },
+      secondary: { ...DEFAULT_BUTTONS.secondary, shape: 'square', style: 'outline' }
     }
   }),
   createPreset('bold', 'Bold', 'Strong headings with high-contrast accents', {
@@ -237,11 +440,19 @@ export const SITE_THEME_PRESETS: SiteThemePreset[] = [
 
 export const FONT_FAMILY_OPTIONS = [
   { label: 'Inter', value: '"Inter", system-ui, sans-serif', googleFont: 'Inter' },
+  { label: 'DM Sans', value: '"DM Sans", system-ui, sans-serif', googleFont: 'DM+Sans' },
+  { label: 'Work Sans', value: '"Work Sans", system-ui, sans-serif', googleFont: 'Work+Sans' },
+  { label: 'Outfit', value: '"Outfit", system-ui, sans-serif', googleFont: 'Outfit' },
+  { label: 'Raleway', value: '"Raleway", system-ui, sans-serif', googleFont: 'Raleway' },
+  { label: 'Roboto', value: '"Roboto", system-ui, sans-serif', googleFont: 'Roboto' },
+  { label: 'IBM Plex Sans', value: '"IBM Plex Sans", system-ui, sans-serif', googleFont: 'IBM+Plex+Sans' },
   { label: 'Montserrat', value: '"Montserrat", system-ui, sans-serif', googleFont: 'Montserrat' },
   { label: 'Open Sans', value: '"Open Sans", system-ui, sans-serif', googleFont: 'Open+Sans' },
   { label: 'Poppins', value: '"Poppins", system-ui, sans-serif', googleFont: 'Poppins' },
   { label: 'Nunito', value: '"Nunito", system-ui, sans-serif', googleFont: 'Nunito' },
   { label: 'Playfair Display', value: '"Playfair Display", Georgia, serif', googleFont: 'Playfair+Display' },
+  { label: 'Cormorant Garamond', value: '"Cormorant Garamond", Georgia, serif', googleFont: 'Cormorant+Garamond' },
+  { label: 'Crimson Pro', value: '"Crimson Pro", Georgia, serif', googleFont: 'Crimson+Pro' },
   { label: 'Lora', value: '"Lora", Georgia, serif', googleFont: 'Lora' },
   { label: 'Merriweather', value: '"Merriweather", Georgia, serif', googleFont: 'Merriweather' },
   { label: 'Source Sans 3', value: '"Source Sans 3", system-ui, sans-serif', googleFont: 'Source+Sans+3' },

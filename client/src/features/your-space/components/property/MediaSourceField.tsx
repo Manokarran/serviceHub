@@ -10,6 +10,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 import { MediaUploadZone } from '@/components/builder/MediaUploadZone'
 import { getImageKitThumbnailUrl } from '@/lib/imagekit/urls'
 import { BUILDER_TYPOGRAPHY } from '../../constants/builderLayout'
+import { buildVideoEmbedUrl, parseVideoUrl } from '../../utils/videoUrlHelpers'
 import { CompactButton, PropertyFieldLabel } from './PropertyPanelUi'
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
   onChange: (url: string) => void
   acceptVideo?: boolean
   clearLabel?: string
+  urlPlaceholder?: string
 }
 
 export function MediaSourceField({
@@ -25,14 +27,23 @@ export function MediaSourceField({
   value,
   onChange,
   acceptVideo = false,
-  clearLabel = 'Remove'
+  clearLabel = 'Remove',
+  urlPlaceholder = 'https://…'
 }: Props) {
   const theme = useTheme()
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const parsedVideo = parseVideoUrl(value)
+  const embedPreviewUrl =
+    parsedVideo.type !== 'file' && value
+      ? buildVideoEmbedUrl(parsedVideo, { autoplay: false, muted: true, loop: false, controls: true })
+      : null
+  const isDirectVideo = Boolean(value?.match(/\.(mp4|webm|mov)(\?|#|$)/i))
   const previewUrl = value
-    ? value.match(/\.(mp4|webm|mov)(\?|#|$)/i)
-      ? value
-      : getImageKitThumbnailUrl(value, 320)
+    ? embedPreviewUrl
+      ? embedPreviewUrl
+      : isDirectVideo
+        ? value
+        : getImageKitThumbnailUrl(value, 320)
     : null
 
   return (
@@ -59,7 +70,7 @@ export function MediaSourceField({
         size='small'
         fullWidth
         value={value}
-        placeholder='https://…'
+        placeholder={urlPlaceholder}
         onChange={event => onChange(event.target.value)}
         sx={{ '& .MuiInputBase-root': { borderRadius: 1 } }}
       />
@@ -74,8 +85,24 @@ export function MediaSourceField({
             backgroundColor: alpha(theme.palette.text.primary, 0.03)
           }}
         >
-          {value.match(/\.(mp4|webm|mov)(\?|#|$)/i) ? (
-            <Box component='video' src={previewUrl} muted playsInline loop autoPlay sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {embedPreviewUrl ? (
+            <Box
+              component='iframe'
+              src={embedPreviewUrl}
+              title='Video preview'
+              allow='accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+              sx={{ width: '100%', height: '100%', border: 0, display: 'block' }}
+            />
+          ) : isDirectVideo ? (
+            <Box
+              component='video'
+              src={previewUrl}
+              muted
+              playsInline
+              loop
+              autoPlay
+              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
           ) : (
             <Box
               component='img'
