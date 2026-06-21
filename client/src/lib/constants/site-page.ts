@@ -1,0 +1,1 @@
+export const MAX_PUBLISHED_VERSIONS = 5

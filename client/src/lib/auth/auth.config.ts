@@ -1,0 +1,76 @@
+import type { NextAuthConfig } from 'next-auth'
+
+import type { UserRole } from '@/lib/constants/roles'
+import type { TenantPlan } from '@/lib/constants/tenant'
+
+/**
+ * Edge-compatible auth config used by middleware.
+ * Reads the same `.env` keys as the rest of the app.
+ */
+export const authConfig = {
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
+  debug: process.env.NODE_ENV === 'development',
+  pages: {
+    signIn: '/login'
+  },
+  session: {
+    strategy: 'jwt',
+    maxAge: 60 * 60 * 24 * 7
+  },
+  providers: [],
+  callbacks: {
+    session({ session, token }) {
+      if (session.user) {
+        session.user.id = (token.userId as string) ?? token.sub ?? ''
+        session.user.registrationComplete = Boolean(token.registrationComplete)
+        session.user.role = token.role as UserRole | undefined
+        session.user.tenantId = token.tenantId as string | undefined
+        session.user.tenantName = token.tenantName as string | undefined
+        session.user.tenantSlug = token.tenantSlug as string | undefined
+        session.user.tenantPlan = token.tenantPlan as TenantPlan | undefined
+      }
+
+      return session
+    },
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = Boolean(auth?.user)
+      const isRegistered = Boolean(auth?.user?.registrationComplete)
+      const pathname = nextUrl.pathname
+      const isProtectedRoute =
+        pathname.startsWith('/home') || pathname.startsWith('/your-space') || pathname.startsWith('/about')
+      const isRegisterRoute = pathname.startsWith('/register')
+      const isLoginRoute = pathname.startsWith('/login')
+
+      if (isProtectedRoute) {
+        if (!isLoggedIn) {
+          return false
+        }
+
+        if (!isRegistered) {
+          return Response.redirect(new URL('/register', nextUrl))
+        }
+
+        return true
+      }
+
+      if (isRegisterRoute) {
+        if (!isLoggedIn) {
+          return false
+        }
+
+        if (isRegistered) {
+          return Response.redirect(new URL('/home', nextUrl))
+        }
+
+        return true
+      }
+
+      if (isLoginRoute && isLoggedIn) {
+        return Response.redirect(new URL(isRegistered ? '/home' : '/register', nextUrl))
+      }
+
+      return true
+    }
+  }
+} satisfies NextAuthConfig
