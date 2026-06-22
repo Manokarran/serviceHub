@@ -102,7 +102,8 @@ export function normalizeBlock(block: Block): Block {
         ...props,
         src: props.src ?? '',
         alt: props.alt ?? 'Image',
-        alignment: props.alignment ?? 'center'
+        alignment: props.alignment ?? 'center',
+        opacity: props.opacity ?? 100
       }
     }
   }

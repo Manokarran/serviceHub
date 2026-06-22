@@ -14,6 +14,12 @@ export function getMediaAspectRatio(misc: SiteMisc): string | undefined {
   return ASPECT_RATIO_MAP[misc.imageAspectRatio]
 }
 
+export function getMediaOpacityFraction(opacity?: number): number {
+  const value = opacity ?? 100
+
+  return Math.min(100, Math.max(0, value)) / 100
+}
+
 export function getMediaHoverSx(animation: ImageHoverEffect): SxProps<Theme> {
   if (animation === 'zoom') {
     return {

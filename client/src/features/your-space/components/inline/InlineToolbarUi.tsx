@@ -7,7 +7,7 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 import type { MouseEvent } from 'react'
 
-import { BUILDER_TYPOGRAPHY } from '../../constants/builderLayout'
+import { BUILDER_TYPOGRAPHY, BUILDER_Z_INDEX } from '../../constants/builderLayout'
 
 export function InlineToolbarShell({
   children,
@@ -25,9 +25,18 @@ export function InlineToolbarShell({
       sx={{
         position: 'absolute',
         left: '50%',
-        transform: placement === 'below' ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
-        top: placement === 'below' ? 8 : -8,
-        zIndex: 20,
+        ...(placement === 'below'
+          ? {
+              top: 'auto',
+              bottom: -8,
+              transform: 'translate(-50%, 100%)'
+            }
+          : {
+              top: -8,
+              bottom: 'auto',
+              transform: 'translate(-50%, -100%)'
+            }),
+        zIndex: BUILDER_Z_INDEX.blockToolbar,
         display: 'flex',
         alignItems: 'center',
         gap: 0.25,
@@ -37,13 +46,7 @@ export function InlineToolbarShell({
         backgroundColor: 'background.paper',
         boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.12)}, 0 0 0 1px ${alpha(theme.palette.divider, 0.6)}`,
         maxWidth: 'calc(100% - 16px)',
-        overflowX: 'auto',
-        flexWrap: 'nowrap',
-        '&::-webkit-scrollbar': { height: 4 },
-        '&::-webkit-scrollbar-thumb': {
-          backgroundColor: alpha(theme.palette.text.primary, 0.15),
-          borderRadius: 2
-        }
+        flexWrap: 'nowrap'
       }}
     >
       {children}

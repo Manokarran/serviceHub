@@ -17,6 +17,15 @@ export const BUILDER_PROPERTY_PANEL_WIDTH = 320
 export const BUILDER_TOP_BAR_HEIGHT = 48
 export const BUILDER_CANVAS_TOOLBAR_HEIGHT = 40
 
+/** Stacking order for canvas blocks and inline editing chrome */
+export const BUILDER_Z_INDEX = {
+  sectionEditChip: 15,
+  canvasBlockHover: 50,
+  canvasBlockSelected: 100,
+  canvasBlockDragging: 110,
+  blockToolbar: 120
+} as const
+
 export const BUILDER_SIDEBAR_ITEMS = [
   { id: 'pages' as const, icon: 'ri-pages-line', label: 'Pages', comingSoon: true },
   { id: 'blocks' as const, icon: 'ri-layout-grid-line', label: 'Blocks', comingSoon: false },

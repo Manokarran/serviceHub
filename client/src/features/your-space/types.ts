@@ -176,6 +176,8 @@ export interface ImageBlockProps {
   alignment: TextAlign
   hoverEffect?: ImageHoverEffect
   borderRadius?: number
+  /** Image opacity (0–100). Lower values make the image more transparent. */
+  opacity?: number
 }
 
 export interface VideoBlockProps {

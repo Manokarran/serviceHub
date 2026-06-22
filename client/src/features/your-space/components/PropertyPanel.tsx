@@ -649,6 +649,11 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
 
       return (
         <PropertyFields>
+          <BackgroundOpacityField
+            label='Opacity'
+            value={props.opacity ?? 100}
+            onChange={opacity => update({ opacity })}
+          />
           <PropertyFieldLabel>Hover effect</PropertyFieldLabel>
           <LayoutOptionGroup
             value={props.hoverEffect ?? siteStyles.misc.imageHoverEffect}
@@ -730,7 +735,12 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
       if (activeTab === 'design') {
         return (
           <PropertyFields>
-            <MediaSourceField label='Logo image' value={props.src} onChange={src => update({ src })} />
+            <MediaSourceField
+              label='Logo image'
+              value={props.src}
+              onChange={src => update({ src })}
+              clearLabel='Remove logo'
+            />
             <TextField label='Alt text' size='small' fullWidth value={props.alt} onChange={e => update({ alt: e.target.value })} sx={FIELD_SX} />
             <TextField label='Link URL' size='small' fullWidth value={props.link} onChange={e => update({ link: e.target.value })} sx={FIELD_SX} />
           </PropertyFields>

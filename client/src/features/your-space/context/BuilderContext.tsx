@@ -580,3 +580,7 @@ export function useBuilder() {
 
   return context
 }
+
+export function useBuilderOptional() {
+  return useContext(BuilderContext)
+}

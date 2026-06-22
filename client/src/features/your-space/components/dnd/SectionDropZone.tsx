@@ -1,5 +1,6 @@
 'use client'
 
+import { useDndContext, useDroppable } from '@dnd-kit/core'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
@@ -10,7 +11,7 @@ import { getSectionColumnBackground, getBlockBackgroundOpacity, applyBackgroundA
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { BlockInsertDropZone } from './BlockInsertDropZone'
 import { SortableBlockList } from './SortableBlockList'
-import { insertDropId } from '../../utils/blockTreeUtils'
+import { insertDropId, sectionDropId } from '../../utils/blockTreeUtils'
 
 type Props = {
   sectionId: string
@@ -23,12 +24,16 @@ type Props = {
 
 export function SectionDropZone({ sectionId, column, children, sectionProps, editMode, emptyLabel }: Props) {
   const theme = useTheme()
+  const { active } = useDndContext()
+  const isDragging = Boolean(active)
+  const { setNodeRef, isOver } = useDroppable({ id: sectionDropId(sectionId, column) })
   const columnBg = getSectionColumnBackground(sectionProps, column === 'default' ? 'primary' : column)
   const splitStyle = sectionProps.splitStyle ?? 'gap'
   const showBuilderChrome = editMode && splitStyle !== 'contrast'
   const backgroundOpacity = getBlockBackgroundOpacity(sectionProps)
   const isTransparentSection = backgroundOpacity < 100
   const location = { container: 'section' as const, sectionId, column }
+  const isEmpty = children.length === 0
 
   if (!editMode) {
     return (
@@ -42,11 +47,19 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
 
   return (
     <Box
+      ref={setNodeRef}
       sx={{
-        minHeight: children.length === 0 ? 120 : 48,
+        minHeight: isEmpty ? 120 : 48,
+        height: isEmpty ? '100%' : undefined,
+        flex: isEmpty ? 1 : undefined,
         borderRadius: sectionProps.borderRadius ? Math.max(0, sectionProps.borderRadius - 4) : 1,
         border: showBuilderChrome ? '1px dashed' : '1px solid transparent',
-        borderColor: showBuilderChrome ? alpha(theme.palette.primary.main, 0.14) : 'transparent',
+        borderColor:
+          isDragging && isOver
+            ? alpha(theme.palette.primary.main, 0.45)
+            : showBuilderChrome
+              ? alpha(theme.palette.primary.main, 0.14)
+              : 'transparent',
         ...(columnBg
           ? isSimpleColor(columnBg)
             ? { backgroundColor: applyBackgroundAlpha(columnBg, backgroundOpacity) }
@@ -57,10 +70,13 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
               ? { backgroundColor: alpha(theme.palette.text.primary, 0.02) }
               : { backgroundColor: 'transparent' }),
         transition: 'border-color 0.15s, background-color 0.15s',
-        p: children.length === 0 ? 2 : 0.75
+        ...(isDragging && isOver
+          ? { backgroundColor: alpha(theme.palette.primary.main, 0.06) }
+          : {}),
+        p: isEmpty ? 2 : 0.75
       }}
     >
-      {children.length === 0 ? (
+      {isEmpty ? (
         <Box
           sx={{
             display: 'flex',

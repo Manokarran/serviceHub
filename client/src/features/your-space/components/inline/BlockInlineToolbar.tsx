@@ -97,6 +97,7 @@ function InlineToolbarTextButton({
 }
 
 export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = 'above', onDelete, dragHandleProps }: Props) {
+  const theme = useTheme()
   const { blocks, updateBlock, selectBlock } = useBuilder()
   const shell = useBuilderShell()
   const [mediaAnchor, setMediaAnchor] = useState<HTMLElement | null>(null)
@@ -386,6 +387,7 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
             update({ src })
             setMediaAnchor(null)
           }}
+          clearLabel='Remove logo'
         />
       )
     }
@@ -444,7 +446,23 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
           </>
         )}
         <InlineToolbarDivider />
-        {renderQuickActions()}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.25,
+            minWidth: 0,
+            flex: '1 1 auto',
+            overflowX: 'auto',
+            '&::-webkit-scrollbar': { height: 4 },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: alpha(theme.palette.text.primary, 0.15),
+              borderRadius: 2
+            }
+          }}
+        >
+          {renderQuickActions()}
+        </Box>
         <InlineToolbarDivider />
         <InlineToolbarButton
           icon='ri-settings-3-line'

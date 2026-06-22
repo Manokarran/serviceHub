@@ -1,5 +1,7 @@
 'use client'
 
+import { useRef, type RefObject } from 'react'
+
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
@@ -7,20 +9,61 @@ import { CSS } from '@dnd-kit/utilities'
 import { useSortable } from '@dnd-kit/sortable'
 
 import { useBuilder } from '../../context/BuilderContext'
+import { BUILDER_Z_INDEX } from '../../constants/builderLayout'
 import type { Block } from '../../types'
 import { BlockRenderer } from '../blocks/BlockRenderer'
-import { CanvasBlockEditProvider } from '../inline/CanvasBlockEditContext'
+import { CanvasBlockEditProvider, useCanvasBlockEdit } from '../inline/CanvasBlockEditContext'
 import { BlockInlineToolbar } from '../inline/BlockInlineToolbar'
+import { useSmartInlineToolbarPlacement } from '../inline/useSmartInlineToolbarPlacement'
 
 type Props = {
   block: Block
   nested?: boolean
-  toolbarPlacement?: 'above' | 'below'
   preview?: boolean
 }
 
-export function SortableCanvasItem({ block, nested = false, toolbarPlacement = 'above', preview = false }: Props) {
+function SelectedBlockToolbar({
+  block,
+  nested,
+  blockRef,
+  onDelete,
+  dragHandleProps
+}: {
+  block: Block
+  nested: boolean
+  blockRef: RefObject<HTMLElement | null>
+  onDelete: () => void
+  dragHandleProps?: Record<string, unknown>
+}) {
+  const editContext = useCanvasBlockEdit()
+  const isInlineEditing = Boolean(editContext?.inlineEditingField)
+  const toolbarPlacement = useSmartInlineToolbarPlacement(blockRef, block, true, isInlineEditing)
+
+  return (
+    <Box
+      className='block-inline-toolbar'
+      sx={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: BUILDER_Z_INDEX.blockToolbar,
+        pointerEvents: 'none',
+        '& > *': { pointerEvents: 'auto' }
+      }}
+    >
+      <BlockInlineToolbar
+        block={block}
+        nested={nested}
+        toolbarPlacement={toolbarPlacement}
+        onDelete={onDelete}
+        dragHandleProps={dragHandleProps}
+      />
+    </Box>
+  )
+}
+
+export function SortableCanvasItem({ block, nested = false, preview = false }: Props) {
   const { selectedBlockId, mode, selectBlock, deleteBlock, updateBlock } = useBuilder()
+  const blockRef = useRef<HTMLElement | null>(null)
   const isSelected = selectedBlockId === block.id
   const isEditMode = mode === 'edit'
 
@@ -34,15 +77,18 @@ export function SortableCanvasItem({ block, nested = false, toolbarPlacement = '
     transition
   }
 
+  const setBlockRef = (node: HTMLElement | null) => {
+    setNodeRef(node)
+    blockRef.current = node
+  }
+
   if (preview) {
     return <BlockRenderer block={block} preview />
   }
 
-  const toolbarZIndex = block.type === 'section' ? 30 : 20
-
   return (
     <Box
-      ref={setNodeRef}
+      ref={setBlockRef}
       style={style}
       onClick={e => {
         e.stopPropagation()
@@ -54,34 +100,36 @@ export function SortableCanvasItem({ block, nested = false, toolbarPlacement = '
         position: 'relative',
         overflow: 'visible',
         opacity: isDragging ? 0.5 : 1,
+        zIndex: isSelected
+          ? BUILDER_Z_INDEX.canvasBlockSelected
+          : isDragging
+            ? BUILDER_Z_INDEX.canvasBlockDragging
+            : undefined,
         outline: isEditMode && isSelected ? '2px solid' : '2px solid transparent',
         outlineColor: isEditMode && isSelected ? 'primary.main' : 'transparent',
         outlineOffset: -2,
+        ...(isEditMode && !isSelected
+          ? {
+              '&:hover': {
+                zIndex: BUILDER_Z_INDEX.canvasBlockHover
+              }
+            }
+          : {}),
         '&:hover .block-inline-toolbar': isEditMode && !isSelected ? { opacity: 1, pointerEvents: 'auto' } : {}
       }}
     >
-      {isEditMode && isSelected && (
-        <Box
-          className='block-inline-toolbar'
-          sx={{
-            opacity: 1,
-            pointerEvents: 'auto',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: toolbarZIndex
-          }}
-        >
-          <BlockInlineToolbar
+      <CanvasBlockEditProvider block={block} updateProps={changes => updateBlock(block.id, changes)}>
+        <BlockRenderer block={block} preview={mode === 'preview'} />
+        {isEditMode && isSelected && (
+          <SelectedBlockToolbar
             block={block}
             nested={nested}
-            toolbarPlacement={toolbarPlacement}
+            blockRef={blockRef}
             onDelete={() => deleteBlock(block.id)}
             dragHandleProps={{ ...attributes, ...listeners }}
           />
-        </Box>
-      )}
+        )}
+      </CanvasBlockEditProvider>
       {isEditMode && !isSelected && (
         <Box
           className='block-inline-toolbar'
@@ -90,7 +138,7 @@ export function SortableCanvasItem({ block, nested = false, toolbarPlacement = '
             top: 0,
             left: 0,
             right: 0,
-            zIndex: 10,
+            zIndex: BUILDER_Z_INDEX.blockToolbar,
             opacity: 0,
             pointerEvents: 'none',
             transition: 'opacity 0.15s'
@@ -102,6 +150,7 @@ export function SortableCanvasItem({ block, nested = false, toolbarPlacement = '
               left: '50%',
               transform: 'translate(-50%, -100%)',
               top: -8,
+              zIndex: BUILDER_Z_INDEX.blockToolbar,
               display: 'flex',
               alignItems: 'center',
               gap: 0.25,
@@ -138,9 +187,6 @@ export function SortableCanvasItem({ block, nested = false, toolbarPlacement = '
           </Box>
         </Box>
       )}
-      <CanvasBlockEditProvider block={block} updateProps={changes => updateBlock(block.id, changes)}>
-        <BlockRenderer block={block} preview={mode === 'preview'} />
-      </CanvasBlockEditProvider>
     </Box>
   )
 }

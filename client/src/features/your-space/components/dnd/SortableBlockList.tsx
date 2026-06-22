@@ -38,17 +38,7 @@ export function SortableBlockList({ blocks, location, nested = false }: Props) {
       {blocks.map((block, index) => (
         <Fragment key={block.id}>
           <BlockInsertDropZone id={getInsertId(location, index)} />
-          <SortableCanvasItem
-            block={block}
-            nested={nested}
-            toolbarPlacement={
-              block.type === 'text' || block.type === 'heading'
-                ? 'below'
-                : !nested && index === 0
-                  ? 'below'
-                  : 'above'
-            }
-          />
+          <SortableCanvasItem block={block} nested={nested} />
         </Fragment>
       ))}
       <BlockInsertDropZone id={getInsertId(location, blocks.length)} />

@@ -66,7 +66,7 @@ function SectionVisualColumn({
           mode='section-column'
         />
         {editMode && (
-          <Box sx={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+          <Box sx={{ position: 'absolute', inset: 0, zIndex: 1, display: 'flex', flexDirection: 'column' }}>
             <SectionDropZone
               sectionId={block.id}
               column={column}

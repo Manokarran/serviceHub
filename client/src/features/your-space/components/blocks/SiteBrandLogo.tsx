@@ -5,6 +5,8 @@ import Typography from '@mui/material/Typography'
 
 import { getOptimizedImageUrl } from '@/lib/imagekit/urls'
 import type { LogoPosition } from '../../types'
+import { InlineEditableText } from '../inline/InlineEditableText'
+import { useCanvasBlockEdit } from '../inline/CanvasBlockEditContext'
 import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
@@ -15,8 +17,16 @@ type Props = {
 
 export function SiteBrandLogo({ logoText, logoUrl, textColor }: Props) {
   const siteStyles = useSiteStyles()
+  const editContext = useCanvasBlockEdit()
   const optimizedLogo = logoUrl ? getOptimizedImageUrl(logoUrl, { width: 320, height: 120, quality: 85 }) : ''
-  const showText = Boolean(logoText)
+  const showText = Boolean(logoText) || editContext !== null
+  const logoTextSx = {
+    fontFamily: siteStyles.fonts.headingFamily,
+    fontWeight: siteStyles.fonts.headingWeight,
+    color: textColor,
+    lineHeight: 1.2,
+    display: 'block'
+  }
 
   if (!optimizedLogo && !showText) {
     return null
@@ -33,16 +43,8 @@ export function SiteBrandLogo({ logoText, logoUrl, textColor }: Props) {
         />
       )}
       {showText && (
-        <Typography
-          variant='h6'
-          sx={{
-            fontFamily: siteStyles.fonts.headingFamily,
-            fontWeight: siteStyles.fonts.headingWeight,
-            color: textColor,
-            lineHeight: 1.2
-          }}
-        >
-          {logoText}
+        <Typography variant='h6' component='div' sx={logoTextSx}>
+          <InlineEditableText value={logoText} field='logoText' placeholder='Logo' sx={logoTextSx} />
         </Typography>
       )}
     </Box>

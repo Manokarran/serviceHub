@@ -3,6 +3,7 @@
 import Box from '@mui/material/Box'
 import { alpha, useTheme } from '@mui/material/styles'
 
+import { BUILDER_Z_INDEX } from '../../constants/builderLayout'
 import { useBuilder } from '../../context/BuilderContext'
 
 export function SectionEditChip({ sectionId }: { sectionId: string }) {
@@ -25,7 +26,7 @@ export function SectionEditChip({ sectionId }: { sectionId: string }) {
         position: 'absolute',
         top: 12,
         left: 12,
-        zIndex: 6,
+        zIndex: BUILDER_Z_INDEX.sectionEditChip,
         display: 'inline-flex',
         alignItems: 'center',
         gap: 0.5,

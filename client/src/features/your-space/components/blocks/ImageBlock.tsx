@@ -6,7 +6,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 
 import { getOptimizedImageUrl } from '@/lib/imagekit/urls'
 import type { ImageBlockProps } from '../../types'
-import { getMediaFrameSx } from '../../utils/mediaBlockHelpers'
+import { getMediaFrameSx, getMediaOpacityFraction } from '../../utils/mediaBlockHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
@@ -18,6 +18,7 @@ export function ImageBlock({ props }: Props) {
   const siteStyles = useSiteStyles()
   const hoverEffect = props.hoverEffect ?? siteStyles.misc.imageHoverEffect
   const frameSx = getMediaFrameSx(siteStyles.misc, hoverEffect, props.borderRadius)
+  const opacity = getMediaOpacityFraction(props.opacity)
   const cornerRadius = props.borderRadius ?? siteStyles.misc.imageCornerRadius
   const optimizedSrc = props.src ? getOptimizedImageUrl(props.src) : ''
 
@@ -31,7 +32,7 @@ export function ImageBlock({ props }: Props) {
       }}
     >
       {optimizedSrc ? (
-        <Box sx={{ width: '100%', maxWidth: 720, ...frameSx }}>
+        <Box sx={{ width: '100%', maxWidth: 720, opacity, ...frameSx }}>
           <Box
             component='img'
             className='media-block-image'
@@ -46,6 +47,7 @@ export function ImageBlock({ props }: Props) {
             width: '100%',
             maxWidth: 480,
             minHeight: 160,
+            opacity,
             borderRadius: `${cornerRadius}px`,
             border: '1px dashed',
             borderColor: alpha(theme.palette.text.primary, 0.18),

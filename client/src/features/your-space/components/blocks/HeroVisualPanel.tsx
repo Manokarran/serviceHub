@@ -626,6 +626,7 @@ export function HeroVisualPanel({
             width: '100%',
             position: 'relative',
             overflow: 'hidden',
+            pointerEvents: 'none',
             background,
             ...animatedBackgroundSx
           }

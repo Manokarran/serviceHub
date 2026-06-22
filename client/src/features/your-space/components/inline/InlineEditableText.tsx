@@ -5,22 +5,23 @@ import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 're
 import Box from '@mui/material/Box'
 import { alpha, useTheme } from '@mui/material/styles'
 
-import { useBuilder } from '../../context/BuilderContext'
+import { useBuilderOptional } from '../../context/BuilderContext'
 import { useCanvasBlockEdit } from './CanvasBlockEditContext'
 
 type Props = {
   value: string
-  field: 'text'
+  field?: string
+  onCommit?: (value: string) => void
   multiline?: boolean
   sx?: Record<string, unknown>
   placeholder?: string
 }
 
-export function InlineEditableText({ value, field, multiline = false, sx, placeholder }: Props) {
+export function InlineEditableText({ value, field, onCommit, multiline = false, sx, placeholder }: Props) {
   const theme = useTheme()
   const editContext = useCanvasBlockEdit()
-  const { selectedBlockId } = useBuilder()
-  const isBlockSelected = editContext ? selectedBlockId === editContext.blockId : false
+  const builder = useBuilderOptional()
+  const isBlockSelected = editContext && builder ? builder.selectedBlockId === editContext.blockId : false
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null)
@@ -38,6 +39,22 @@ export function InlineEditableText({ value, field, multiline = false, sx, placeh
     }
   }, [isEditing])
 
+  useEffect(() => {
+    if (!editContext) {
+      return
+    }
+
+    if (isEditing) {
+      editContext.setInlineEditingField(field ?? 'text')
+    } else {
+      editContext.setInlineEditingField(null)
+    }
+
+    return () => {
+      editContext.setInlineEditingField(null)
+    }
+  }, [editContext, field, isEditing])
+
   if (!editContext) {
     return <Box component='span' sx={sx}>{value}</Box>
   }
@@ -45,9 +62,14 @@ export function InlineEditableText({ value, field, multiline = false, sx, placeh
   const commit = () => {
     setIsEditing(false)
     const trimmed = draft.trim()
+    const next = trimmed || placeholder || value
 
-    if (trimmed !== value) {
-      editContext.updateProps({ [field]: trimmed || placeholder || value })
+    if (next !== value) {
+      if (onCommit) {
+        onCommit(next)
+      } else if (field) {
+        editContext.updateProps({ [field]: next })
+      }
     }
   }
 
@@ -123,14 +145,24 @@ export function InlineEditableText({ value, field, multiline = false, sx, placeh
     setIsEditing(true)
   }
 
+  const handleTextClick = (e: MouseEvent) => {
+    if (!builder || !editContext || builder.mode !== 'edit') {
+      return
+    }
+
+    e.stopPropagation()
+
+    if (builder.selectedBlockId !== editContext.blockId) {
+      builder.selectBlock(editContext.blockId)
+    }
+
+    startEditing(e)
+  }
+
   return (
     <Box
       component='span'
-      onClick={e => {
-        if (isBlockSelected) {
-          startEditing(e)
-        }
-      }}
+      onClick={handleTextClick}
       onDoubleClick={startEditing}
       sx={{
         ...sx,

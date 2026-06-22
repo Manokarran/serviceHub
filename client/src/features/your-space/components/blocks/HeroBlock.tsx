@@ -5,6 +5,8 @@ import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 
 import type { HeroBlockProps } from '../../types'
+import { InlineEditableText } from '../inline/InlineEditableText'
+import { useCanvasBlockEdit } from '../inline/CanvasBlockEditContext'
 import { useSiteStyles } from '../SiteStylesScope'
 import {
   getBlockBackground,
@@ -35,6 +37,8 @@ function shouldShowSplitVisualPanel(props: HeroBlockProps): boolean {
 
 export function HeroBlock({ props }: Props) {
   const siteStyles = useSiteStyles()
+  const editContext = useCanvasBlockEdit()
+  const showButton = Boolean(props.buttonText) || editContext !== null
   const isSplit = props.layout === 'split-left' || props.layout === 'split-right'
   const contentFirst = props.layout !== 'split-right'
   const showSplitVisual = shouldShowSplitVisualPanel(props)
@@ -47,50 +51,57 @@ export function HeroBlock({ props }: Props) {
   const buttonAccent = isSimpleColor(background) ? background : siteStyles.colors.accent
   const visualColors = resolveHeroVisualColors(props, siteStyles.colors.accent)
 
+  const titleSx = {
+    fontFamily: siteStyles.fonts.headingFamily,
+    fontWeight: siteStyles.fonts.headingWeight,
+    letterSpacing: siteStyles.fonts.headingLetterSpacing,
+    fontSize: { xs: `calc(2rem * ${siteStyles.fonts.headingScale})`, md: `calc(3rem * ${siteStyles.fonts.headingScale})` },
+    lineHeight: 1.15,
+    color: 'inherit',
+    maxWidth: 720,
+    display: 'block'
+  }
+
+  const subtitleSx = {
+    fontFamily: siteStyles.fonts.bodyFamily,
+    fontWeight: siteStyles.fonts.bodyWeight,
+    opacity: 0.9,
+    color: 'inherit',
+    maxWidth: 560,
+    lineHeight: 1.6,
+    display: 'block'
+  }
+
+  const buttonLabelSx = { font: 'inherit', color: 'inherit' }
+
   const content = (
     <>
-      <Typography
-        variant='h2'
-        sx={{
-          fontFamily: siteStyles.fonts.headingFamily,
-          fontWeight: siteStyles.fonts.headingWeight,
-          letterSpacing: siteStyles.fonts.headingLetterSpacing,
-          fontSize: { xs: `calc(2rem * ${siteStyles.fonts.headingScale})`, md: `calc(3rem * ${siteStyles.fonts.headingScale})` },
-          lineHeight: 1.15,
-          color: 'inherit',
-          maxWidth: 720,
-          mb: 2
-        }}
-      >
-        {props.title}
+      <Typography variant='h2' sx={{ ...titleSx, mb: 2 }}>
+        <InlineEditableText value={props.title} field='title' placeholder='Hero title' sx={titleSx} />
       </Typography>
-      <Typography
-        variant='h6'
-        sx={{
-          fontFamily: siteStyles.fonts.bodyFamily,
-          fontWeight: siteStyles.fonts.bodyWeight,
-          opacity: 0.9,
-          color: 'inherit',
-          maxWidth: 560,
-          mb: 4,
-          lineHeight: 1.6
-        }}
-      >
-        {props.subtitle}
+      <Typography variant='h6' component='div' sx={{ ...subtitleSx, mb: 4 }}>
+        <InlineEditableText
+          value={props.subtitle}
+          field='subtitle'
+          multiline
+          placeholder='Hero subtitle'
+          sx={subtitleSx}
+        />
       </Typography>
-      {props.buttonText && (
+      {(showButton) && (
         <Button
           component='a'
           href={props.buttonLink || '#'}
           variant='contained'
           size='large'
+          onClick={e => e.preventDefault()}
           sx={{
             ...getSiteButtonSx('primary', siteStyles, '#ffffff'),
             color: buttonAccent,
             '&:hover': { backgroundColor: 'rgba(255,255,255,0.92)', opacity: 1 }
           }}
         >
-          {props.buttonText}
+          <InlineEditableText value={props.buttonText} field='buttonText' placeholder='Button' sx={buttonLabelSx} />
         </Button>
       )}
     </>

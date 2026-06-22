@@ -7,6 +7,8 @@ import Typography from '@mui/material/Typography'
 import type { HeaderBlockProps } from '../../types'
 import { applyBackgroundAlpha, getBlockBackgroundOpacity } from '../../utils/sectionStyleHelpers'
 import { getFixedBlockShellSx } from '../../utils/mediaBlockHelpers'
+import { InlineEditableText } from '../inline/InlineEditableText'
+import { useCanvasBlockEdit } from '../inline/CanvasBlockEditContext'
 import { useSiteStyles } from '../SiteStylesScope'
 import { getChromeJustify, getHorizontalOrder, getNavJustify, SiteBrandLogo } from './SiteBrandLogo'
 
@@ -16,8 +18,25 @@ type Props = {
 
 export function HeaderBlock({ props }: Props) {
   const siteStyles = useSiteStyles()
+  const editContext = useCanvasBlockEdit()
   const isVertical = props.layout === 'vertical'
   const order = getHorizontalOrder(props.logoPosition)
+
+  const navLinkSx = {
+    fontFamily: siteStyles.fonts.bodyFamily,
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    color: 'inherit',
+    textDecoration: 'none',
+    opacity: 0.85,
+    '&:hover': { opacity: 1 }
+  }
+
+  const updateNavLabel = (index: number, label: string) => {
+    editContext?.updateProps({
+      navLinks: props.navLinks.map((link, i) => (i === index ? { ...link, label } : link))
+    })
+  }
 
   return (
     <Box sx={getFixedBlockShellSx('header', props.fixed)}>
@@ -67,17 +86,15 @@ export function HeaderBlock({ props }: Props) {
               key={`${link.label}-${index}`}
               component='a'
               href={link.href || '#'}
-              sx={{
-                fontFamily: siteStyles.fonts.bodyFamily,
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                color: 'inherit',
-                textDecoration: 'none',
-                opacity: 0.85,
-                '&:hover': { opacity: 1 }
-              }}
+              onClick={e => editContext && e.preventDefault()}
+              sx={navLinkSx}
             >
-              {link.label}
+              <InlineEditableText
+                value={link.label}
+                placeholder='Link'
+                sx={{ font: 'inherit', color: 'inherit' }}
+                onCommit={label => updateNavLabel(index, label)}
+              />
             </Typography>
           ))}
         </Stack>
