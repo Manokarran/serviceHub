@@ -17,7 +17,14 @@ import { useDebounce } from 'react-use'
 import { BUILDER_TYPOGRAPHY, builderSegmentedControlSx } from '@/features/your-space/constants/builderLayout'
 import { PropertyFieldLabel } from '@/features/your-space/components/property/PropertyPanelUi'
 import type { ImageHoverEffect } from '@/features/your-space/types'
-import { buildPhotoBackgroundCss, buildVideoBackgroundValue, isVideoBackground, parseMediaUrl, parsePhotoUrl } from '@/features/your-space/utils/sectionStyleHelpers'
+import {
+  BLOCK_BACKGROUND_PREVIEW_OPACITY,
+  buildPhotoBackgroundCss,
+  buildVideoBackgroundValue,
+  isVideoBackground,
+  parseMediaUrl,
+  parsePhotoUrl
+} from '@/features/your-space/utils/sectionStyleHelpers'
 import { getImageKitThumbnailUrl } from '@/lib/imagekit/urls'
 import { MediaUploadZone } from '@/components/builder/MediaUploadZone'
 
@@ -60,6 +67,18 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'gradient', label: 'Gradient' },
   { id: 'photo', label: 'Photo' }
 ]
+
+function applyBackgroundPreviewOpacity(onStyleChange: Props['onStyleChange']) {
+  onStyleChange('backgroundOpacity', String(BLOCK_BACKGROUND_PREVIEW_OPACITY))
+}
+
+function setBackgroundType(onStyleChange: Props['onStyleChange'], type: BackgroundType) {
+  onStyleChange('backgroundType', type)
+
+  if (type !== 'color') {
+    applyBackgroundPreviewOpacity(onStyleChange)
+  }
+}
 
 const PATTERN_PRESETS: PatternPreset[] = [
   {
@@ -225,7 +244,7 @@ function ColorTab({
   const colorValue = value.startsWith('#') ? normalizeHexColor(value) : '#ffffff'
 
   const handleChange = (next: string) => {
-    onStyleChange('backgroundType', 'color')
+    setBackgroundType(onStyleChange, 'color')
     onStyleChange('background', next)
   }
 
@@ -274,7 +293,7 @@ function PatternTab({ value, onStyleChange }: { value: string; onStyleChange: Pr
           title={pattern.label}
           selected={value === pattern.css}
           onClick={() => {
-            onStyleChange('backgroundType', 'pattern')
+            setBackgroundType(onStyleChange, 'pattern')
             onStyleChange('background', pattern.css)
           }}
         >
@@ -304,7 +323,7 @@ function GradientTab({ value, onStyleChange }: { value: string; onStyleChange: P
       return
     }
 
-    onStyleChange('backgroundType', 'gradient')
+    setBackgroundType(onStyleChange, 'gradient')
     onStyleChange('background', customCss)
   }, [customMode, customCss, onStyleChange])
 
@@ -325,7 +344,7 @@ function GradientTab({ value, onStyleChange }: { value: string; onStyleChange: P
             selected={!customMode && value === preset.css}
             onClick={() => {
               setCustomMode(false)
-              onStyleChange('backgroundType', 'gradient')
+              setBackgroundType(onStyleChange, 'gradient')
               onStyleChange('background', preset.css)
             }}
           >
@@ -337,7 +356,7 @@ function GradientTab({ value, onStyleChange }: { value: string; onStyleChange: P
           selected={customMode}
           onClick={() => {
             setCustomMode(true)
-            onStyleChange('backgroundType', 'gradient')
+            setBackgroundType(onStyleChange, 'gradient')
             onStyleChange('background', customCss)
           }}
         >
@@ -531,7 +550,7 @@ function PhotoTab({
     const css = buildPhotoBackgroundCss(photo.urls.regular)
 
     setSelectedPhoto(photo)
-    onStyleChange('backgroundType', 'photo')
+    setBackgroundType(onStyleChange, 'photo')
     onStyleChange('background', css)
   }
 
@@ -539,10 +558,10 @@ function PhotoTab({
     setSelectedPhoto(null)
 
     if (result.mediaType === 'video') {
-      onStyleChange('backgroundType', 'video')
+      setBackgroundType(onStyleChange, 'video')
       onStyleChange('background', buildVideoBackgroundValue(result.url))
     } else {
-      onStyleChange('backgroundType', 'photo')
+      setBackgroundType(onStyleChange, 'photo')
       onStyleChange('background', buildPhotoBackgroundCss(result.url))
     }
   }
@@ -772,7 +791,13 @@ export default function BackgroundPicker({
             key={tab.id}
             component='button'
             type='button'
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              setActiveTab(tab.id)
+
+              if (tab.id !== 'color') {
+                applyBackgroundPreviewOpacity(onStyleChange)
+              }
+            }}
             sx={{
               flex: 1,
               border: 'none',

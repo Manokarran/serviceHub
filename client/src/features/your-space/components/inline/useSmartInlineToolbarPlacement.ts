@@ -47,13 +47,20 @@ function measurePlacement(
   return spaceBelow > spaceAbove ? 'below' : 'above'
 }
 
+function prefersBelowPlacement(block: Block): boolean {
+  return block.type === 'text' || block.type === 'heading' || block.type === 'logo'
+}
+
 export function useSmartInlineToolbarPlacement(
   blockRef: RefObject<HTMLElement | null>,
   block: Block,
   isSelected: boolean,
-  isInlineEditing: boolean
+  isInlineEditing: boolean,
+  preferBelow = false
 ): 'above' | 'below' {
-  const [placement, setPlacement] = useState<'above' | 'below'>('above')
+  const [placement, setPlacement] = useState<'above' | 'below'>(
+    preferBelow || prefersBelowPlacement(block) ? 'below' : 'above'
+  )
 
   useLayoutEffect(() => {
     if (!isSelected || !blockRef.current) {
@@ -62,6 +69,12 @@ export function useSmartInlineToolbarPlacement(
 
     const updatePlacement = () => {
       if (!blockRef.current) {
+        return
+      }
+
+      if (preferBelow || prefersBelowPlacement(block)) {
+        setPlacement('below')
+
         return
       }
 
@@ -86,7 +99,7 @@ export function useSmartInlineToolbarPlacement(
       window.removeEventListener('resize', updatePlacement)
       observer?.disconnect()
     }
-  }, [block.id, block.type, blockRef, isInlineEditing, isSelected])
+  }, [block.id, block.type, blockRef, isInlineEditing, isSelected, preferBelow])
 
   return placement
 }

@@ -39,9 +39,19 @@ export interface SiteFonts {
   bodyFamily: string
   headingWeight: number
   bodyWeight: number
+  /** Base px size for level-1 headings before scale multiplier. */
+  headingSize: number
   headingScale: number
   bodySize: number
   headingLetterSpacing: number
+  /** Buttons site-wide. */
+  buttonSize: number
+  /** Header and footer navigation links. */
+  navSize: number
+  /** Captions, copyright, and fine print. */
+  labelSize: number
+  /** Brand name in header and footer. */
+  logoSize: number
 }
 
 export interface SiteColors {
@@ -61,6 +71,7 @@ export interface SiteForms {
   fieldBorderColor: string
   fieldBackground: string
   labelFontSource: FontSource
+  fieldFontSize: number
 }
 
 export interface SiteMisc {

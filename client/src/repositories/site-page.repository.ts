@@ -108,6 +108,81 @@ export class SitePageRepository {
   async restoreDraft(tenantId: string, blocks: ISitePageBlock[], slug = 'home'): Promise<ISitePageDocument> {
     return this.saveDraft(tenantId, blocks, slug)
   }
+
+  async listByTenant(tenantId: string): Promise<ISitePageDocument[]> {
+    await connectDB()
+
+    return SitePageModel.find({ tenantId }).sort({ sortOrder: 1, createdAt: 1 }).exec()
+  }
+
+  async createPage(
+    tenantId: string,
+    slug: string,
+    title: string,
+    sortOrder: number
+  ): Promise<ISitePageDocument> {
+    await connectDB()
+
+    return SitePageModel.create({
+      tenantId,
+      slug,
+      title,
+      sortOrder,
+      draftBlocks: [],
+      publishedBlocks: [],
+      publishedAt: null
+    })
+  }
+
+  async updateMeta(
+    tenantId: string,
+    slug: string,
+    updates: { title?: string; description?: string; sortOrder?: number }
+  ): Promise<ISitePageDocument | null> {
+    await connectDB()
+
+    const update: Record<string, unknown> = {}
+
+    if (updates.title !== undefined) {
+      update.title = updates.title
+    }
+
+    if (updates.description !== undefined) {
+      update.description = updates.description
+    }
+
+    if (updates.sortOrder !== undefined) {
+      update.sortOrder = updates.sortOrder
+    }
+
+    if (Object.keys(update).length === 0) {
+      return SitePageModel.findOne({ tenantId, slug }).exec()
+    }
+
+    return SitePageModel.findOneAndUpdate({ tenantId, slug }, { $set: update }, { returnDocument: 'after' }).exec()
+  }
+
+  async deletePage(tenantId: string, slug: string): Promise<boolean> {
+    await connectDB()
+
+    if (slug === 'home') {
+      return false
+    }
+
+    const result = await SitePageModel.deleteOne({ tenantId, slug }).exec()
+
+    return result.deletedCount > 0
+  }
+
+  async reorderPages(tenantId: string, orderedSlugs: string[]): Promise<void> {
+    await connectDB()
+
+    await Promise.all(
+      orderedSlugs.map((slug, index) =>
+        SitePageModel.updateOne({ tenantId, slug }, { $set: { sortOrder: index } }).exec()
+      )
+    )
+  }
 }
 
 export class SitePageVersionRepository {

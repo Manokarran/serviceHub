@@ -16,7 +16,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { tenantSlug } = await params
-  const site = await sitePageService.getPublicHomePageByTenantSlug(tenantSlug)
+  const site = await sitePageService.getPublicPageByTenantSlug(tenantSlug, 'home')
 
   if (!site) {
     return { title: 'Site not found' }
@@ -24,13 +24,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: site.tenant.name,
-    description: `Welcome to ${site.tenant.name}`
+    description: site.page.description || `Welcome to ${site.tenant.name}`
   }
 }
 
-export default async function PublicSitePage({ params }: PageProps) {
+export default async function PublicSiteHomePage({ params }: PageProps) {
   const { tenantSlug } = await params
-  const site = await sitePageService.getPublicHomePageByTenantSlug(tenantSlug)
+  const site = await sitePageService.getPublicPageByTenantSlug(tenantSlug, 'home')
 
   if (!site) {
     notFound()
@@ -43,7 +43,7 @@ export default async function PublicSitePage({ params }: PageProps) {
   )
 
   if (blocks.length === 0) {
-    return <PublicSiteEmptyState tenantName={site.tenant.name} />
+    return <PublicSiteEmptyState tenantName={site.tenant.name} pageTitle={site.page.title} />
   }
 
   return <PublicSiteRenderer blocks={blocks} siteStyles={siteStyles} />

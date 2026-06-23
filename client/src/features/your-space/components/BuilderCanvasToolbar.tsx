@@ -32,17 +32,20 @@ export function BuilderCanvasToolbar() {
     <Box
       sx={{
         flexShrink: 0,
-        height: BUILDER_CANVAS_TOOLBAR_HEIGHT,
-        display: 'grid',
-        gridTemplateColumns: '1fr auto 1fr',
+        minHeight: BUILDER_CANVAS_TOOLBAR_HEIGHT,
+        height: { xs: 'auto', sm: BUILDER_CANVAS_TOOLBAR_HEIGHT },
+        display: 'flex',
+        flexWrap: 'wrap',
         alignItems: 'center',
-        gap: 1.5,
+        justifyContent: 'space-between',
+        gap: 1,
+        py: { xs: 0.5, sm: 0 },
         px: { xs: 1.25, sm: 2 },
         ...builderToolbarSx(theme)
       }}
     >
       {/* Viewport switcher */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifySelf: 'start' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', flex: '1 1 auto', minWidth: 0 }}>
         <ToggleButtonGroup
           exclusive
           size='small'
@@ -93,7 +96,7 @@ export function BuilderCanvasToolbar() {
       </Box>
 
       {/* Edit / Preview */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifySelf: 'end' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, ml: 'auto' }}>
         <ToggleButtonGroup
           exclusive
           size='small'

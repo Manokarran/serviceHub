@@ -9,6 +9,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useSortable } from '@dnd-kit/sortable'
 
 import { useBuilder } from '../../context/BuilderContext'
+import { useBuilderShell } from '../../context/BuilderShellContext'
 import { BUILDER_Z_INDEX } from '../../constants/builderLayout'
 import type { Block } from '../../types'
 import { BlockRenderer } from '../blocks/BlockRenderer'
@@ -20,6 +21,7 @@ type Props = {
   block: Block
   nested?: boolean
   preview?: boolean
+  preferToolbarBelow?: boolean
 }
 
 function SelectedBlockToolbar({
@@ -27,17 +29,25 @@ function SelectedBlockToolbar({
   nested,
   blockRef,
   onDelete,
-  dragHandleProps
+  dragHandleProps,
+  preferToolbarBelow = false
 }: {
   block: Block
   nested: boolean
   blockRef: RefObject<HTMLElement | null>
   onDelete: () => void
   dragHandleProps?: Record<string, unknown>
+  preferToolbarBelow?: boolean
 }) {
   const editContext = useCanvasBlockEdit()
   const isInlineEditing = Boolean(editContext?.inlineEditingField)
-  const toolbarPlacement = useSmartInlineToolbarPlacement(blockRef, block, true, isInlineEditing)
+  const toolbarPlacement = useSmartInlineToolbarPlacement(
+    blockRef,
+    block,
+    true,
+    isInlineEditing,
+    preferToolbarBelow
+  )
 
   return (
     <Box
@@ -61,8 +71,14 @@ function SelectedBlockToolbar({
   )
 }
 
-export function SortableCanvasItem({ block, nested = false, preview = false }: Props) {
+export function SortableCanvasItem({
+  block,
+  nested = false,
+  preview = false,
+  preferToolbarBelow = false
+}: Props) {
   const { selectedBlockId, mode, selectBlock, deleteBlock, updateBlock } = useBuilder()
+  const shell = useBuilderShell()
   const blockRef = useRef<HTMLElement | null>(null)
   const isSelected = selectedBlockId === block.id
   const isEditMode = mode === 'edit'
@@ -94,6 +110,7 @@ export function SortableCanvasItem({ block, nested = false, preview = false }: P
         e.stopPropagation()
         if (isEditMode) {
           selectBlock(block.id)
+          shell?.openPropertyPanel()
         }
       }}
       sx={{
@@ -127,6 +144,7 @@ export function SortableCanvasItem({ block, nested = false, preview = false }: P
             blockRef={blockRef}
             onDelete={() => deleteBlock(block.id)}
             dragHandleProps={{ ...attributes, ...listeners }}
+            preferToolbarBelow={preferToolbarBelow}
           />
         )}
       </CanvasBlockEditProvider>
@@ -148,8 +166,16 @@ export function SortableCanvasItem({ block, nested = false, preview = false }: P
             sx={{
               position: 'absolute',
               left: '50%',
-              transform: 'translate(-50%, -100%)',
-              top: -8,
+              ...(preferToolbarBelow
+                ? {
+                    top: 'auto',
+                    bottom: -8,
+                    transform: 'translate(-50%, 100%)'
+                  }
+                : {
+                    top: -8,
+                    transform: 'translate(-50%, -100%)'
+                  }),
               zIndex: BUILDER_Z_INDEX.blockToolbar,
               display: 'flex',
               alignItems: 'center',
@@ -163,6 +189,7 @@ export function SortableCanvasItem({ block, nested = false, preview = false }: P
             onClick={e => {
               e.stopPropagation()
               selectBlock(block.id)
+              shell?.openPropertyPanel()
             }}
           >
             <Tooltip title='Select block'>

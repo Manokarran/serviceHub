@@ -18,8 +18,9 @@ import {
   isSimpleColor,
   isVideoBackground
 } from '../../utils/sectionStyleHelpers'
-import { getSiteButtonSx } from '../../utils/siteStylesHelpers'
+import { getHeroTitleFontSize, getSiteButtonSx, normalizeSiteFonts } from '../../utils/siteStylesHelpers'
 import { resolveHeroVisualColors } from '../../utils/heroVisualHelpers'
+import { siteCanvasAbove, siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 import { BlockBackgroundLayers } from './BlockBackgroundLayers'
 import { HeroVisualPanel } from './HeroVisualPanel'
 
@@ -55,7 +56,10 @@ export function HeroBlock({ props }: Props) {
     fontFamily: siteStyles.fonts.headingFamily,
     fontWeight: siteStyles.fonts.headingWeight,
     letterSpacing: siteStyles.fonts.headingLetterSpacing,
-    fontSize: { xs: `calc(2rem * ${siteStyles.fonts.headingScale})`, md: `calc(3rem * ${siteStyles.fonts.headingScale})` },
+    fontSize: {
+      xs: getHeroTitleFontSize(siteStyles.fonts, 'mobile'),
+      md: getHeroTitleFontSize(siteStyles.fonts, 'desktop')
+    },
     lineHeight: 1.15,
     color: 'inherit',
     maxWidth: 720,
@@ -65,6 +69,7 @@ export function HeroBlock({ props }: Props) {
   const subtitleSx = {
     fontFamily: siteStyles.fonts.bodyFamily,
     fontWeight: siteStyles.fonts.bodyWeight,
+    fontSize: Math.round(normalizeSiteFonts(siteStyles.fonts).bodySize * 1.125),
     opacity: 0.9,
     color: 'inherit',
     maxWidth: 560,
@@ -134,13 +139,20 @@ export function HeroBlock({ props }: Props) {
     )
   }
 
+  const splitRowDirection = contentFirst ? 'row' : 'row-reverse'
+  const splitStackSx = {
+    flexDirection: { xs: 'column', sm: splitRowDirection },
+    ...siteCanvasBelow({ flexDirection: 'column' }),
+    ...siteCanvasAbove({ flexDirection: splitRowDirection })
+  } as const
+
   return (
     <Box
       component='section'
       sx={{
         ...shellSx,
         display: 'flex',
-        flexDirection: { xs: 'column', md: contentFirst ? 'row' : 'row-reverse' },
+        ...splitStackSx,
         minHeight: props.minHeight
       }}
     >
@@ -150,7 +162,7 @@ export function HeroBlock({ props }: Props) {
           position: 'relative',
           zIndex: 1,
           display: 'flex',
-          flexDirection: { xs: 'column', md: contentFirst ? 'row' : 'row-reverse' },
+          ...splitStackSx,
           flex: 1,
           minWidth: 0
         }}
@@ -163,8 +175,9 @@ export function HeroBlock({ props }: Props) {
             justifyContent: 'center',
             textAlign: 'left',
             flex: 1,
-            px: 4,
-            py: 8
+            px: { xs: 2, sm: 4 },
+            py: { xs: 4, sm: 8 },
+            minWidth: 0
           }}
         >
           {content}

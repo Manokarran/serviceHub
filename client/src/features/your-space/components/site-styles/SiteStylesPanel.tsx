@@ -12,6 +12,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
+import { HERO_SPLIT_VISUAL_ANIMATION_OPTIONS } from '../../constants/heroVisual'
 import { FONT_FAMILY_OPTIONS, SITE_THEME_PRESETS } from '../../constants/siteStylePresets'
 import {
   BUTTON_PACK_PRESETS,
@@ -26,7 +27,8 @@ import { useBuilder } from '../../context/BuilderContext'
 import { PropertyBodyText, PropertyFieldLabel, PropertySection } from '../property/PropertyPanelUi'
 import type { SiteStylesView } from '../../types/siteStyles'
 import type { ButtonShape, ButtonStyle, SiteAnimation, SpacingScale } from '../../types/siteStyles'
-import { getButtonBorderRadius } from '../../utils/siteStylesHelpers'
+import { resolveSitePageVisualColors } from '../../utils/sitePageVisualHelpers'
+import { getButtonBorderRadius, normalizeSiteFonts } from '../../utils/siteStylesHelpers'
 import {
   ButtonPackPreview,
   ColorSwatchRow,
@@ -59,6 +61,12 @@ export function SiteStylesPanel({ onClose }: Props) {
     siteStyles.colors.swatch4,
     siteStyles.colors.swatch5
   ]
+
+  const pageBackgroundAnimation = siteStyles.misc.pageSplitVisualAnimation ?? 'static'
+  const pageBackgroundLabel =
+    HERO_SPLIT_VISUAL_ANIMATION_OPTIONS.find(option => option.value === pageBackgroundAnimation)?.label ?? 'Static'
+  const pageBackgroundColors = resolveSitePageVisualColors(siteStyles)
+  const canvasCornerRadius = siteStyles.misc.canvasCornerRadius ?? 0
 
   if (view === 'home') {
     return (
@@ -132,6 +140,43 @@ export function SiteStylesPanel({ onClose }: Props) {
               >
                 <i className='ri-check-line' />
               </Box>
+            </Box>
+          </StyleSectionCard>
+
+          <StyleSectionCard label='Background animation' onClick={() => setView('misc-page-background')}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box
+                sx={{
+                  width: 52,
+                  height: 36,
+                  borderRadius: 1,
+                  flexShrink: 0,
+                  background: `linear-gradient(135deg, ${pageBackgroundColors.start} 0%, ${pageBackgroundColors.end} 100%)`,
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.divider, 0.6)
+                }}
+              />
+              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', lineHeight: 1.3 }}>
+                {pageBackgroundLabel}
+              </Typography>
+            </Box>
+          </StyleSectionCard>
+
+          <StyleSectionCard label='Page canvas' onClick={() => setView('misc-canvas')}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 0.25 }}>
+              <Box
+                sx={{
+                  width: 76,
+                  height: 48,
+                  borderRadius: `${Math.round(canvasCornerRadius * 0.375)}px`,
+                  border: '2px solid',
+                  borderColor: alpha(theme.palette.text.primary, 0.18),
+                  backgroundColor: alpha(theme.palette.text.primary, 0.04)
+                }}
+              />
+              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+                {canvasCornerRadius}px radius
+              </Typography>
             </Box>
           </StyleSectionCard>
 
@@ -215,9 +260,9 @@ export function SiteStylesPanel({ onClose }: Props) {
               <StylePackCard
                 key={pack.id}
                 selected={selectedPackId === pack.id}
-                onClick={() => updateSiteStyles({ fonts: pack.fonts })}
+                onClick={() => updateSiteStyles({ fonts: { ...siteStyles.fonts, ...pack.fonts } })}
               >
-                <FontPackPreview fonts={pack.fonts} />
+                <FontPackPreview fonts={normalizeSiteFonts(pack.fonts)} />
               </StylePackCard>
             ))}
           </StylePackGrid>
@@ -272,13 +317,13 @@ export function SiteStylesPanel({ onClose }: Props) {
             />
           </Box>
           <Box>
-            <PropertyFieldLabel>Body size: {siteStyles.fonts.bodySize}px</PropertyFieldLabel>
+            <PropertyFieldLabel>Heading size: {siteStyles.fonts.headingSize ?? 32}px</PropertyFieldLabel>
             <Slider
-              value={siteStyles.fonts.bodySize}
-              min={12}
-              max={20}
+              value={siteStyles.fonts.headingSize ?? 32}
+              min={24}
+              max={56}
               step={1}
-              onChange={(_, v) => updateSiteStyles({ fonts: { ...siteStyles.fonts, bodySize: v as number } })}
+              onChange={(_, v) => updateSiteStyles({ fonts: { ...siteStyles.fonts, headingSize: v as number } })}
             />
           </Box>
           <Box>
@@ -289,6 +334,74 @@ export function SiteStylesPanel({ onClose }: Props) {
               max={1.3}
               step={0.05}
               onChange={(_, v) => updateSiteStyles({ fonts: { ...siteStyles.fonts, headingScale: v as number } })}
+            />
+          </Box>
+          <Box>
+            <PropertyFieldLabel>Body size: {siteStyles.fonts.bodySize}px</PropertyFieldLabel>
+            <Slider
+              value={siteStyles.fonts.bodySize}
+              min={12}
+              max={22}
+              step={1}
+              onChange={(_, v) => updateSiteStyles({ fonts: { ...siteStyles.fonts, bodySize: v as number } })}
+            />
+          </Box>
+          </PropertySection>
+
+          <PropertySection title='Navigation & brand'>
+          <Box>
+            <PropertyFieldLabel>Logo size: {siteStyles.fonts.logoSize ?? 20}px</PropertyFieldLabel>
+            <Slider
+              value={siteStyles.fonts.logoSize ?? 20}
+              min={14}
+              max={32}
+              step={1}
+              onChange={(_, v) => updateSiteStyles({ fonts: { ...siteStyles.fonts, logoSize: v as number } })}
+            />
+          </Box>
+          <Box>
+            <PropertyFieldLabel>Navigation size: {siteStyles.fonts.navSize ?? 14}px</PropertyFieldLabel>
+            <Slider
+              value={siteStyles.fonts.navSize ?? 14}
+              min={11}
+              max={20}
+              step={1}
+              onChange={(_, v) => updateSiteStyles({ fonts: { ...siteStyles.fonts, navSize: v as number } })}
+            />
+          </Box>
+          <Box>
+            <PropertyFieldLabel>Caption size: {siteStyles.fonts.labelSize ?? 13}px</PropertyFieldLabel>
+            <Slider
+              value={siteStyles.fonts.labelSize ?? 13}
+              min={10}
+              max={18}
+              step={1}
+              onChange={(_, v) => updateSiteStyles({ fonts: { ...siteStyles.fonts, labelSize: v as number } })}
+            />
+          </Box>
+          </PropertySection>
+
+          <PropertySection title='Buttons & forms'>
+          <Box>
+            <PropertyFieldLabel>Button size: {siteStyles.fonts.buttonSize ?? 15}px</PropertyFieldLabel>
+            <Slider
+              value={siteStyles.fonts.buttonSize ?? 15}
+              min={11}
+              max={20}
+              step={1}
+              onChange={(_, v) => updateSiteStyles({ fonts: { ...siteStyles.fonts, buttonSize: v as number } })}
+            />
+          </Box>
+          <Box>
+            <PropertyFieldLabel>Form field size: {siteStyles.forms.fieldFontSize ?? 16}px</PropertyFieldLabel>
+            <Slider
+              value={siteStyles.forms.fieldFontSize ?? 16}
+              min={12}
+              max={22}
+              step={1}
+              onChange={(_, v) =>
+                updateSiteStyles({ forms: { ...siteStyles.forms, fieldFontSize: v as number } })
+              }
             />
           </Box>
           </PropertySection>
@@ -371,6 +484,18 @@ export function SiteStylesPanel({ onClose }: Props) {
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
         <StylePanelHeader title='Buttons' onBack={() => setView('buttons')} onClose={onClose} />
         <StylePanelBody>
+          <PropertySection title='Typography'>
+            <Box>
+              <PropertyFieldLabel>Button font size: {siteStyles.fonts.buttonSize ?? 15}px</PropertyFieldLabel>
+              <Slider
+                value={siteStyles.fonts.buttonSize ?? 15}
+                min={11}
+                max={20}
+                step={1}
+                onChange={(_, v) => updateSiteStyles({ fonts: { ...siteStyles.fonts, buttonSize: v as number } })}
+              />
+            </Box>
+          </PropertySection>
           {(['primary', 'secondary', 'tertiary'] as const).map(role => (
             <PropertySection key={role} title={`${role.charAt(0).toUpperCase() + role.slice(1)} button`}>
               <FormControl size='small' fullWidth>
@@ -430,7 +555,7 @@ export function SiteStylesPanel({ onClose }: Props) {
               <StylePackCard
                 key={pack.id}
                 selected={selectedPackId === pack.id}
-                onClick={() => updateSiteStyles({ forms: pack.forms })}
+                onClick={() => updateSiteStyles({ forms: { ...siteStyles.forms, ...pack.forms } })}
               >
                 <FormPackPreview forms={pack.forms} accent={siteStyles.colors.accent} />
               </StylePackCard>
@@ -461,6 +586,18 @@ export function SiteStylesPanel({ onClose }: Props) {
               <MenuItem value='pill'>Pill</MenuItem>
             </Select>
           </FormControl>
+          <Box>
+            <PropertyFieldLabel>Field font size: {siteStyles.forms.fieldFontSize ?? 16}px</PropertyFieldLabel>
+            <Slider
+              value={siteStyles.forms.fieldFontSize ?? 16}
+              min={12}
+              max={22}
+              step={1}
+              onChange={(_, v) =>
+                updateSiteStyles({ forms: { ...siteStyles.forms, fieldFontSize: v as number } })
+              }
+            />
+          </Box>
           <Box>
             <PropertyFieldLabel>Border width: {siteStyles.forms.fieldBorderWidth}px</PropertyFieldLabel>
             <Slider
@@ -500,9 +637,7 @@ export function SiteStylesPanel({ onClose }: Props) {
         <StylePanelHeader title='Miscellaneous' onBack={() => setView('home')} onClose={onClose} />
         <Box sx={{ flex: 1, overflowY: 'auto', px: 2 }}>
           <StyleNavRow label='Animations' onClick={() => setView('misc-animations')} />
-          <StyleNavRow label='Background animation' onClick={() => setView('misc-page-background')} />
           <StyleNavRow label='Spacing' onClick={() => setView('misc-spacing')} />
-          <StyleNavRow label='Page canvas' onClick={() => setView('misc-canvas')} />
           <StyleNavRow label='Image Blocks' onClick={() => setView('misc-image-blocks')} />
         </Box>
       </Box>
@@ -538,7 +673,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'misc-page-background') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Background animation' onBack={() => setView('misc')} onClose={onClose} />
+        <StylePanelHeader title='Background animation' onBack={() => setView('home')} onClose={onClose} />
         <StylePanelBody>
           <SitePageBackgroundPanel />
         </StylePanelBody>
@@ -574,7 +709,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'misc-canvas') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Page canvas' onBack={() => setView('misc')} onClose={onClose} />
+        <StylePanelHeader title='Page canvas' onBack={() => setView('home')} onClose={onClose} />
         <StylePanelBody>
           <PropertyBodyText>
             Corner radius of the page preview frame in the builder. Set to 0 for sharp square corners.

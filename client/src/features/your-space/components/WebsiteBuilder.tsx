@@ -23,7 +23,7 @@ import { getPaletteItem } from '../constants'
 import { BUILDER_FONT_SMOOTHING, BUILDER_TYPOGRAPHY } from '../constants/builderLayout'
 import { builderShellSx } from '../constants/builderChrome'
 import { BuilderProvider, useBuilder } from '../context/BuilderContext'
-import type { PublishedVersionSummary } from '@/models/site-page'
+import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-page'
 import type { ActiveDragItem, Block, BlockType } from '../types'
 import { resolveDropTarget } from '../utils/blockTreeUtils'
 import { builderCollisionDetection } from '../utils/builderCollisionDetection'
@@ -38,11 +38,9 @@ import { useBuilderFullscreen } from '../hooks/useBuilderFullscreen'
 
 type WebsiteBuilderInnerProps = {
   tenantName: string
-  siteUrl: string
-  displayUrl: string
 }
 
-function WebsiteBuilderInner({ tenantName, siteUrl, displayUrl }: WebsiteBuilderInnerProps) {
+function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   const theme = useTheme()
   const isMobileLayout = useMediaQuery(theme.breakpoints.down('lg'))
   const builderRootRef = useRef<HTMLDivElement>(null)
@@ -80,7 +78,7 @@ function WebsiteBuilderInner({ tenantName, siteUrl, displayUrl }: WebsiteBuilder
       return
     }
 
-    if (isEditMode && selectedBlock.id !== lastOpenedBlockId.current) {
+    if (isEditMode) {
       setPropertyPanelOpen(true)
 
       if (isMobileLayout) {
@@ -179,8 +177,6 @@ function WebsiteBuilderInner({ tenantName, siteUrl, displayUrl }: WebsiteBuilder
       >
         <BuilderToolbar
           tenantName={tenantName}
-          siteUrl={siteUrl}
-          displayUrl={displayUrl}
           isFullscreen={isFullscreen}
           onToggleFullscreen={() => void toggleFullscreen(builderRootRef.current)}
         />
@@ -251,8 +247,9 @@ function WebsiteBuilderInner({ tenantName, siteUrl, displayUrl }: WebsiteBuilder
 type WebsiteBuilderProps = {
   tenantSlug: string
   tenantName: string
-  siteUrl: string
-  displayUrl: string
+  initialPageSlug: string
+  initialPages: SitePageSummary[]
+  initialPageTitle: string
   initialDraftBlocks: Block[] | null
   initialPublishedBlocks: Block[]
   initialSavedAt: string | null
@@ -265,8 +262,9 @@ type WebsiteBuilderProps = {
 export function WebsiteBuilder({
   tenantSlug,
   tenantName,
-  siteUrl,
-  displayUrl,
+  initialPageSlug,
+  initialPages,
+  initialPageTitle,
   initialDraftBlocks,
   initialPublishedBlocks,
   initialSavedAt,
@@ -278,6 +276,9 @@ export function WebsiteBuilder({
   return (
     <BuilderProvider
       tenantSlug={tenantSlug}
+      initialPageSlug={initialPageSlug}
+      initialPages={initialPages}
+      initialPageTitle={initialPageTitle}
       initialDraftBlocks={initialDraftBlocks}
       initialPublishedBlocks={initialPublishedBlocks}
       initialDraftSiteStyles={initialDraftSiteStyles}
@@ -286,7 +287,7 @@ export function WebsiteBuilder({
       initialPublishedAt={initialPublishedAt}
       initialVersions={initialVersions}
     >
-      <WebsiteBuilderInner tenantName={tenantName} siteUrl={siteUrl} displayUrl={displayUrl} />
+      <WebsiteBuilderInner tenantName={tenantName} />
     </BuilderProvider>
   )
 }

@@ -3,9 +3,10 @@ import Typography from '@mui/material/Typography'
 
 type Props = {
   tenantName: string
+  pageTitle?: string
 }
 
-export function PublicSiteEmptyState({ tenantName }: Props) {
+export function PublicSiteEmptyState({ tenantName, pageTitle }: Props) {
   return (
     <Box
       sx={{
@@ -36,10 +37,10 @@ export function PublicSiteEmptyState({ tenantName }: Props) {
         <i className='ri-global-line' />
       </Box>
       <Typography variant='h4' sx={{ fontWeight: 800, mb: 1.5 }}>
-        {tenantName}
+        {pageTitle ?? tenantName}
       </Typography>
       <Typography color='text.secondary' sx={{ maxWidth: 420, lineHeight: 1.7 }}>
-        This website is being built. Check back soon for updates.
+        {pageTitle ? `This page is being built. Check back soon.` : 'This website is being built. Check back soon for updates.'}
       </Typography>
     </Box>
   )

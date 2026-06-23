@@ -5,10 +5,12 @@ import { alpha, useTheme } from '@mui/material/styles'
 
 import { BUILDER_Z_INDEX } from '../../constants/builderLayout'
 import { useBuilder } from '../../context/BuilderContext'
+import { useBuilderShell } from '../../context/BuilderShellContext'
 
 export function SectionEditChip({ sectionId }: { sectionId: string }) {
   const theme = useTheme()
   const { selectedBlockId, selectBlock } = useBuilder()
+  const shell = useBuilderShell()
 
   if (selectedBlockId === sectionId) {
     return null
@@ -21,6 +23,7 @@ export function SectionEditChip({ sectionId }: { sectionId: string }) {
       onClick={e => {
         e.stopPropagation()
         selectBlock(sectionId)
+        shell?.openPropertyPanel()
       }}
       sx={{
         position: 'absolute',

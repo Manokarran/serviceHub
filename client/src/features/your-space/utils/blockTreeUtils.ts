@@ -1,19 +1,45 @@
-import type { Block, BlockType, SectionBlockProps } from '../types'
+import type { Block, BlockType, CarouselBlockProps, SectionBlockProps, TabsBlockProps } from '../types'
 
 export type BlockColumn = 'default' | 'primary' | 'secondary'
 
 export type BlockLocation =
   | { container: 'root'; index: number }
   | { container: 'section'; sectionId: string; column: BlockColumn; index: number }
+  | { container: 'carousel'; carouselId: string; slideId: string; index: number }
+  | { container: 'tabs'; tabsId: string; panelId: string; index: number }
 
-/** Blocks allowed inside a section (including nested sections) */
-export const SECTION_CHILD_TYPES: BlockType[] = ['section', 'heading', 'text', 'button', 'image', 'video', 'logo']
+/** Blocks allowed inside a section (including nested sections, carousels, and tabs) */
+export const SECTION_CHILD_TYPES: BlockType[] = [
+  'section',
+  'carousel',
+  'tabs',
+  'heading',
+  'text',
+  'button',
+  'image',
+  'video',
+  'logo',
+  'shape'
+]
+
+/** Blocks allowed inside a carousel slide or tab panel */
+export const CAROUSEL_CHILD_TYPES: BlockType[] = SECTION_CHILD_TYPES
+
+export const TAB_CHILD_TYPES: BlockType[] = SECTION_CHILD_TYPES
 
 /** Full-width blocks that must stay at the page root */
 export const ROOT_ONLY_BLOCK_TYPES: BlockType[] = ['header', 'footer', 'hero']
 
 export function canNestInSection(type: BlockType): boolean {
   return SECTION_CHILD_TYPES.includes(type)
+}
+
+export function canNestInCarousel(type: BlockType): boolean {
+  return CAROUSEL_CHILD_TYPES.includes(type)
+}
+
+export function canNestInTabs(type: BlockType): boolean {
+  return TAB_CHILD_TYPES.includes(type)
 }
 
 export function getSectionColumnChildren(section: Block, column: BlockColumn): Block[] {
@@ -30,6 +56,19 @@ export function getSectionColumnChildren(section: Block, column: BlockColumn): B
   return props.children ?? []
 }
 
+export function getCarouselSlideChildren(carousel: Block, slideId: string): Block[] {
+  const props = carousel.props as CarouselBlockProps
+  const slide = props.slides.find(entry => entry.id === slideId)
+
+  return slide?.children ?? []
+}
+
+export function getTabPanelChildren(tabsBlock: Block, panelId: string): Block[] {
+  const props = tabsBlock.props as TabsBlockProps
+  const panel = props.tabs.find(entry => entry.id === panelId)
+
+  return panel?.children ?? []
+}
 export function getDefaultSectionColumn(layout: SectionBlockProps['layout']): BlockColumn {
   if (layout === 'split-horizontal' || layout === 'split-vertical') {
     return 'primary'
@@ -54,18 +93,64 @@ export function parseSectionDropId(id: string | number): { sectionId: string; co
   return { sectionId, column }
 }
 
+export function parseCarouselDropId(id: string | number): { carouselId: string; slideId: string } | null {
+  if (typeof id !== 'string' || !id.startsWith('carousel-drop:')) {
+    return null
+  }
+
+  const parts = id.split(':')
+  const carouselId = parts[1]
+  const slideId = parts[2]
+
+  if (!carouselId || !slideId) {
+    return null
+  }
+
+  return { carouselId, slideId }
+}
+
 export function sectionDropId(sectionId: string, column: BlockColumn = 'default'): string {
   return column === 'default' ? `section-drop:${sectionId}` : `section-drop:${sectionId}:${column}`
 }
 
+export function carouselDropId(carouselId: string, slideId: string): string {
+  return `carousel-drop:${carouselId}:${slideId}`
+}
+
+export function parseTabsDropId(id: string | number): { tabsId: string; panelId: string } | null {
+  if (typeof id !== 'string' || !id.startsWith('tabs-drop:')) {
+    return null
+  }
+
+  const parts = id.split(':')
+  const tabsId = parts[1]
+  const panelId = parts[2]
+
+  if (!tabsId || !panelId) {
+    return null
+  }
+
+  return { tabsId, panelId }
+}
+
+export function tabsDropId(tabsId: string, panelId: string): string {
+  return `tabs-drop:${tabsId}:${panelId}`
+}
 export function insertDropId(location: BlockLocation): string {
   if (location.container === 'root') {
     return `insert:root:${location.index}`
   }
 
-  return `insert:section:${location.sectionId}:${location.column}:${location.index}`
-}
+  if (location.container === 'section') {
+    return `insert:section:${location.sectionId}:${location.column}:${location.index}`
+  }
 
+  if (location.container === 'carousel') {
+    return `insert:carousel:${location.carouselId}:${location.slideId}:${location.index}`
+  }
+
+  return `insert:tabs:${location.tabsId}:${location.panelId}:${location.index}`
+}
 export function parseInsertDropId(id: string | number): BlockLocation | null {
   if (typeof id !== 'string' || !id.startsWith('insert:')) {
     return null
@@ -95,9 +180,32 @@ export function parseInsertDropId(id: string | number): BlockLocation | null {
     return { container: 'section', sectionId, column, index }
   }
 
+  if (parts[1] === 'carousel') {
+    const carouselId = parts[2]
+    const slideId = parts[3]
+    const index = Number.parseInt(parts[4] ?? '', 10)
+
+    if (!carouselId || !slideId || Number.isNaN(index) || index < 0) {
+      return null
+    }
+
+    return { container: 'carousel', carouselId, slideId, index }
+  }
+
+  if (parts[1] === 'tabs') {
+    const tabsId = parts[2]
+    const panelId = parts[3]
+    const index = Number.parseInt(parts[4] ?? '', 10)
+
+    if (!tabsId || !panelId || Number.isNaN(index) || index < 0) {
+      return null
+    }
+
+    return { container: 'tabs', tabsId, panelId, index }
+  }
+
   return null
 }
-
 function setSectionColumnChildren(
   props: SectionBlockProps,
   column: BlockColumn,
@@ -128,6 +236,52 @@ function mapSectionColumns(section: Block, mapper: (children: Block[]) => Block[
   }
 }
 
+function mapCarouselSlides(carousel: Block, mapper: (children: Block[]) => Block[]): Block {
+  const props = carousel.props as CarouselBlockProps
+
+  return {
+    ...carousel,
+    props: {
+      ...props,
+      slides: props.slides.map(slide => ({
+        ...slide,
+        children: mapper(slide.children)
+      }))
+    }
+  }
+}
+
+function mapTabsPanels(tabsBlock: Block, mapper: (children: Block[]) => Block[]): Block {
+  const props = tabsBlock.props as TabsBlockProps
+
+  return {
+    ...tabsBlock,
+    props: {
+      ...props,
+      tabs: props.tabs.map(panel => ({
+        ...panel,
+        children: mapper(panel.children)
+      }))
+    }
+  }
+}
+
+function mapNestedChildren(block: Block, mapper: (children: Block[]) => Block[]): Block {
+  if (block.type === 'section') {
+    return mapSectionColumns(block, mapper)
+  }
+
+  if (block.type === 'carousel') {
+    return mapCarouselSlides(block, mapper)
+  }
+
+  if (block.type === 'tabs') {
+    return mapTabsPanels(block, mapper)
+  }
+
+  return block
+}
+
 function updateSectionById(
   blocks: Block[],
   sectionId: string,
@@ -138,11 +292,47 @@ function updateSectionById(
       return { ...block, props: updater(block.props as SectionBlockProps) }
     }
 
-    if (block.type !== 'section') {
-      return block
+    if (block.type === 'section' || block.type === 'carousel' || block.type === 'tabs') {
+      return mapNestedChildren(block, children => updateSectionById(children, sectionId, updater))
     }
 
-    return mapSectionColumns(block, children => updateSectionById(children, sectionId, updater))
+    return block
+  })
+}
+
+function updateCarouselById(
+  blocks: Block[],
+  carouselId: string,
+  updater: (props: CarouselBlockProps) => CarouselBlockProps
+): Block[] {
+  return blocks.map(block => {
+    if (block.id === carouselId && block.type === 'carousel') {
+      return { ...block, props: updater(block.props as CarouselBlockProps) }
+    }
+
+    if (block.type === 'section' || block.type === 'carousel' || block.type === 'tabs') {
+      return mapNestedChildren(block, children => updateCarouselById(children, carouselId, updater))
+    }
+
+    return block
+  })
+}
+
+function updateTabsById(
+  blocks: Block[],
+  tabsId: string,
+  updater: (props: TabsBlockProps) => TabsBlockProps
+): Block[] {
+  return blocks.map(block => {
+    if (block.id === tabsId && block.type === 'tabs') {
+      return { ...block, props: updater(block.props as TabsBlockProps) }
+    }
+
+    if (block.type === 'section' || block.type === 'carousel' || block.type === 'tabs') {
+      return mapNestedChildren(block, children => updateTabsById(children, tabsId, updater))
+    }
+
+    return block
   })
 }
 
@@ -155,6 +345,118 @@ function findSectionInTree(blocks: Block[], sectionId: string): Block | null {
     if (block.type === 'section') {
       for (const column of ['default', 'primary', 'secondary'] as BlockColumn[]) {
         const found = findSectionInTree(getSectionColumnChildren(block, column), sectionId)
+
+        if (found) {
+          return found
+        }
+      }
+    }
+
+    if (block.type === 'carousel') {
+      const props = block.props as CarouselBlockProps
+
+      for (const slide of props.slides) {
+        const found = findSectionInTree(slide.children, sectionId)
+
+        if (found) {
+          return found
+        }
+      }
+    }
+
+    if (block.type === 'tabs') {
+      const props = block.props as TabsBlockProps
+
+      for (const panel of props.tabs) {
+        const found = findSectionInTree(panel.children, sectionId)
+
+        if (found) {
+          return found
+        }
+      }
+    }
+  }
+
+  return null
+}
+
+function findCarouselInTree(blocks: Block[], carouselId: string): Block | null {
+  for (const block of blocks) {
+    if (block.id === carouselId && block.type === 'carousel') {
+      return block
+    }
+
+    if (block.type === 'section') {
+      for (const column of ['default', 'primary', 'secondary'] as BlockColumn[]) {
+        const found = findCarouselInTree(getSectionColumnChildren(block, column), carouselId)
+
+        if (found) {
+          return found
+        }
+      }
+    }
+
+    if (block.type === 'carousel') {
+      const props = block.props as CarouselBlockProps
+
+      for (const slide of props.slides) {
+        const found = findCarouselInTree(slide.children, carouselId)
+
+        if (found) {
+          return found
+        }
+      }
+    }
+
+    if (block.type === 'tabs') {
+      const props = block.props as TabsBlockProps
+
+      for (const panel of props.tabs) {
+        const found = findCarouselInTree(panel.children, carouselId)
+
+        if (found) {
+          return found
+        }
+      }
+    }
+  }
+
+  return null
+}
+
+function findTabsInTree(blocks: Block[], tabsId: string): Block | null {
+  for (const block of blocks) {
+    if (block.id === tabsId && block.type === 'tabs') {
+      return block
+    }
+
+    if (block.type === 'section') {
+      for (const column of ['default', 'primary', 'secondary'] as BlockColumn[]) {
+        const found = findTabsInTree(getSectionColumnChildren(block, column), tabsId)
+
+        if (found) {
+          return found
+        }
+      }
+    }
+
+    if (block.type === 'carousel') {
+      const props = block.props as CarouselBlockProps
+
+      for (const slide of props.slides) {
+        const found = findTabsInTree(slide.children, tabsId)
+
+        if (found) {
+          return found
+        }
+      }
+    }
+
+    if (block.type === 'tabs') {
+      const props = block.props as TabsBlockProps
+
+      for (const panel of props.tabs) {
+        const found = findTabsInTree(panel.children, tabsId)
 
         if (found) {
           return found
@@ -181,22 +483,69 @@ export function findBlockInTree(blocks: Block[], id: string): Block | null {
         }
       }
     }
+
+    if (block.type === 'carousel') {
+      const props = block.props as CarouselBlockProps
+
+      for (const slide of props.slides) {
+        const found = findBlockInTree(slide.children, id)
+
+        if (found) {
+          return found
+        }
+      }
+    }
+
+    if (block.type === 'tabs') {
+      const props = block.props as TabsBlockProps
+
+      for (const panel of props.tabs) {
+        const found = findBlockInTree(panel.children, id)
+
+        if (found) {
+          return found
+        }
+      }
+    }
   }
 
   return null
 }
 
+type BlockParent =
+  | { container: 'section'; sectionId: string; column: BlockColumn }
+  | { container: 'carousel'; carouselId: string; slideId: string }
+  | { container: 'tabs'; tabsId: string; panelId: string }
+
 function findBlockLocationInList(
   blocks: Block[],
   id: string,
-  parent?: { sectionId: string; column: BlockColumn }
+  parent?: BlockParent
 ): BlockLocation | null {
   for (let index = 0; index < blocks.length; index++) {
     const block = blocks[index]
 
     if (block.id === id) {
-      if (parent) {
+      if (parent?.container === 'section') {
         return { container: 'section', sectionId: parent.sectionId, column: parent.column, index }
+      }
+
+      if (parent?.container === 'carousel') {
+        return {
+          container: 'carousel',
+          carouselId: parent.carouselId,
+          slideId: parent.slideId,
+          index
+        }
+      }
+
+      if (parent?.container === 'tabs') {
+        return {
+          container: 'tabs',
+          tabsId: parent.tabsId,
+          panelId: parent.panelId,
+          index
+        }
       }
 
       return { container: 'root', index }
@@ -205,8 +554,41 @@ function findBlockLocationInList(
     if (block.type === 'section') {
       for (const column of ['default', 'primary', 'secondary'] as BlockColumn[]) {
         const found = findBlockLocationInList(getSectionColumnChildren(block, column), id, {
+          container: 'section',
           sectionId: block.id,
           column
+        })
+
+        if (found) {
+          return found
+        }
+      }
+    }
+
+    if (block.type === 'carousel') {
+      const props = block.props as CarouselBlockProps
+
+      for (const slide of props.slides) {
+        const found = findBlockLocationInList(slide.children, id, {
+          container: 'carousel',
+          carouselId: block.id,
+          slideId: slide.id
+        })
+
+        if (found) {
+          return found
+        }
+      }
+    }
+
+    if (block.type === 'tabs') {
+      const props = block.props as TabsBlockProps
+
+      for (const panel of props.tabs) {
+        const found = findBlockLocationInList(panel.children, id, {
+          container: 'tabs',
+          tabsId: block.id,
+          panelId: panel.id
         })
 
         if (found) {
@@ -239,13 +621,64 @@ export function extractBlockFromTree(blocks: Block[], id: string): { blocks: Blo
     }
   }
 
-  const section = findSectionInTree(blocks, location.sectionId)
+  if (location.container === 'section') {
+    const section = findSectionInTree(blocks, location.sectionId)
 
-  if (!section) {
+    if (!section) {
+      return { blocks, block: null }
+    }
+
+    const children = getSectionColumnChildren(section, location.column)
+    const block = children[location.index]
+
+    if (!block) {
+      return { blocks, block: null }
+    }
+
+    const nextChildren = children.filter((_, index) => index !== location.index)
+
+    return {
+      blocks: updateSectionById(blocks, location.sectionId, sectionProps =>
+        setSectionColumnChildren(sectionProps, location.column, nextChildren)
+      ),
+      block
+    }
+  }
+
+  if (location.container === 'carousel') {
+    const carousel = findCarouselInTree(blocks, location.carouselId)
+
+    if (!carousel) {
+      return { blocks, block: null }
+    }
+
+    const children = getCarouselSlideChildren(carousel, location.slideId)
+    const block = children[location.index]
+
+    if (!block) {
+      return { blocks, block: null }
+    }
+
+    const nextChildren = children.filter((_, index) => index !== location.index)
+
+    return {
+      blocks: updateCarouselById(blocks, location.carouselId, carouselProps => ({
+        ...carouselProps,
+        slides: carouselProps.slides.map(slide =>
+          slide.id === location.slideId ? { ...slide, children: nextChildren } : slide
+        )
+      })),
+      block
+    }
+  }
+
+  const tabsBlock = findTabsInTree(blocks, location.tabsId)
+
+  if (!tabsBlock) {
     return { blocks, block: null }
   }
 
-  const children = getSectionColumnChildren(section, location.column)
+  const children = getTabPanelChildren(tabsBlock, location.panelId)
   const block = children[location.index]
 
   if (!block) {
@@ -255,9 +688,12 @@ export function extractBlockFromTree(blocks: Block[], id: string): { blocks: Blo
   const nextChildren = children.filter((_, index) => index !== location.index)
 
   return {
-    blocks: updateSectionById(blocks, location.sectionId, sectionProps =>
-      setSectionColumnChildren(sectionProps, location.column, nextChildren)
-    ),
+    blocks: updateTabsById(blocks, location.tabsId, tabsProps => ({
+      ...tabsProps,
+      tabs: tabsProps.tabs.map(panel =>
+        panel.id === location.panelId ? { ...panel, children: nextChildren } : panel
+      )
+    })),
     block
   }
 }
@@ -271,14 +707,49 @@ export function insertBlockAtLocation(blocks: Block[], block: Block, location: B
     return next
   }
 
-  return updateSectionById(blocks, location.sectionId, props => {
-    const children = getSectionColumnChildren({ type: 'section', id: location.sectionId, props }, location.column)
-    const nextChildren = [...children]
+  if (location.container === 'section') {
+    return updateSectionById(blocks, location.sectionId, props => {
+      const children = getSectionColumnChildren(
+        { type: 'section', id: location.sectionId, props },
+        location.column
+      )
+      const nextChildren = [...children]
 
-    nextChildren.splice(location.index, 0, block)
+      nextChildren.splice(location.index, 0, block)
 
-    return setSectionColumnChildren(props, location.column, nextChildren)
-  })
+      return setSectionColumnChildren(props, location.column, nextChildren)
+    })
+  }
+
+  if (location.container === 'carousel') {
+    return updateCarouselById(blocks, location.carouselId, props => ({
+      ...props,
+      slides: props.slides.map(slide => {
+        if (slide.id !== location.slideId) {
+          return slide
+        }
+
+        const nextChildren = [...slide.children]
+        nextChildren.splice(location.index, 0, block)
+
+        return { ...slide, children: nextChildren }
+      })
+    }))
+  }
+
+  return updateTabsById(blocks, location.tabsId, props => ({
+    ...props,
+    tabs: props.tabs.map(panel => {
+      if (panel.id !== location.panelId) {
+        return panel
+      }
+
+      const nextChildren = [...panel.children]
+      nextChildren.splice(location.index, 0, block)
+
+      return { ...panel, children: nextChildren }
+    })
+  }))
 }
 
 function getInsertIndexAfterBlock(blocks: Block[], blockId: string): BlockLocation {
@@ -324,6 +795,40 @@ export function resolveDropTarget(
     }
   }
 
+  const carouselDrop = parseCarouselDropId(overId)
+
+  if (carouselDrop) {
+    const carousel = findCarouselInTree(blocks, carouselDrop.carouselId)
+
+    if (carousel) {
+      const children = getCarouselSlideChildren(carousel, carouselDrop.slideId)
+
+      return {
+        container: 'carousel',
+        carouselId: carouselDrop.carouselId,
+        slideId: carouselDrop.slideId,
+        index: children.length
+      }
+    }
+  }
+
+  const tabsDrop = parseTabsDropId(overId)
+
+  if (tabsDrop) {
+    const tabsBlock = findTabsInTree(blocks, tabsDrop.tabsId)
+
+    if (tabsBlock) {
+      const children = getTabPanelChildren(tabsBlock, tabsDrop.panelId)
+
+      return {
+        container: 'tabs',
+        tabsId: tabsDrop.tabsId,
+        panelId: tabsDrop.panelId,
+        index: children.length
+      }
+    }
+  }
+
   const overBlock = findBlockInTree(blocks, String(overId))
 
   if (overBlock?.type === 'section') {
@@ -337,6 +842,38 @@ export function resolveDropTarget(
         sectionId: overBlock.id,
         column,
         index: children.length
+      }
+    }
+
+    return getInsertIndexAfterBlock(blocks, overBlock.id)
+  }
+
+  if (overBlock?.type === 'carousel') {
+    const props = overBlock.props as CarouselBlockProps
+    const firstSlide = props.slides[0]
+
+    if (firstSlide && movingType && canNestInCarousel(movingType)) {
+      return {
+        container: 'carousel',
+        carouselId: overBlock.id,
+        slideId: firstSlide.id,
+        index: firstSlide.children.length
+      }
+    }
+
+    return getInsertIndexAfterBlock(blocks, overBlock.id)
+  }
+
+  if (overBlock?.type === 'tabs') {
+    const props = overBlock.props as TabsBlockProps
+    const firstPanel = props.tabs[0]
+
+    if (firstPanel && movingType && canNestInTabs(movingType)) {
+      return {
+        container: 'tabs',
+        tabsId: overBlock.id,
+        panelId: firstPanel.id,
+        index: firstPanel.children.length
       }
     }
 
@@ -369,11 +906,27 @@ export function moveBlockInTree(blocks: Block[], activeId: string, overId: strin
     return insertBlockAtLocation(withoutActive, block, { container: 'root', index: withoutActive.length })
   }
 
+  if (!canNestInCarousel(block.type) && target.container === 'carousel') {
+    return insertBlockAtLocation(withoutActive, block, { container: 'root', index: withoutActive.length })
+  }
+
+  if (!canNestInTabs(block.type) && target.container === 'tabs') {
+    return insertBlockAtLocation(withoutActive, block, { container: 'root', index: withoutActive.length })
+  }
+
   return insertBlockAtLocation(withoutActive, block, target)
 }
 
 export function addBlockToTree(blocks: Block[], block: Block, target: BlockLocation): Block[] {
   if (!canNestInSection(block.type) && target.container === 'section') {
+    return insertBlockAtLocation(blocks, block, { container: 'root', index: blocks.length })
+  }
+
+  if (!canNestInCarousel(block.type) && target.container === 'carousel') {
+    return insertBlockAtLocation(blocks, block, { container: 'root', index: blocks.length })
+  }
+
+  if (!canNestInTabs(block.type) && target.container === 'tabs') {
     return insertBlockAtLocation(blocks, block, { container: 'root', index: blocks.length })
   }
 
@@ -392,11 +945,11 @@ function updateBlockInList(blocks: Block[], id: string, props: Partial<Block['pr
       return { ...block, props: { ...block.props, ...props } as Block['props'] }
     }
 
-    if (block.type !== 'section') {
-      return block
+    if (block.type === 'section' || block.type === 'carousel' || block.type === 'tabs') {
+      return mapNestedChildren(block, children => updateBlockInList(children, id, props))
     }
 
-    return mapSectionColumns(block, children => updateBlockInList(children, id, props))
+    return block
   })
 }
 
@@ -423,6 +976,22 @@ export function flattenBlocks(blocks: Block[]): Block[] {
         ...flattenBlocks(props.secondaryChildren ?? [])
       )
     }
+
+    if (block.type === 'carousel') {
+      const props = block.props as CarouselBlockProps
+
+      for (const slide of props.slides) {
+        result.push(...flattenBlocks(slide.children))
+      }
+    }
+
+    if (block.type === 'tabs') {
+      const props = block.props as TabsBlockProps
+
+      for (const panel of props.tabs) {
+        result.push(...flattenBlocks(panel.children))
+      }
+    }
   }
 
   return result
@@ -448,6 +1017,102 @@ export function findParentSectionId(blocks: Block[], targetId: string): string |
 
           if (nestedSectionId) {
             return nestedSectionId
+          }
+        }
+      }
+    }
+  }
+
+  return null
+}
+
+export function findParentCarouselId(blocks: Block[], targetId: string): string | null {
+  for (const block of blocks) {
+    if (block.type === 'carousel') {
+      const props = block.props as CarouselBlockProps
+
+      for (const slide of props.slides) {
+        if (slide.children.some(child => child.id === targetId)) {
+          return block.id
+        }
+
+        for (const child of slide.children) {
+          if (child.type === 'carousel') {
+            const nestedCarouselId = findParentCarouselId([child], targetId)
+
+            if (nestedCarouselId) {
+              return nestedCarouselId
+            }
+          }
+        }
+      }
+    }
+
+    if (block.type === 'section') {
+      const props = block.props as SectionBlockProps
+      const columnLists = [props.children ?? [], props.primaryChildren ?? [], props.secondaryChildren ?? []]
+
+      for (const columnChildren of columnLists) {
+        for (const child of columnChildren) {
+          const carouselId = findParentCarouselId([child], targetId)
+
+          if (carouselId) {
+            return carouselId
+          }
+        }
+      }
+    }
+  }
+
+  return null
+}
+
+export function findParentTabsId(blocks: Block[], targetId: string): string | null {
+  for (const block of blocks) {
+    if (block.type === 'tabs') {
+      const props = block.props as TabsBlockProps
+
+      for (const panel of props.tabs) {
+        if (panel.children.some(child => child.id === targetId)) {
+          return block.id
+        }
+
+        for (const child of panel.children) {
+          if (child.type === 'tabs') {
+            const nestedTabsId = findParentTabsId([child], targetId)
+
+            if (nestedTabsId) {
+              return nestedTabsId
+            }
+          }
+        }
+      }
+    }
+
+    if (block.type === 'section') {
+      const props = block.props as SectionBlockProps
+      const columnLists = [props.children ?? [], props.primaryChildren ?? [], props.secondaryChildren ?? []]
+
+      for (const columnChildren of columnLists) {
+        for (const child of columnChildren) {
+          const tabsId = findParentTabsId([child], targetId)
+
+          if (tabsId) {
+            return tabsId
+          }
+        }
+      }
+    }
+
+    if (block.type === 'carousel') {
+      const props = block.props as CarouselBlockProps
+
+      for (const slide of props.slides) {
+        for (const child of slide.children) {
+          const tabsId = findParentTabsId([child], targetId)
+
+          if (tabsId) {
+            return tabsId
           }
         }
       }

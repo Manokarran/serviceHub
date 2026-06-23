@@ -4,6 +4,7 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 
 import type { HeadingBlockProps } from '../../types'
+import { getHeadingFontSize } from '../../utils/siteStylesHelpers'
 import { InlineEditableText } from '../inline/InlineEditableText'
 import { useSiteStyles } from '../SiteStylesScope'
 
@@ -12,7 +13,6 @@ type Props = {
 }
 
 const VARIANT_MAP = { 1: 'h2', 2: 'h4', 3: 'h5' } as const
-const SIZE_MAP = { 1: '2rem', 2: '1.5rem', 3: '1.25rem' }
 
 export function HeadingBlock({ props }: Props) {
   const siteStyles = useSiteStyles()
@@ -21,7 +21,7 @@ export function HeadingBlock({ props }: Props) {
     fontFamily: siteStyles.fonts.headingFamily,
     fontWeight: siteStyles.fonts.headingWeight,
     letterSpacing: siteStyles.fonts.headingLetterSpacing,
-    fontSize: `calc(${SIZE_MAP[props.level]} * ${siteStyles.fonts.headingScale})`,
+    fontSize: getHeadingFontSize(props.level, siteStyles.fonts),
     color: props.color,
     display: 'block'
   }

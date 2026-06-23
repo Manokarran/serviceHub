@@ -39,6 +39,8 @@ export function SectionBackgroundPopover({
             onUpdate({ backgroundType: nextValue as SectionBlockProps['backgroundType'] })
           } else if (key === 'background') {
             onUpdate({ background: nextValue })
+          } else if (key === 'backgroundOpacity') {
+            onUpdate({ backgroundOpacity: Number(nextValue) })
           } else if (key === 'backgroundPhotoOpacity') {
             onUpdate({ backgroundPhotoOpacity: Number(nextValue) })
           } else if (key === 'backgroundPhotoAnimation') {

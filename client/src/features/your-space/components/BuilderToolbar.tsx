@@ -22,13 +22,12 @@ import {
 } from '../constants/builderLayout'
 import { builderToolbarSx } from '../constants/builderChrome'
 import { useBuilder } from '../context/BuilderContext'
+import { getPublicPagePath } from '@/lib/utils/public-site-url'
 import { LiveSiteButton } from './LiveSiteButton'
 import { VersionHistoryDialog } from './VersionHistoryDialog'
 
 type Props = {
   tenantName: string
-  siteUrl: string
-  displayUrl: string
   isFullscreen: boolean
   onToggleFullscreen: () => void
 }
@@ -126,7 +125,7 @@ function ToolbarIconButton({
   )
 }
 
-export function BuilderToolbar({ tenantName, siteUrl, displayUrl, isFullscreen, onToggleFullscreen }: Props) {
+export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }: Props) {
   const theme = useTheme()
   const isCompact = useMediaQuery(theme.breakpoints.down('md'))
   const isNarrow = useMediaQuery(theme.breakpoints.down('sm'))
@@ -147,8 +146,15 @@ export function BuilderToolbar({ tenantName, siteUrl, displayUrl, isFullscreen, 
     resetToStarter,
     resetToEmpty,
     blocks,
-    versions
+    versions,
+    currentPageSlug,
+    currentPageTitle,
+    tenantSlug
   } = useBuilder()
+
+  const pagePath = getPublicPagePath(tenantSlug, currentPageSlug)
+  const siteUrl = typeof window !== 'undefined' ? `${window.location.origin}${pagePath}` : pagePath
+  const displayUrl = typeof window !== 'undefined' ? `${window.location.host}${pagePath}` : pagePath
 
   const [versionsOpen, setVersionsOpen] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
@@ -185,22 +191,25 @@ export function BuilderToolbar({ tenantName, siteUrl, displayUrl, isFullscreen, 
       <Box
         sx={{
           flexShrink: 0,
-          height: BUILDER_TOP_BAR_HEIGHT,
+          minHeight: BUILDER_TOP_BAR_HEIGHT,
+          height: { xs: 'auto', sm: BUILDER_TOP_BAR_HEIGHT },
           ...builderToolbarSx(theme)
         }}
       >
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: '1fr auto 1fr',
+            display: 'flex',
+            flexWrap: 'wrap',
             alignItems: 'center',
+            justifyContent: 'space-between',
             gap: 1,
-            height: '100%',
+            minHeight: BUILDER_TOP_BAR_HEIGHT,
+            py: { xs: 0.75, sm: 0 },
             px: { xs: 1.25, sm: 2 }
           }}
         >
           {/* Left — site identity */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, justifySelf: 'start' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: '1 1 140px' }}>
             <Box
               sx={{
                 width: 28,
@@ -225,13 +234,14 @@ export function BuilderToolbar({ tenantName, siteUrl, displayUrl, isFullscreen, 
                 sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.disabled', display: 'block', lineHeight: 1.2 }}
                 noWrap
               >
-                Home page
+                {currentPageTitle}
+                {currentPageSlug === 'home' ? ' · Home' : ''}
               </Typography>
             </Box>
           </Box>
 
           {/* Center — save status */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, justifySelf: 'center', minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, flex: '0 1 auto', order: { xs: 3, sm: 0 }, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
             <SaveStatusIndicator label={statusLabel} tone={statusTone} />
             {lastSavedAt && !isDirty && !isSaving && (
               <Typography
@@ -249,7 +259,7 @@ export function BuilderToolbar({ tenantName, siteUrl, displayUrl, isFullscreen, 
           </Box>
 
           {/* Right — actions */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, justifySelf: 'end', flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0, ml: { xs: 0, sm: 'auto' } }}>
             <Box sx={builderIconGroupSx(theme)}>
               <LiveSiteButton siteUrl={siteUrl} displayUrl={displayUrl} hasUnpublishedChanges={hasUnpublishedChanges} />
 
@@ -414,6 +424,8 @@ export function BuilderToolbar({ tenantName, siteUrl, displayUrl, isFullscreen, 
       <VersionHistoryDialog
         open={versionsOpen}
         onClose={() => setVersionsOpen(false)}
+        pageSlug={currentPageSlug}
+        pageTitle={currentPageTitle}
         versions={versions}
         onRestore={restoreVersionToDraft}
         onVersionsChange={setVersions}

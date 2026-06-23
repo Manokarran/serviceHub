@@ -28,12 +28,16 @@ export function PropertyPanelHeader({
   title,
   subtitle,
   icon,
-  onClose
+  onClose,
+  onDelete,
+  deleteLabel = 'Delete block'
 }: {
   title: string
   subtitle?: string
   icon?: string
   onClose?: () => void
+  onDelete?: () => void
+  deleteLabel?: string
 }) {
   const theme = useTheme()
 
@@ -65,16 +69,30 @@ export function PropertyPanelHeader({
             {subtitle && <PropertyPanelSubtitle>{subtitle}</PropertyPanelSubtitle>}
           </Box>
         </Box>
-        {onClose && (
-          <IconButton
-            size='small'
-            onClick={onClose}
-            aria-label='Close panel'
-            sx={{ mt: -0.25, width: 28, height: 28, color: 'text.secondary' }}
-          >
-            <i className='ri-close-line' style={{ fontSize: '0.95rem' }} />
-          </IconButton>
-        )}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0, mt: -0.25 }}>
+          {onDelete && (
+            <Tooltip title={deleteLabel} placement='left'>
+              <IconButton
+                size='small'
+                onClick={onDelete}
+                aria-label={deleteLabel}
+                sx={{ width: 28, height: 28, color: 'text.secondary' }}
+              >
+                <i className='ri-delete-bin-line' style={{ fontSize: '0.9rem' }} />
+              </IconButton>
+            </Tooltip>
+          )}
+          {onClose && (
+            <IconButton
+              size='small'
+              onClick={onClose}
+              aria-label='Close panel'
+              sx={{ width: 28, height: 28, color: 'text.secondary' }}
+            >
+              <i className='ri-close-line' style={{ fontSize: '0.95rem' }} />
+            </IconButton>
+          )}
+        </Box>
       </Box>
     </Box>
   )
@@ -283,7 +301,13 @@ export function LayoutOptionGroup<T extends string>({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-      <Box sx={{ display: 'flex', gap: 0.5 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(52px, 1fr))',
+          gap: 0.5
+        }}
+      >
         {options.map(option => {
           const isSelected = option.value === value
 
@@ -296,7 +320,6 @@ export function LayoutOptionGroup<T extends string>({
                 aria-pressed={isSelected}
                 onClick={() => onChange(option.value)}
                 sx={{
-                  flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -307,7 +330,8 @@ export function LayoutOptionGroup<T extends string>({
                   borderRadius: 1,
                   ...builderSoftCardSx(theme, isSelected),
                   color: isSelected ? 'primary.main' : 'text.secondary',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  minWidth: 0
                 }}
               >
                 <i className={option.icon} style={{ fontSize: '0.95rem' }} />

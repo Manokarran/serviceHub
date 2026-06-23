@@ -2,6 +2,7 @@ import type { SxProps, Theme } from '@mui/material/styles'
 import { alpha } from '@mui/material/styles'
 
 import type { BackgroundType, BlockBackgroundProps, ImageHoverEffect, SectionBlockProps, SectionBorderStyle, SectionLayout, SectionSplitStyle } from '../types'
+import { siteCanvasAbove, siteCanvasBelow } from './siteResponsiveHelpers'
 
 export function getBlockBackground(props: BlockBackgroundProps, fallback = '#ffffff'): string {
   return props.background ?? props.backgroundColor ?? fallback
@@ -12,6 +13,18 @@ export const getSectionBackground = getBlockBackground
 
 export function getBlockBackgroundType(props: BlockBackgroundProps): BackgroundType {
   return props.backgroundType ?? 'color'
+}
+
+/** Opacity applied when selecting gradient, pattern, photo, video, or split-panel animation. */
+export const BLOCK_BACKGROUND_PREVIEW_OPACITY = 90
+
+export function isVisualBackgroundType(backgroundType: string): boolean {
+  return (
+    backgroundType === 'gradient' ||
+    backgroundType === 'pattern' ||
+    backgroundType === 'photo' ||
+    backgroundType === 'video'
+  )
 }
 
 /** @deprecated Use `getBlockBackgroundType` */
@@ -301,7 +314,13 @@ export function getSectionSplitContainerSx(
     flexDirection: isHorizontal ? { xs: 'column', sm: 'row' } : 'column',
     gap: isHorizontal ? { xs: 16, sm: `${gap}px` } : `${gap}px`,
     width: '100%',
-    position: 'relative'
+    position: 'relative',
+    ...(isHorizontal
+      ? {
+          ...siteCanvasBelow({ flexDirection: 'column', gap: '16px' }),
+          ...siteCanvasAbove({ flexDirection: 'row', gap: `${gap}px` })
+        }
+      : {})
   }
 }
 
@@ -316,7 +335,13 @@ export function getSectionDividerSx(props: SectionBlockProps, layout: SectionLay
     height: isHorizontal ? 'auto' : '1px',
     minHeight: isHorizontal ? 48 : undefined,
     display: { xs: isHorizontal ? 'none' : 'block', sm: 'block' },
-    my: isHorizontal ? 0 : 1
+    my: isHorizontal ? 0 : 1,
+    ...(isHorizontal
+      ? {
+          ...siteCanvasBelow({ display: 'none' }),
+          ...siteCanvasAbove({ display: 'block' })
+        }
+      : {})
   }
 }
 
@@ -330,9 +355,17 @@ export function getSectionColumnShellSx(
   const radius = Math.max(0, (props.borderRadius ?? 0) - 2)
   const backgroundOpacity = getBlockBackgroundOpacity(props)
 
+  const layout = props.layout ?? 'default'
+  const isHorizontalSplit = layout === 'split-horizontal'
+
   return {
     flex: column === 'primary' ? props.splitRatio : 100 - props.splitRatio,
     minWidth: 0,
+    ...(isHorizontalSplit
+      ? {
+          ...siteCanvasBelow({ flex: '1 1 auto', width: '100%' })
+        }
+      : {}),
     ...(bg
       ? isSimpleColor(bg)
         ? { backgroundColor: applyBackgroundAlpha(bg, backgroundOpacity) }

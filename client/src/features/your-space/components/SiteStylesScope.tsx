@@ -6,7 +6,7 @@ import Box from '@mui/material/Box'
 
 import { DEFAULT_SITE_STYLES } from '../constants/siteStylePresets'
 import type { SiteStyles } from '../types/siteStyles'
-import { getGoogleFontsUrl, siteStylesToCssVars } from '../utils/siteStylesHelpers'
+import { getGoogleFontsUrl, normalizeSiteFonts, siteStylesToCssVars } from '../utils/siteStylesHelpers'
 
 const SiteStylesContext = createContext<SiteStyles>(DEFAULT_SITE_STYLES)
 
@@ -20,16 +20,17 @@ type Props = {
 }
 
 export function SiteStylesScope({ siteStyles, children }: Props) {
-  const fontUrl = getGoogleFontsUrl(siteStyles.fonts)
+  const fonts = normalizeSiteFonts(siteStyles.fonts)
+  const fontUrl = getGoogleFontsUrl(fonts)
 
   return (
     <SiteStylesContext.Provider value={siteStyles}>
       {fontUrl && <link rel='stylesheet' href={fontUrl} />}
       <Box
         sx={{
-          ...siteStylesToCssVars(siteStyles.colors, siteStyles.fonts),
-          fontFamily: siteStyles.fonts.bodyFamily,
-          fontSize: siteStyles.fonts.bodySize,
+          ...siteStylesToCssVars(siteStyles.colors, fonts),
+          fontFamily: fonts.bodyFamily,
+          fontSize: fonts.bodySize,
           color: siteStyles.colors.text,
           backgroundColor: siteStyles.colors.background,
           minHeight: 'inherit',

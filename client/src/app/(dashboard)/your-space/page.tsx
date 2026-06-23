@@ -4,10 +4,13 @@ import type { Block } from '@/features/your-space/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
 import { WebsiteBuilder } from '@/features/your-space/components/WebsiteBuilder'
 import { auth } from '@/lib/auth'
-import { getPublicSiteDisplayUrl, getPublicSiteUrl } from '@/lib/utils/public-site-url'
 import { sitePageService } from '@/services/site-page'
 
-export default async function YourSpacePage() {
+type PageProps = {
+  searchParams: Promise<{ p?: string }>
+}
+
+export default async function YourSpacePage({ searchParams }: PageProps) {
   const session = await auth()
 
   if (!session?.user) {
@@ -19,21 +22,29 @@ export default async function YourSpacePage() {
   }
 
   const { user } = session
+  const { p: pageParam } = await searchParams
+  const initialPageSlug = pageParam?.trim() || 'home'
 
   let initialDraftBlocks: Block[] | null = null
   let initialPublishedBlocks: Block[] = []
+  let initialPageTitle = 'Home'
   let initialSavedAt: string | null = null
   let initialPublishedAt: string | null = null
   let initialDraftSiteStyles: SiteStyles | null = null
   let initialPublishedSiteStyles: SiteStyles | null = null
   let initialVersions: Awaited<ReturnType<typeof sitePageService.listPublishedVersions>> = []
+  let initialPages: Awaited<ReturnType<typeof sitePageService.listPages>> = []
 
   if (user.tenantId) {
-    const sitePage = await sitePageService.getHomePage(user.tenantId)
+    initialPages = await sitePageService.listPages(user.tenantId)
+
+    const resolvedSlug = initialPages.some(page => page.slug === initialPageSlug) ? initialPageSlug : 'home'
+    const sitePage = await sitePageService.getPage(user.tenantId, resolvedSlug)
 
     if (sitePage) {
       initialDraftBlocks = JSON.parse(JSON.stringify(sitePage.draftBlocks)) as Block[]
       initialPublishedBlocks = JSON.parse(JSON.stringify(sitePage.publishedBlocks)) as Block[]
+      initialPageTitle = sitePage.title
       initialDraftSiteStyles = sitePage.draftSiteStyles
         ? (JSON.parse(JSON.stringify(sitePage.draftSiteStyles)) as SiteStyles)
         : null
@@ -42,19 +53,20 @@ export default async function YourSpacePage() {
         : null
       initialSavedAt = sitePage.draftUpdatedAt.toISOString()
       initialPublishedAt = sitePage.publishedAt?.toISOString() ?? null
+      initialVersions = await sitePageService.listPublishedVersions(user.tenantId, resolvedSlug)
     }
-
-    initialVersions = await sitePageService.listPublishedVersions(user.tenantId)
   }
 
   const tenantSlug = user.tenantSlug ?? 'default'
+  const activeSlug = initialPages.some(page => page.slug === initialPageSlug) ? initialPageSlug : 'home'
 
   return (
     <WebsiteBuilder
       tenantSlug={tenantSlug}
       tenantName={user.tenantName ?? 'Your Workspace'}
-      siteUrl={getPublicSiteUrl(tenantSlug)}
-      displayUrl={getPublicSiteDisplayUrl(tenantSlug)}
+      initialPageSlug={activeSlug}
+      initialPages={initialPages}
+      initialPageTitle={initialPageTitle}
       initialDraftBlocks={initialDraftBlocks}
       initialPublishedBlocks={initialPublishedBlocks}
       initialSavedAt={initialSavedAt}

@@ -12,6 +12,9 @@ export interface ISitePageBlock {
 export interface ISitePage {
   tenantId: Types.ObjectId
   slug: string
+  title: string
+  description: string
+  sortOrder: number
   /** @deprecated Legacy field — migrated to draftBlocks/publishedBlocks */
   blocks?: ISitePageBlock[]
   draftBlocks: ISitePageBlock[]
@@ -41,5 +44,16 @@ export interface ISitePageVersionDocument extends ISitePageVersion, Document {}
 export type PublishedVersionSummary = {
   id: string
   publishedAt: string
+  blockCount: number
+}
+
+export type SitePageSummary = {
+  slug: string
+  title: string
+  description: string
+  sortOrder: number
+  isHome: boolean
+  publishedAt: string | null
+  hasUnpublishedChanges: boolean
   blockCount: number
 }

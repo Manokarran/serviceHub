@@ -7,10 +7,12 @@ import Typography from '@mui/material/Typography'
 import type { HeaderBlockProps } from '../../types'
 import { applyBackgroundAlpha, getBlockBackgroundOpacity } from '../../utils/sectionStyleHelpers'
 import { getFixedBlockShellSx } from '../../utils/mediaBlockHelpers'
+import { normalizeSiteFonts } from '../../utils/siteStylesHelpers'
 import { InlineEditableText } from '../inline/InlineEditableText'
 import { useCanvasBlockEdit } from '../inline/CanvasBlockEditContext'
 import { useSiteStyles } from '../SiteStylesScope'
 import { getChromeJustify, getHorizontalOrder, getNavJustify, SiteBrandLogo } from './SiteBrandLogo'
+import { siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 
 type Props = {
   props: HeaderBlockProps
@@ -22,9 +24,10 @@ export function HeaderBlock({ props }: Props) {
   const isVertical = props.layout === 'vertical'
   const order = getHorizontalOrder(props.logoPosition)
 
+  const fonts = normalizeSiteFonts(siteStyles.fonts)
   const navLinkSx = {
-    fontFamily: siteStyles.fonts.bodyFamily,
-    fontSize: '0.875rem',
+    fontFamily: fonts.bodyFamily,
+    fontSize: fonts.navSize,
     fontWeight: 500,
     color: 'inherit',
     textDecoration: 'none',
@@ -44,17 +47,25 @@ export function HeaderBlock({ props }: Props) {
         component='header'
         sx={{
           display: 'flex',
-          flexDirection: isVertical ? 'column' : 'row',
+          flexDirection: isVertical ? 'column' : { xs: 'column', sm: 'row' },
           alignItems: isVertical ? 'center' : 'center',
           justifyContent: isVertical ? 'center' : 'space-between',
           gap: isVertical ? 2 : 0,
-          flexWrap: isVertical ? 'nowrap' : 'wrap',
-          px: 4,
+          flexWrap: 'wrap',
+          px: { xs: 2, sm: 4 },
           py: isVertical ? 3 : 2,
           backgroundColor: applyBackgroundAlpha(props.backgroundColor, getBlockBackgroundOpacity(props)),
           color: props.textColor,
           borderBottom: '1px solid rgba(0,0,0,0.06)',
-          ...(props.borderRadius ? { borderRadius: `${props.borderRadius}px`, overflow: 'hidden' } : {})
+          ...(props.borderRadius ? { borderRadius: `${props.borderRadius}px`, overflow: 'hidden' } : {}),
+          ...(!isVertical
+            ? siteCanvasBelow({
+                flexDirection: 'column',
+                gap: 2,
+                alignItems: 'stretch',
+                textAlign: 'center'
+              })
+            : {})
         }}
       >
         <Box

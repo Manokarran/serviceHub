@@ -17,6 +17,7 @@ import {
   shouldShowSplitDivider
 } from '../../utils/sectionStyleHelpers'
 import {
+  getSectionSplitVisualConfig,
   shouldRenderSectionBackgroundVisual,
   shouldRenderSectionColumnVisual
 } from '../../utils/sectionVisualHelpers'
@@ -27,6 +28,7 @@ import { SectionEditChip } from '../inline/SectionEditChip'
 import { BlockBackgroundLayers } from './BlockBackgroundLayers'
 import { BlockRenderer } from './BlockRenderer'
 import { HeroVisualPanel } from './HeroVisualPanel'
+import { siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 
 const MAX_WIDTH_MAP = {
   sm: 640,
@@ -41,47 +43,23 @@ type SectionContentProps = {
   editMode: boolean
 }
 
-function SectionVisualColumn({
+function SectionColumn({
   block,
   props,
   editMode,
   column,
   emptyLabel
 }: SectionContentProps & {
-  column: 'secondary'
+  column: 'primary' | 'secondary'
   emptyLabel: string
 }) {
   const siteStyles = useSiteStyles()
   const children = getSectionColumnChildren(block, column)
-  const showVisual = shouldRenderSectionColumnVisual(props, children.length > 0)
-  const visualColors = resolveHeroVisualColors(props, siteStyles.colors.accent)
+  const showVisual = shouldRenderSectionColumnVisual(props)
+  const columnConfig = getSectionSplitVisualConfig(props)
+  const visualColors = resolveHeroVisualColors(columnConfig, siteStyles.colors.accent)
 
-  if (showVisual) {
-    return (
-      <Box sx={{ position: 'relative', minHeight: 200, display: 'flex', flexDirection: 'column' }}>
-        <HeroVisualPanel
-          animation={props.splitVisualAnimation}
-          colorStart={visualColors.start}
-          colorEnd={visualColors.end}
-          mode='section-column'
-        />
-        {editMode && (
-          <Box sx={{ position: 'absolute', inset: 0, zIndex: 1, display: 'flex', flexDirection: 'column' }}>
-            <SectionDropZone
-              sectionId={block.id}
-              column={column}
-              children={children}
-              sectionProps={props}
-              editMode
-              emptyLabel={emptyLabel}
-            />
-          </Box>
-        )}
-      </Box>
-    )
-  }
-
-  return editMode ? (
+  const content = editMode ? (
     <SectionDropZone
       sectionId={block.id}
       column={column}
@@ -93,29 +71,59 @@ function SectionVisualColumn({
   ) : (
     children.map(child => <BlockRenderer key={child.id} block={child} preview />)
   )
+
+  return (
+    <Box
+      sx={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: showVisual && children.length === 0 ? 200 : undefined
+      }}
+    >
+      {showVisual && (
+        <Box sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
+          <HeroVisualPanel
+            animation={columnConfig.splitVisualAnimation}
+            colorStart={visualColors.start}
+            colorEnd={visualColors.end}
+            mode='section-column'
+          />
+        </Box>
+      )}
+      <Box sx={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {content}
+      </Box>
+    </Box>
+  )
 }
 
-function SectionColumns({
-  block,
-  props,
-  editMode,
-  renderColumn
-}: SectionContentProps & {
-  renderColumn: (column: 'primary' | 'secondary', label: string) => React.ReactNode
-}) {
+function SectionColumns({ block, props, editMode }: SectionContentProps) {
   const showDivider = shouldShowSplitDivider(props)
+  const isHorizontal = props.layout === 'split-horizontal'
+  const primaryLabel = isHorizontal ? 'Drop blocks in the left column' : 'Drop blocks in the top row'
+  const secondaryLabel = isHorizontal ? 'Drop blocks in the right column' : 'Drop blocks in the bottom row'
 
   return (
     <Box sx={getSectionSplitContainerSx(props, props.layout)}>
-      <Box sx={getSectionColumnShellSx(props, 'primary', editMode)}>{renderColumn('primary', 'Drop blocks in the primary column')}</Box>
+      <Box sx={getSectionColumnShellSx(props, 'primary', editMode)}>
+        <SectionColumn
+          block={block}
+          props={props}
+          editMode={editMode}
+          column='primary'
+          emptyLabel={primaryLabel}
+        />
+      </Box>
       {showDivider && <Box sx={getSectionDividerSx(props, props.layout)} aria-hidden />}
       <Box sx={getSectionColumnShellSx(props, 'secondary', editMode)}>
-        <SectionVisualColumn
+        <SectionColumn
           block={block}
           props={props}
           editMode={editMode}
           column='secondary'
-          emptyLabel='Drop blocks in the secondary column'
+          emptyLabel={secondaryLabel}
         />
       </Box>
     </Box>
@@ -126,27 +134,7 @@ function SectionInner({ block, props, editMode }: SectionContentProps) {
   const isSplit = props.layout === 'split-horizontal' || props.layout === 'split-vertical'
 
   if (isSplit) {
-    return (
-      <SectionColumns
-        block={block}
-        props={props}
-        editMode={editMode}
-        renderColumn={(column, label) =>
-          editMode ? (
-            <SectionDropZone
-              sectionId={block.id}
-              column={column}
-              children={getSectionColumnChildren(block, column)}
-              sectionProps={props}
-              editMode
-              emptyLabel={label}
-            />
-          ) : (
-            getSectionColumnChildren(block, column).map(child => <BlockRenderer key={child.id} block={child} preview />)
-          )
-        }
-      />
-    )
+    return <SectionColumns block={block} props={props} editMode={editMode} />
   }
 
   if (editMode) {
@@ -157,7 +145,7 @@ function SectionInner({ block, props, editMode }: SectionContentProps) {
         children={props.children ?? []}
         sectionProps={props}
         editMode
-        emptyLabel='Drop heading, text, button, image, video, or logo blocks here'
+        emptyLabel='Drop heading, text, button, image, video, logo, carousel, tabs, or shape blocks here'
       />
     )
   }
@@ -185,7 +173,10 @@ function SectionShell({ block, preview }: Props) {
         position: 'relative',
         ...getBlockBackgroundShellSx(props, photoAnimation, photoOpacity),
         py: `${props.paddingY}px`,
-        px: `${props.paddingX}px`
+        px: `${props.paddingX}px`,
+        ...siteCanvasBelow({
+          ...(props.paddingX > 24 ? { px: `${Math.min(props.paddingX, 24)}px` } : {})
+        })
       }}
     >
       {showBackgroundVisual && (

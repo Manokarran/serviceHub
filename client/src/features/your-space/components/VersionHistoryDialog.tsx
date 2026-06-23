@@ -24,6 +24,8 @@ import { BUILDER_TYPOGRAPHY } from '../constants/builderLayout'
 type Props = {
   open: boolean
   onClose: () => void
+  pageSlug: string
+  pageTitle: string
   versions: PublishedVersionSummary[]
   onRestore: (blocks: import('../types').Block[], savedAt: string) => void
   onVersionsChange: (versions: PublishedVersionSummary[]) => void
@@ -36,7 +38,7 @@ function formatVersionDate(iso: string) {
   }).format(new Date(iso))
 }
 
-export function VersionHistoryDialog({ open, onClose, versions, onRestore, onVersionsChange }: Props) {
+export function VersionHistoryDialog({ open, onClose, pageSlug, pageTitle, versions, onRestore, onVersionsChange }: Props) {
   const [loading, setLoading] = useState(false)
   const [restoringId, setRestoringId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -55,7 +57,7 @@ export function VersionHistoryDialog({ open, onClose, versions, onRestore, onVer
       setLoading(true)
       setError(null)
 
-      const result = await listSitePageVersionsAction()
+      const result = await listSitePageVersionsAction(pageSlug)
 
       if (cancelled) {
         return
@@ -75,14 +77,14 @@ export function VersionHistoryDialog({ open, onClose, versions, onRestore, onVer
     return () => {
       cancelled = true
     }
-  }, [open])
+  }, [open, pageSlug])
 
   const handleRestore = useCallback(
     async (versionId: string) => {
       setRestoringId(versionId)
       setError(null)
 
-      const result = await restoreSitePageVersionAction(versionId)
+      const result = await restoreSitePageVersionAction(pageSlug, versionId)
 
       if (result.success) {
         onRestore(result.blocks, result.savedAt)
@@ -93,7 +95,7 @@ export function VersionHistoryDialog({ open, onClose, versions, onRestore, onVer
 
       setRestoringId(null)
     },
-    [onClose, onRestore]
+    [onClose, onRestore, pageSlug]
   )
 
   return (
@@ -104,7 +106,7 @@ export function VersionHistoryDialog({ open, onClose, versions, onRestore, onVer
             Published versions
           </Typography>
           <Typography variant='caption' color='text.secondary' display='block'>
-            Last 5 published snapshots — restore loads into your draft
+            {pageTitle} — last 5 published snapshots
           </Typography>
         </Box>
         <IconButton onClick={onClose} size='small'>

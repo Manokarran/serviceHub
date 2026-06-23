@@ -32,7 +32,8 @@ export const DEFAULT_FORMS: SiteStyles['forms'] = {
   fieldBorderWidth: 1,
   fieldBorderColor: '#e2e8f0',
   fieldBackground: '#ffffff',
-  labelFontSource: 'body'
+  labelFontSource: 'body',
+  fieldFontSize: 16
 }
 
 const DEFAULT_MISC: SiteStyles['misc'] = {
@@ -54,9 +55,14 @@ export const DEFAULT_SITE_STYLES: SiteStyles = {
     bodyFamily: '"Inter", system-ui, sans-serif',
     headingWeight: 600,
     bodyWeight: 400,
+    headingSize: 32,
     headingScale: 1,
     bodySize: 16,
-    headingLetterSpacing: -0.01
+    headingLetterSpacing: -0.01,
+    buttonSize: 15,
+    navSize: 14,
+    labelSize: 13,
+    logoSize: 20
   },
   colors: {
     swatch1: '#ffffff',
@@ -77,7 +83,13 @@ function createPreset(
   id: string,
   name: string,
   description: string,
-  overrides: Partial<Omit<SiteStyles, 'themeId'>> & Pick<SiteStyles, 'fonts' | 'colors'>
+  overrides: {
+    fonts?: Partial<SiteStyles['fonts']>
+    colors: SiteStyles['colors']
+    buttons?: SiteStyles['buttons']
+    forms?: SiteStyles['forms']
+    misc?: SiteStyles['misc']
+  }
 ): SiteThemePreset {
   return {
     id,
@@ -85,10 +97,10 @@ function createPreset(
     description,
     styles: {
       themeId: id,
-      fonts: overrides.fonts,
+      fonts: { ...DEFAULT_SITE_STYLES.fonts, ...overrides.fonts },
       colors: overrides.colors,
       buttons: overrides.buttons ?? DEFAULT_BUTTONS,
-      forms: overrides.forms ?? DEFAULT_FORMS,
+      forms: { ...DEFAULT_FORMS, ...overrides.forms },
       misc: overrides.misc ?? DEFAULT_MISC
     }
   }
@@ -439,22 +451,34 @@ export const SITE_THEME_PRESETS: SiteThemePreset[] = [
 ]
 
 export const FONT_FAMILY_OPTIONS = [
-  { label: 'Inter', value: '"Inter", system-ui, sans-serif', googleFont: 'Inter' },
+  { label: 'Albert Sans', value: '"Albert Sans", system-ui, sans-serif', googleFont: 'Albert+Sans' },
   { label: 'DM Sans', value: '"DM Sans", system-ui, sans-serif', googleFont: 'DM+Sans' },
-  { label: 'Work Sans', value: '"Work Sans", system-ui, sans-serif', googleFont: 'Work+Sans' },
+  { label: 'Fraunces', value: '"Fraunces", Georgia, serif', googleFont: 'Fraunces' },
+  { label: 'IBM Plex Sans', value: '"IBM Plex Sans", system-ui, sans-serif', googleFont: 'IBM+Plex+Sans' },
+  { label: 'IBM Plex Serif', value: '"IBM Plex Serif", Georgia, serif', googleFont: 'IBM+Plex+Serif' },
+  { label: 'Instrument Serif', value: '"Instrument Serif", Georgia, serif', googleFont: 'Instrument+Serif' },
+  { label: 'Inter', value: '"Inter", system-ui, sans-serif', googleFont: 'Inter' },
+  { label: 'Lato', value: '"Lato", system-ui, sans-serif', googleFont: 'Lato' },
+  { label: 'Lexend', value: '"Lexend", system-ui, sans-serif', googleFont: 'Lexend' },
+  { label: 'Libre Baskerville', value: '"Libre Baskerville", Georgia, serif', googleFont: 'Libre+Baskerville' },
+  { label: 'Manrope', value: '"Manrope", system-ui, sans-serif', googleFont: 'Manrope' },
+  { label: 'Montserrat', value: '"Montserrat", system-ui, sans-serif', googleFont: 'Montserrat' },
+  { label: 'Nunito', value: '"Nunito", system-ui, sans-serif', googleFont: 'Nunito' },
+  { label: 'Open Sans', value: '"Open Sans", system-ui, sans-serif', googleFont: 'Open+Sans' },
   { label: 'Outfit', value: '"Outfit", system-ui, sans-serif', googleFont: 'Outfit' },
+  { label: 'Plus Jakarta Sans', value: '"Plus Jakarta Sans", system-ui, sans-serif', googleFont: 'Plus+Jakarta+Sans' },
+  { label: 'Poppins', value: '"Poppins", system-ui, sans-serif', googleFont: 'Poppins' },
   { label: 'Raleway', value: '"Raleway", system-ui, sans-serif', googleFont: 'Raleway' },
   { label: 'Roboto', value: '"Roboto", system-ui, sans-serif', googleFont: 'Roboto' },
-  { label: 'IBM Plex Sans', value: '"IBM Plex Sans", system-ui, sans-serif', googleFont: 'IBM+Plex+Sans' },
-  { label: 'Montserrat', value: '"Montserrat", system-ui, sans-serif', googleFont: 'Montserrat' },
-  { label: 'Open Sans', value: '"Open Sans", system-ui, sans-serif', googleFont: 'Open+Sans' },
-  { label: 'Poppins', value: '"Poppins", system-ui, sans-serif', googleFont: 'Poppins' },
-  { label: 'Nunito', value: '"Nunito", system-ui, sans-serif', googleFont: 'Nunito' },
-  { label: 'Playfair Display', value: '"Playfair Display", Georgia, serif', googleFont: 'Playfair+Display' },
+  { label: 'Sora', value: '"Sora", system-ui, sans-serif', googleFont: 'Sora' },
+  { label: 'Source Sans 3', value: '"Source Sans 3", system-ui, sans-serif', googleFont: 'Source+Sans+3' },
+  { label: 'Space Grotesk', value: '"Space Grotesk", system-ui, sans-serif', googleFont: 'Space+Grotesk' },
+  { label: 'Syne', value: '"Syne", system-ui, sans-serif', googleFont: 'Syne' },
+  { label: 'Work Sans', value: '"Work Sans", system-ui, sans-serif', googleFont: 'Work+Sans' },
   { label: 'Cormorant Garamond', value: '"Cormorant Garamond", Georgia, serif', googleFont: 'Cormorant+Garamond' },
   { label: 'Crimson Pro', value: '"Crimson Pro", Georgia, serif', googleFont: 'Crimson+Pro' },
   { label: 'Lora', value: '"Lora", Georgia, serif', googleFont: 'Lora' },
   { label: 'Merriweather', value: '"Merriweather", Georgia, serif', googleFont: 'Merriweather' },
-  { label: 'Source Sans 3', value: '"Source Sans 3", system-ui, sans-serif', googleFont: 'Source+Sans+3' },
+  { label: 'Playfair Display', value: '"Playfair Display", Georgia, serif', googleFont: 'Playfair+Display' },
   { label: 'System UI', value: 'system-ui, -apple-system, sans-serif', googleFont: null }
 ]

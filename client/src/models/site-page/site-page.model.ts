@@ -6,6 +6,8 @@ import type { ISitePageDocument, ISitePageVersionDocument } from './site-page.ty
 
 const BLOCK_TYPES: BlockType[] = [
   'section',
+  'carousel',
+  'tabs',
   'header',
   'footer',
   'hero',
@@ -14,7 +16,8 @@ const BLOCK_TYPES: BlockType[] = [
   'button',
   'image',
   'video',
-  'logo'
+  'logo',
+  'shape'
 ]
 
 
@@ -42,6 +45,23 @@ const sitePageSchema = new Schema<ISitePageDocument>(
       trim: true,
       lowercase: true,
       maxlength: 64
+    },
+    title: {
+      type: String,
+      required: true,
+      default: 'Home',
+      trim: true,
+      maxlength: 120
+    },
+    description: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 300
+    },
+    sortOrder: {
+      type: Number,
+      default: 0
     },
     blocks: {
       type: [sitePageBlockSchema],

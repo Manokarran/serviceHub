@@ -8,6 +8,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 import type { PaletteItem } from '../../types'
 import { BUILDER_TYPOGRAPHY } from '../../constants/builderLayout'
 import { builderSoftCardSx } from '../../constants/builderChrome'
+import { BlockThumbnail } from './BlockThumbnail'
 
 type Props = {
   item: PaletteItem
@@ -30,9 +31,8 @@ export function DraggablePaletteItem({ item, compact = false }: Props) {
         sx={{
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
           gap: 0.625,
-          p: 1,
+          p: 0.875,
           cursor: isDragging ? 'grabbing' : 'grab',
           opacity: isDragging ? 0.4 : 1,
           transition: 'box-shadow 0.15s, transform 0.15s',
@@ -43,22 +43,20 @@ export function DraggablePaletteItem({ item, compact = false }: Props) {
           }
         }}
       >
-        <Box
+        <BlockThumbnail itemId={item.id} itemType={item.type} itemIcon={item.icon} />
+        <Typography
+          variant='caption'
           sx={{
-            width: 30,
-            height: 30,
-            borderRadius: 0.875,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: alpha(theme.palette.primary.main, 0.1),
-            color: 'primary.main',
-            flexShrink: 0
+            ...BUILDER_TYPOGRAPHY.label,
+            lineHeight: 1.2,
+            textAlign: 'center',
+            px: 0.25,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            display: 'block'
           }}
         >
-          <i className={item.icon} style={{ fontSize: '0.9rem' }} />
-        </Box>
-        <Typography variant='caption' sx={{ ...BUILDER_TYPOGRAPHY.label, lineHeight: 1.2, textAlign: 'center' }}>
           {item.label}
         </Typography>
       </Box>

@@ -3,11 +3,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
 
 import {
+  createSitePageAction,
+  deleteSitePageAction,
+  getSitePageAction,
+  listSitePageVersionsAction,
   publishSitePageAction,
-  saveSitePageDraftAction
+  saveSitePageDraftAction,
+  updateSitePageMetaAction
 } from '@/app/actions/site-page.actions'
-import type { PublishedVersionSummary } from '@/models/site-page'
+import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-page'
 import { toPlainJson } from '@/lib/utils/plain-json'
+import { isHomePageSlug } from '@/lib/utils/page-slug'
 
 import { createStarterBlocks, getStorageKey } from '../constants'
 import { DEFAULT_SITE_STYLES, SITE_THEME_PRESETS } from '../constants/siteStylePresets'
@@ -37,6 +43,10 @@ type BuilderState = {
   mode: BuilderMode
   viewport: BuilderViewport
   sidebarPanel: BuilderSidebarPanel
+  currentPageSlug: string
+  pages: SitePageSummary[]
+  currentPageTitle: string
+  isPageSwitching: boolean
   isDirty: boolean
   isSaving: boolean
   isPublishing: boolean
@@ -58,6 +68,9 @@ type BuilderAction =
       savedAt?: string | null
       publishedAt?: string | null
       versions?: PublishedVersionSummary[]
+      currentPageSlug?: string
+      currentPageTitle?: string
+      pages?: SitePageSummary[]
     }
   | { type: 'SET_BLOCKS'; blocks: Block[]; savedAt?: string | null }
   | { type: 'ADD_BLOCK'; block: Block; target: BlockLocation }
@@ -73,6 +86,9 @@ type BuilderAction =
   | { type: 'SET_LOADING'; isLoading: boolean }
   | { type: 'SET_SAVING'; isSaving: boolean }
   | { type: 'SET_PUBLISHING'; isPublishing: boolean }
+  | { type: 'SET_PAGE_SWITCHING'; isPageSwitching: boolean }
+  | { type: 'SWITCH_PAGE'; slug: string; title: string; blocks: Block[]; publishedBlocks: Block[]; savedAt: string | null; publishedAt: string | null; versions: PublishedVersionSummary[] }
+  | { type: 'SET_PAGES'; pages: SitePageSummary[] }
   | { type: 'MARK_SAVED'; savedAt: string }
   | { type: 'MARK_PUBLISHED'; publishedAt: string; publishedBlocks: Block[]; publishedSiteStyles: SiteStyles; versions: PublishedVersionSummary[] }
   | { type: 'SET_SAVE_ERROR'; error: string | null }
@@ -95,6 +111,9 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         lastSavedAt: action.savedAt ?? null,
         lastPublishedAt: action.publishedAt ?? null,
         versions: action.versions ?? state.versions,
+        currentPageSlug: action.currentPageSlug ?? state.currentPageSlug,
+        currentPageTitle: action.currentPageTitle ?? state.currentPageTitle,
+        pages: action.pages ?? state.pages,
         saveError: null,
         publishError: null
       }
@@ -166,6 +185,27 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
       return { ...state, isSaving: action.isSaving }
     case 'SET_PUBLISHING':
       return { ...state, isPublishing: action.isPublishing }
+    case 'SET_PAGE_SWITCHING':
+      return { ...state, isPageSwitching: action.isPageSwitching }
+    case 'SWITCH_PAGE':
+      return {
+        ...state,
+        currentPageSlug: action.slug,
+        currentPageTitle: action.title,
+        blocks: normalizeBlocks(action.blocks),
+        publishedBlocks: normalizeBlocks(action.publishedBlocks),
+        selectedBlockId: null,
+        isDirty: false,
+        isPageSwitching: false,
+        isLoading: false,
+        lastSavedAt: action.savedAt,
+        lastPublishedAt: action.publishedAt,
+        versions: action.versions,
+        saveError: null,
+        publishError: null
+      }
+    case 'SET_PAGES':
+      return { ...state, pages: action.pages }
     case 'MARK_SAVED':
       return { ...state, isDirty: false, isSaving: false, lastSavedAt: action.savedAt, saveError: null }
     case 'MARK_PUBLISHED':
@@ -227,6 +267,11 @@ type BuilderContextValue = BuilderState & {
   applyThemePreset: (themeId: string) => void
   savePage: () => Promise<void>
   publishPage: () => Promise<void>
+  switchPage: (slug: string) => Promise<void>
+  createPage: (title: string) => Promise<{ success: true; page: SitePageSummary } | { success: false; error: string }>
+  deletePage: (slug: string) => Promise<void>
+  updatePageMeta: (slug: string, input: { title?: string; description?: string }) => Promise<void>
+  refreshPages: () => Promise<void>
   restoreVersionToDraft: (blocks: Block[], savedAt: string) => void
   setVersions: (versions: PublishedVersionSummary[]) => void
   resetToStarter: () => void
@@ -237,8 +282,11 @@ const BuilderContext = createContext<BuilderContextValue | null>(null)
 
 type BuilderProviderProps = {
   tenantSlug: string
+  initialPageSlug: string
+  initialPages: SitePageSummary[]
   initialDraftBlocks: Block[] | null
   initialPublishedBlocks: Block[]
+  initialPageTitle: string
   initialSavedAt: string | null
   initialPublishedAt: string | null
   initialDraftSiteStyles: SiteStyles | null
@@ -247,13 +295,13 @@ type BuilderProviderProps = {
   children: ReactNode
 }
 
-function loadBlocksFromLocalStorage(tenantSlug: string): Block[] | null {
+function loadBlocksFromLocalStorage(tenantSlug: string, pageSlug: string): Block[] | null {
   if (typeof window === 'undefined') {
     return null
   }
 
   try {
-    const stored = localStorage.getItem(getStorageKey(tenantSlug))
+    const stored = localStorage.getItem(getStorageKey(tenantSlug, pageSlug))
 
     if (!stored) {
       return null
@@ -273,8 +321,11 @@ function loadBlocksFromLocalStorage(tenantSlug: string): Block[] | null {
 
 export function BuilderProvider({
   tenantSlug,
+  initialPageSlug,
+  initialPages,
   initialDraftBlocks,
   initialPublishedBlocks,
+  initialPageTitle,
   initialSavedAt,
   initialPublishedAt,
   initialDraftSiteStyles,
@@ -294,6 +345,10 @@ export function BuilderProvider({
     mode: 'edit',
     viewport: 'desktop',
     sidebarPanel: 'blocks',
+    currentPageSlug: initialPageSlug,
+    currentPageTitle: initialPageTitle,
+    pages: initialPages,
+    isPageSwitching: false,
     isDirty: false,
     isSaving: false,
     isPublishing: false,
@@ -307,6 +362,9 @@ export function BuilderProvider({
 
   const blocksRef = useRef(state.blocks)
   const siteStylesRef = useRef(state.siteStyles)
+  const publishedSiteStylesRef = useRef(state.publishedSiteStyles)
+  const currentPageSlugRef = useRef(state.currentPageSlug)
+  const isDirtyRef = useRef(state.isDirty)
 
   useEffect(() => {
     blocksRef.current = state.blocks
@@ -316,18 +374,58 @@ export function BuilderProvider({
     siteStylesRef.current = state.siteStyles
   }, [state.siteStyles])
 
-  const persistDraft = useCallback(async (blocks: Block[], siteStyles: SiteStyles) => {
-    dispatch({ type: 'SET_SAVING', isSaving: true })
+  useEffect(() => {
+    publishedSiteStylesRef.current = state.publishedSiteStyles
+  }, [state.publishedSiteStyles])
 
-    const result = await saveSitePageDraftAction(blocks, siteStyles)
+  useEffect(() => {
+    currentPageSlugRef.current = state.currentPageSlug
+  }, [state.currentPageSlug])
+
+  useEffect(() => {
+    isDirtyRef.current = state.isDirty
+  }, [state.isDirty])
+
+  const refreshPages = useCallback(async () => {
+    const { listSitePagesAction } = await import('@/app/actions/site-page.actions')
+    const result = await listSitePagesAction()
 
     if (result.success) {
-      dispatch({ type: 'MARK_SAVED', savedAt: result.savedAt })
-      localStorage.removeItem(getStorageKey(tenantSlug))
-    } else {
-      dispatch({ type: 'SET_SAVE_ERROR', error: result.error })
+      dispatch({ type: 'SET_PAGES', pages: result.pages })
     }
-  }, [tenantSlug])
+  }, [])
+
+  const persistDraft = useCallback(
+    async (pageSlug: string, blocks: Block[], siteStyles: SiteStyles) => {
+      dispatch({ type: 'SET_SAVING', isSaving: true })
+
+      const stylesChanged = !siteStylesEqual(siteStyles, publishedSiteStylesRef.current)
+      const result = await saveSitePageDraftAction(
+        pageSlug,
+        blocks,
+        isHomePageSlug(pageSlug) ? siteStyles : undefined
+      )
+
+      if (!result.success) {
+        dispatch({ type: 'SET_SAVE_ERROR', error: result.error })
+
+        return
+      }
+
+      if (!isHomePageSlug(pageSlug) && stylesChanged) {
+        const homePage = await getSitePageAction('home')
+
+        if (homePage.success) {
+          await saveSitePageDraftAction('home', homePage.page.draftBlocks, siteStyles)
+        }
+      }
+
+      dispatch({ type: 'MARK_SAVED', savedAt: result.savedAt })
+      localStorage.removeItem(getStorageKey(tenantSlug, pageSlug))
+      void refreshPages()
+    },
+    [tenantSlug, refreshPages]
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -348,14 +446,17 @@ export function BuilderProvider({
             ),
             savedAt: initialSavedAt,
             publishedAt: initialPublishedAt,
-            versions: initialVersions
+            versions: initialVersions,
+            currentPageSlug: initialPageSlug,
+            currentPageTitle: initialPageTitle,
+            pages: initialPages
           })
         }
 
         return
       }
 
-      const localBlocks = loadBlocksFromLocalStorage(tenantSlug)
+      const localBlocks = loadBlocksFromLocalStorage(tenantSlug, initialPageSlug)
 
       if (localBlocks) {
         if (!cancelled) {
@@ -365,16 +466,23 @@ export function BuilderProvider({
             publishedBlocks: initialPublishedBlocks,
             savedAt: null,
             publishedAt: initialPublishedAt,
-            versions: initialVersions
+            versions: initialVersions,
+            currentPageSlug: initialPageSlug,
+            currentPageTitle: initialPageTitle,
+            pages: initialPages
           })
         }
 
-        const result = await saveSitePageDraftAction(localBlocks, siteStylesRef.current)
+        const result = await saveSitePageDraftAction(
+          initialPageSlug,
+          localBlocks,
+          isHomePageSlug(initialPageSlug) ? siteStylesRef.current : undefined
+        )
 
         if (!cancelled) {
           if (result.success) {
             dispatch({ type: 'MARK_SAVED', savedAt: result.savedAt })
-            localStorage.removeItem(getStorageKey(tenantSlug))
+            localStorage.removeItem(getStorageKey(tenantSlug, initialPageSlug))
           } else {
             dispatch({ type: 'SET_SAVE_ERROR', error: result.error })
           }
@@ -384,13 +492,18 @@ export function BuilderProvider({
       }
 
       if (!cancelled) {
+        const starterBlocks = isHomePageSlug(initialPageSlug) ? createStarterBlocks() : []
+
         dispatch({
           type: 'SET_INITIAL',
-          blocks: createStarterBlocks(),
+          blocks: starterBlocks,
           publishedBlocks: initialPublishedBlocks,
           savedAt: null,
           publishedAt: initialPublishedAt,
-          versions: initialVersions
+          versions: initialVersions,
+          currentPageSlug: initialPageSlug,
+          currentPageTitle: initialPageTitle,
+          pages: initialPages
         })
       }
     }
@@ -408,6 +521,9 @@ export function BuilderProvider({
     initialSavedAt,
     initialPublishedAt,
     initialVersions,
+    initialPageSlug,
+    initialPageTitle,
+    initialPages,
     tenantSlug
   ])
 
@@ -469,29 +585,144 @@ export function BuilderProvider({
   }, [])
 
   const savePage = useCallback(async () => {
-    await persistDraft(blocksRef.current, siteStylesRef.current)
+    await persistDraft(currentPageSlugRef.current, blocksRef.current, siteStylesRef.current)
   }, [persistDraft])
 
   const publishPage = useCallback(async () => {
     dispatch({ type: 'SET_PUBLISHING', isPublishing: true })
 
+    const pageSlug = currentPageSlugRef.current
     const blocks = blocksRef.current
     const siteStyles = siteStylesRef.current
-    const result = await publishSitePageAction(blocks, siteStyles)
+    const stylesChanged = !siteStylesEqual(siteStyles, publishedSiteStylesRef.current)
+    const result = await publishSitePageAction(
+      pageSlug,
+      blocks,
+      isHomePageSlug(pageSlug) ? siteStyles : undefined
+    )
 
-    if (result.success) {
-      dispatch({
-        type: 'MARK_PUBLISHED',
-        publishedAt: result.publishedAt,
-        publishedBlocks: blocks,
-        publishedSiteStyles: siteStyles,
-        versions: result.versions
-      })
-      localStorage.removeItem(getStorageKey(tenantSlug))
-    } else {
+    if (!result.success) {
       dispatch({ type: 'SET_PUBLISH_ERROR', error: result.error })
+
+      return
     }
-  }, [tenantSlug])
+
+    if (!isHomePageSlug(pageSlug) && stylesChanged) {
+      const homePage = await getSitePageAction('home')
+
+      if (homePage.success) {
+        await publishSitePageAction('home', homePage.page.draftBlocks, siteStyles)
+      }
+    }
+
+    dispatch({
+      type: 'MARK_PUBLISHED',
+      publishedAt: result.publishedAt,
+      publishedBlocks: blocks,
+      publishedSiteStyles: siteStyles,
+      versions: result.versions
+    })
+    localStorage.removeItem(getStorageKey(tenantSlug, pageSlug))
+    void refreshPages()
+  }, [tenantSlug, refreshPages])
+
+  const switchPage = useCallback(
+    async (slug: string) => {
+      if (slug === currentPageSlugRef.current) {
+        return
+      }
+
+      dispatch({ type: 'SET_PAGE_SWITCHING', isPageSwitching: true })
+
+      if (isDirtyRef.current) {
+        await persistDraft(currentPageSlugRef.current, blocksRef.current, siteStylesRef.current)
+      }
+
+      const result = await getSitePageAction(slug)
+
+      if (!result.success) {
+        dispatch({ type: 'SET_PAGE_SWITCHING', isPageSwitching: false })
+        dispatch({ type: 'SET_SAVE_ERROR', error: result.error })
+
+        return
+      }
+
+      const versionsResult = await listSitePageVersionsAction(slug)
+      const versions = versionsResult.success ? versionsResult.versions : []
+
+      dispatch({
+        type: 'SWITCH_PAGE',
+        slug: result.page.slug,
+        title: result.page.title,
+        blocks: toPlainJson(result.page.draftBlocks) as Block[],
+        publishedBlocks: toPlainJson(result.page.publishedBlocks) as Block[],
+        savedAt: result.page.draftUpdatedAt,
+        publishedAt: result.page.publishedAt,
+        versions
+      })
+
+      void refreshPages()
+    },
+    [persistDraft, refreshPages]
+  )
+
+  const createPage = useCallback(
+    async (title: string) => {
+      const result = await createSitePageAction({ title })
+
+      if (result.success) {
+        void refreshPages()
+      }
+
+      return result
+    },
+    [refreshPages]
+  )
+
+  const deletePage = useCallback(
+    async (slug: string) => {
+      const result = await deleteSitePageAction(slug)
+
+      if (!result.success) {
+        dispatch({ type: 'SET_SAVE_ERROR', error: result.error })
+
+        return
+      }
+
+      if (slug === currentPageSlugRef.current) {
+        await switchPage('home')
+      }
+
+      void refreshPages()
+    },
+    [switchPage, refreshPages]
+  )
+
+  const updatePageMeta = useCallback(
+    async (slug: string, input: { title?: string; description?: string }) => {
+      const result = await updateSitePageMetaAction(slug, input)
+
+      if (result.success) {
+        if (slug === currentPageSlugRef.current && input.title) {
+          dispatch({
+            type: 'SWITCH_PAGE',
+            slug,
+            title: result.page.title,
+            blocks: blocksRef.current,
+            publishedBlocks: state.publishedBlocks,
+            savedAt: state.lastSavedAt,
+            publishedAt: state.lastPublishedAt,
+            versions: state.versions
+          })
+        }
+
+        void refreshPages()
+      } else {
+        dispatch({ type: 'SET_SAVE_ERROR', error: result.error })
+      }
+    },
+    [refreshPages, state.lastPublishedAt, state.lastSavedAt, state.publishedBlocks, state.versions]
+  )
 
   const restoreVersionToDraft = useCallback((blocks: Block[], savedAt: string) => {
     dispatch({ type: 'SET_BLOCKS', blocks: toPlainJson(blocks), savedAt })
@@ -510,16 +741,16 @@ export function BuilderProvider({
   }, [])
 
   useEffect(() => {
-    if (!state.isDirty || state.isLoading) {
+    if (!state.isDirty || state.isLoading || state.isPageSwitching) {
       return
     }
 
     const timer = setTimeout(() => {
-      void persistDraft(state.blocks, state.siteStyles)
+      void persistDraft(state.currentPageSlug, state.blocks, state.siteStyles)
     }, 1500)
 
     return () => clearTimeout(timer)
-  }, [state.blocks, state.siteStyles, state.isDirty, state.isLoading, persistDraft])
+  }, [state.blocks, state.siteStyles, state.isDirty, state.isLoading, state.isPageSwitching, state.currentPageSlug, persistDraft])
 
   const value = useMemo<BuilderContextValue>(
     () => ({
@@ -539,6 +770,11 @@ export function BuilderProvider({
       applyThemePreset,
       savePage,
       publishPage,
+      switchPage,
+      createPage,
+      deletePage,
+      updatePageMeta,
+      refreshPages,
       restoreVersionToDraft,
       setVersions,
       resetToStarter,
@@ -561,6 +797,11 @@ export function BuilderProvider({
       applyThemePreset,
       savePage,
       publishPage,
+      switchPage,
+      createPage,
+      deletePage,
+      updatePageMeta,
+      refreshPages,
       restoreVersionToDraft,
       setVersions,
       resetToStarter,

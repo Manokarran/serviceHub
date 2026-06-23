@@ -17,6 +17,7 @@ import type {
   HeroBlockProps,
   ImageBlockProps,
   LogoBlockProps,
+  ShapeBlockProps,
   SectionBlockProps,
   TextBlockProps,
   VideoBlockProps
@@ -41,6 +42,7 @@ import { HeroLayoutPopover } from './HeroInlinePopovers'
 import { SectionLayoutPopover } from './SectionLayoutPopover'
 import { HERO_LAYOUT_OPTIONS } from '../../constants/heroLayout'
 import { SECTION_LAYOUT_OPTIONS } from '../../constants/sectionLayout'
+import { ARTISTIC_LINE_STYLE_OPTIONS, CLASSIC_LINE_STYLE_OPTIONS, SHAPE_VARIANT_OPTIONS } from '../../constants/shapeBlock'
 
 type Props = {
   block: Block
@@ -97,7 +99,6 @@ function InlineToolbarTextButton({
 }
 
 export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = 'above', onDelete, dragHandleProps }: Props) {
-  const theme = useTheme()
   const { blocks, updateBlock, selectBlock } = useBuilder()
   const shell = useBuilderShell()
   const [mediaAnchor, setMediaAnchor] = useState<HTMLElement | null>(null)
@@ -234,6 +235,66 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
               icon='ri-image-edit-line'
               label='Replace logo'
               onClick={e => setMediaAnchor(e.currentTarget as HTMLElement)}
+            />
+          </>
+        )
+      }
+      case 'shape': {
+        const props = block.props as ShapeBlockProps
+
+        if (props.variant === 'line') {
+          return (
+            <>
+              <AlignmentToggleGroup value={props.alignment} onChange={alignment => update({ alignment })} />
+              <InlineToolbarDivider />
+              {CLASSIC_LINE_STYLE_OPTIONS.slice(0, 3).map(option => (
+                <InlineToolbarButton
+                  key={option.value}
+                  icon={option.icon}
+                  label={option.label}
+                  active={(props.lineStyle ?? 'solid') === option.value}
+                  onClick={() => update({ lineStyle: option.value })}
+                />
+              ))}
+              {ARTISTIC_LINE_STYLE_OPTIONS.slice(0, 3).map(option => (
+                <InlineToolbarButton
+                  key={option.value}
+                  icon={option.icon}
+                  label={option.label}
+                  active={(props.lineStyle ?? 'solid') === option.value}
+                  onClick={() => update({ lineStyle: option.value })}
+                />
+              ))}
+              <InlineToolbarDivider />
+              <InlineToolbarButton
+                icon='ri-contrast-2-line'
+                label='Gradient fill'
+                active={props.fillType === 'gradient'}
+                onClick={() => update({ fillType: props.fillType === 'gradient' ? 'solid' : 'gradient' })}
+              />
+            </>
+          )
+        }
+
+        return (
+          <>
+            <AlignmentToggleGroup value={props.alignment} onChange={alignment => update({ alignment })} />
+            <InlineToolbarDivider />
+            {SHAPE_VARIANT_OPTIONS.filter(option => option.value !== 'line').slice(0, 4).map(option => (
+              <InlineToolbarButton
+                key={option.value}
+                icon={option.icon}
+                label={option.label}
+                active={props.variant === option.value}
+                onClick={() => update({ variant: option.value, ...(option.value === 'circle' ? { height: props.width } : {}) })}
+              />
+            ))}
+            <InlineToolbarDivider />
+            <InlineToolbarButton
+              icon='ri-contrast-2-line'
+              label='Gradient fill'
+              active={props.fillType === 'gradient'}
+              onClick={() => update({ fillType: props.fillType === 'gradient' ? 'solid' : 'gradient' })}
             />
           </>
         )
@@ -453,23 +514,21 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
             gap: 0.25,
             minWidth: 0,
             flex: '1 1 auto',
-            overflowX: 'auto',
-            '&::-webkit-scrollbar': { height: 4 },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: alpha(theme.palette.text.primary, 0.15),
-              borderRadius: 2
-            }
+            flexWrap: 'wrap',
+            justifyContent: 'center'
           }}
         >
           {renderQuickActions()}
         </Box>
         <InlineToolbarDivider />
-        <InlineToolbarButton
-          icon='ri-settings-3-line'
-          label='More settings'
-          onClick={() => openPanel(block.type === 'section' ? 'style' : undefined)}
-        />
-        <InlineToolbarButton icon='ri-delete-bin-line' label='Delete block' onClick={onDelete} />
+        <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <InlineToolbarButton
+            icon='ri-settings-3-line'
+            label='More settings'
+            onClick={() => openPanel(block.type === 'section' ? 'style' : undefined)}
+          />
+          <InlineToolbarButton icon='ri-delete-bin-line' label='Delete block' onClick={onDelete} />
+        </Box>
       </InlineToolbarShell>
 
       <InlineToolbarPopover
@@ -560,6 +619,8 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
 function getInlineBlockLabel(type: Block['type']): string {
   const labels: Record<Block['type'], string> = {
     section: 'Section',
+    carousel: 'Carousel',
+    tabs: 'Tabs',
     header: 'Header',
     footer: 'Footer',
     hero: 'Hero',
@@ -568,7 +629,8 @@ function getInlineBlockLabel(type: Block['type']): string {
     button: 'Button',
     image: 'Image',
     video: 'Video',
-    logo: 'Logo'
+    logo: 'Logo',
+    shape: 'Shape'
   }
 
   return labels[type]

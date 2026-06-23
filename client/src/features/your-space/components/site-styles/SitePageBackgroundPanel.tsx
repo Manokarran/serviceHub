@@ -4,7 +4,7 @@ import Typography from '@mui/material/Typography'
 
 import type { SplitVisualConfig } from '../../types'
 import { useBuilder } from '../../context/BuilderContext'
-import { HeroSplitPanelControls } from '../HeroSplitPanelControls'
+import { AnimatedBackgroundControls } from '../AnimatedBackgroundControls'
 import { PropertyBodyText } from '../property/PropertyPanelUi'
 
 export function SitePageBackgroundPanel() {
@@ -18,7 +18,7 @@ export function SitePageBackgroundPanel() {
       <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 1.5 }}>
         Applies to the live website and builder preview.
       </Typography>
-      <HeroSplitPanelControls
+      <AnimatedBackgroundControls
         config={{
           splitVisualAnimation: siteStyles.misc.pageSplitVisualAnimation,
           splitVisualColorStart: siteStyles.misc.pageSplitVisualColorStart,

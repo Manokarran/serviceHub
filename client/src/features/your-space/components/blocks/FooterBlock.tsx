@@ -7,10 +7,12 @@ import Typography from '@mui/material/Typography'
 import type { FooterBlockProps } from '../../types'
 import { applyBackgroundAlpha, getBlockBackgroundOpacity } from '../../utils/sectionStyleHelpers'
 import { getFixedBlockShellSx } from '../../utils/mediaBlockHelpers'
+import { normalizeSiteFonts } from '../../utils/siteStylesHelpers'
 import { InlineEditableText } from '../inline/InlineEditableText'
 import { useCanvasBlockEdit } from '../inline/CanvasBlockEditContext'
 import { useSiteStyles } from '../SiteStylesScope'
 import { getChromeJustify, getHorizontalOrder, getNavJustify, SiteBrandLogo } from './SiteBrandLogo'
+import { siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 
 type Props = {
   props: FooterBlockProps
@@ -22,9 +24,10 @@ export function FooterBlock({ props }: Props) {
   const isVertical = props.layout === 'vertical'
   const order = getHorizontalOrder(props.logoPosition)
 
+  const fonts = normalizeSiteFonts(siteStyles.fonts)
   const navLinkSx = {
-    fontFamily: siteStyles.fonts.bodyFamily,
-    fontSize: '0.875rem',
+    fontFamily: fonts.bodyFamily,
+    fontSize: fonts.navSize,
     fontWeight: 500,
     color: 'inherit',
     textDecoration: 'none',
@@ -33,8 +36,8 @@ export function FooterBlock({ props }: Props) {
   }
 
   const copyrightSx = {
-    fontFamily: siteStyles.fonts.bodyFamily,
-    fontSize: '0.8125rem',
+    fontFamily: fonts.bodyFamily,
+    fontSize: fonts.labelSize,
     color: 'inherit',
     opacity: 0.75,
     display: 'block'
@@ -52,17 +55,25 @@ export function FooterBlock({ props }: Props) {
         component='footer'
         sx={{
           display: 'flex',
-          flexDirection: isVertical ? 'column' : 'row',
+          flexDirection: isVertical ? 'column' : { xs: 'column', sm: 'row' },
           alignItems: isVertical ? 'center' : 'center',
           justifyContent: isVertical ? 'center' : 'space-between',
           gap: isVertical ? 2 : 1.5,
           flexWrap: 'wrap',
-          px: 4,
+          px: { xs: 2, sm: 4 },
           py: isVertical ? 3 : 2.5,
           backgroundColor: applyBackgroundAlpha(props.backgroundColor, getBlockBackgroundOpacity(props)),
           color: props.textColor,
           borderTop: '1px solid rgba(255,255,255,0.08)',
-          ...(props.borderRadius ? { borderRadius: `${props.borderRadius}px`, overflow: 'hidden' } : {})
+          ...(props.borderRadius ? { borderRadius: `${props.borderRadius}px`, overflow: 'hidden' } : {}),
+          ...(!isVertical
+            ? siteCanvasBelow({
+                flexDirection: 'column',
+                gap: 2,
+                alignItems: 'center',
+                textAlign: 'center'
+              })
+            : {})
         }}
       >
         <Box

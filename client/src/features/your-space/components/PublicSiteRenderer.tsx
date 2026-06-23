@@ -6,6 +6,7 @@ import { DEFAULT_SITE_STYLES } from '../constants/siteStylePresets'
 import type { Block } from '../types'
 import type { SiteStyles } from '../types/siteStyles'
 import { mergeSiteStyles } from '../utils/siteStylesHelpers'
+import { siteCanvasContainerSx } from '../utils/siteResponsiveHelpers'
 import { SiteStylesScope } from './SiteStylesScope'
 import { SitePageBackgroundLayer } from './SitePageBackgroundLayer'
 import { BlockRenderer } from './blocks/BlockRenderer'
@@ -20,7 +21,7 @@ export function PublicSiteRenderer({ blocks, siteStyles }: Props) {
 
   return (
     <SiteStylesScope siteStyles={styles}>
-      <Box component='main' sx={{ position: 'relative', minHeight: '100vh', width: '100%', backgroundColor: styles.colors.background }}>
+      <Box component='main' sx={{ position: 'relative', minHeight: '100vh', width: '100%', backgroundColor: styles.colors.background, ...siteCanvasContainerSx() }}>
         <SitePageBackgroundLayer />
         <Box sx={{ position: 'relative', zIndex: 1 }}>
           {blocks.map(block => (

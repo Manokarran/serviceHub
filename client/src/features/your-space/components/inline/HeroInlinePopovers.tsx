@@ -1,7 +1,6 @@
 'use client'
 
 import type { HeroBlockProps } from '../../types'
-import { useSiteStyles } from '../SiteStylesScope'
 import { HeroLayoutControls } from '../HeroLayoutControls'
 
 type Props = {
@@ -10,7 +9,5 @@ type Props = {
 }
 
 export function HeroLayoutPopover({ props, onUpdate }: Props) {
-  const siteStyles = useSiteStyles()
-
-  return <HeroLayoutControls props={props} accentColor={siteStyles.colors.accent} onUpdate={onUpdate} />
+  return <HeroLayoutControls props={props} onUpdate={onUpdate} />
 }

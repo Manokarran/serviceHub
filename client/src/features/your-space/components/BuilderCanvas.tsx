@@ -14,6 +14,7 @@ import {
 import { useBuilder } from '../context/BuilderContext'
 import { insertDropId } from '../utils/blockTreeUtils'
 import { getCanvasCornerRadius } from '../utils/siteStylesHelpers'
+import { siteCanvasContainerSx } from '../utils/siteResponsiveHelpers'
 import { SiteStylesScope } from './SiteStylesScope'
 import { SitePageBackgroundLayer } from './SitePageBackgroundLayer'
 import { BuilderCanvasToolbar } from './BuilderCanvasToolbar'
@@ -97,6 +98,7 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
               useGradientFrame
                 ? {
                     ...builderCanvasFrameInnerSx(theme, frameRadius),
+                    overflow: isEditMode ? 'visible' : 'hidden',
                     ...(viewport === 'mobile' &&
                       showDeviceFrame && {
                         '&::before': {
@@ -116,11 +118,12 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
             sx={{
               position: 'relative',
               minHeight: blocks.length === 0 ? '100%' : undefined,
-              backgroundColor: siteStyles.colors.background
+              backgroundColor: siteStyles.colors.background,
+              ...siteCanvasContainerSx()
             }}
           >
             {blocks.length > 0 && <SitePageBackgroundLayer />}
-            <Box sx={{ position: 'relative', zIndex: 1 }}>
+            <Box sx={{ position: 'relative', zIndex: 1, ...(isEditMode && blocks.length > 0 && { pt: 5 }) }}>
           {blocks.length === 0 ? (
             <Box
               sx={{

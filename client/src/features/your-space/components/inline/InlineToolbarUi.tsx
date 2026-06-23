@@ -46,7 +46,9 @@ export function InlineToolbarShell({
         backgroundColor: 'background.paper',
         boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.12)}, 0 0 0 1px ${alpha(theme.palette.divider, 0.6)}`,
         maxWidth: 'calc(100% - 16px)',
-        flexWrap: 'nowrap'
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        rowGap: 0.375
       }}
     >
       {children}

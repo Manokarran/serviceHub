@@ -1,5 +1,214 @@
-import type { Block, PaletteItem, SectionLayout } from './types'
+import type { Block, PaletteItem, SectionLayout, CarouselTransition, CarouselArrowStyle, TabOrientation, TabVariant, TabsBlockProps } from './types'
 import { DEFAULT_SECTION_STYLE } from './utils/sectionStyleHelpers'
+
+const DEFAULT_CAROUSEL_SLIDES = [
+  {
+    id: 'slide-1',
+    children: [
+      {
+        id: 'slide-1-heading',
+        type: 'heading' as const,
+        props: {
+          text: 'First slide',
+          level: 2 as const,
+          alignment: 'center' as const,
+          color: '#1a1a2e'
+        }
+      }
+    ]
+  },
+  {
+    id: 'slide-2',
+    children: [
+      {
+        id: 'slide-2-heading',
+        type: 'heading' as const,
+        props: {
+          text: 'Second slide',
+          level: 2 as const,
+          alignment: 'center' as const,
+          color: '#1a1a2e'
+        }
+      }
+    ]
+  },
+  {
+    id: 'slide-3',
+    children: [
+      {
+        id: 'slide-3-heading',
+        type: 'heading' as const,
+        props: {
+          text: 'Third slide',
+          level: 2 as const,
+          alignment: 'center' as const,
+          color: '#1a1a2e'
+        }
+      }
+    ]
+  }
+]
+
+const CAROUSEL_BASE_PROPS = {
+  slides: DEFAULT_CAROUSEL_SLIDES,
+  autoplay: true,
+  autoplayInterval: 5000,
+  loop: true,
+  showArrows: true,
+  showDots: true,
+  arrowStyle: 'rounded' as CarouselArrowStyle,
+  dotStyle: 'dots' as const,
+  slidesPerView: 1,
+  slideGap: 16,
+  slidePeek: 0,
+  transitionDuration: 35,
+  paddingY: 48,
+  paddingX: 24,
+  maxWidth: 'lg' as const,
+  borderRadius: 12,
+  slideMinHeight: 280,
+  arrowColor: '#1a1a2e',
+  dotColor: '#6366f1'
+}
+
+function carouselPaletteItem(
+  id: string,
+  label: string,
+  description: string,
+  icon: string,
+  transition: CarouselTransition,
+  overrides?: Partial<typeof CAROUSEL_BASE_PROPS>
+): PaletteItem {
+  return {
+    id,
+    type: 'carousel',
+    label,
+    description,
+    icon,
+    category: 'layout',
+    defaultProps: {
+      ...CAROUSEL_BASE_PROPS,
+      transition,
+      ...overrides
+    }
+  }
+}
+
+const DEFAULT_TAB_PANELS = [
+  {
+    id: 'tab-1',
+    label: 'Overview',
+    icon: 'ri-layout-grid-line',
+    children: [
+      {
+        id: 'tab-1-heading',
+        type: 'heading' as const,
+        props: {
+          text: 'Overview',
+          level: 2 as const,
+          alignment: 'left' as const,
+          color: '#1a1a2e'
+        }
+      },
+      {
+        id: 'tab-1-text',
+        type: 'text' as const,
+        props: {
+          text: 'Add content for this tab using the block palette or drag blocks here.',
+          alignment: 'left' as const,
+          color: '#64748b'
+        }
+      }
+    ]
+  },
+  {
+    id: 'tab-2',
+    label: 'Features',
+    icon: 'ri-star-line',
+    children: [
+      {
+        id: 'tab-2-heading',
+        type: 'heading' as const,
+        props: {
+          text: 'Features',
+          level: 2 as const,
+          alignment: 'left' as const,
+          color: '#1a1a2e'
+        }
+      }
+    ]
+  },
+  {
+    id: 'tab-3',
+    label: 'Details',
+    icon: 'ri-file-list-3-line',
+    children: [
+      {
+        id: 'tab-3-heading',
+        type: 'heading' as const,
+        props: {
+          text: 'Details',
+          level: 2 as const,
+          alignment: 'left' as const,
+          color: '#1a1a2e'
+        }
+      }
+    ]
+  }
+]
+
+const TABS_BASE_PROPS = {
+  tabs: DEFAULT_TAB_PANELS,
+  orientation: 'horizontal' as TabOrientation,
+  variant: 'underline' as TabVariant,
+  activeTabColor: '#1a1a2e',
+  inactiveTabColor: '#64748b',
+  indicatorColor: '#6366f1',
+  tabBackgroundColor: 'transparent',
+  contentBackgroundColor: 'transparent',
+  contentBorderRadius: 2,
+  tabGap: 8,
+  paddingY: 48,
+  paddingX: 24,
+  maxWidth: 'lg' as const,
+  contentMinHeight: 240,
+  fullWidthTabs: false,
+  contentAnimation: 'slide-horizontal' as const,
+  animationDuration: 240,
+  tabBarBorderStyle: 'none' as const,
+  tabBarBorderWidth: 1,
+  tabBarBorderColor: '#e2e8f0',
+  tabBarBorderRadius: 2,
+  contentBorderStyle: 'subtle' as const,
+  contentBorderWidth: 1,
+  contentBorderColor: '#e2e8f0',
+  tabBorderRadius: 2
+}
+
+function tabsPaletteItem(
+  id: string,
+  label: string,
+  description: string,
+  icon: string,
+  orientation: TabOrientation,
+  variant: TabVariant,
+  overrides?: Partial<TabsBlockProps>
+): PaletteItem {
+  return {
+    id,
+    type: 'tabs',
+    label,
+    description,
+    icon,
+    category: 'layout',
+    defaultProps: {
+      ...TABS_BASE_PROPS,
+      orientation,
+      variant,
+      ...overrides
+    }
+  }
+}
 
 const SECTION_BASE_PROPS = {
   background: 'transparent',
@@ -41,6 +250,37 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   sectionPaletteItem('section-single', 'Single', 'One content column', 'ri-layout-row-line', 'default'),
   sectionPaletteItem('section-double', 'Double', 'Two side-by-side columns', 'ri-layout-column-line', 'split-horizontal'),
   sectionPaletteItem('section-stacked', 'Stacked', 'Two stacked rows', 'ri-layout-grid-line', 'split-vertical'),
+  carouselPaletteItem('carousel-slide', 'Carousel', 'Animated slides with your blocks', 'ri-carousel-view', 'slide'),
+  carouselPaletteItem('carousel-fade', 'Fade carousel', 'Cross-fade between slides', 'ri-transition', 'fade', {
+    autoplayInterval: 6000,
+    transitionDuration: 45
+  }),
+  carouselPaletteItem('carousel-cards', 'Card carousel', 'Multiple cards per view', 'ri-gallery-line', 'slide', {
+    slidesPerView: 3,
+    slideGap: 24,
+    slidePeek: 8,
+    slideMinHeight: 220,
+    autoplay: false
+  }),
+  carouselPaletteItem('carousel-coverflow', 'Coverflow', '3D depth carousel', 'ri-stack-line', 'coverflow', {
+    slidePeek: 18,
+    transitionDuration: 40,
+    arrowStyle: 'floating'
+  }),
+  tabsPaletteItem('tabs-horizontal-underline', 'Underline tabs', 'Classic underline indicator', 'ri-layout-top-2-line', 'horizontal', 'underline'),
+  tabsPaletteItem('tabs-horizontal-pills', 'Pill tabs', 'Rounded pill-style buttons', 'ri-apps-line', 'horizontal', 'pills'),
+  tabsPaletteItem('tabs-horizontal-segmented', 'Segmented tabs', 'Joined segmented control', 'ri-layout-fill', 'horizontal', 'segmented', {
+    fullWidthTabs: true,
+    contentAnimation: 'scale'
+  }),
+  tabsPaletteItem('tabs-vertical-sidebar', 'Sidebar tabs', 'Left-rail navigation', 'ri-layout-left-2-line', 'vertical', 'underline', {
+    tabBarBorderStyle: 'subtle',
+    contentBorderStyle: 'subtle'
+  }),
+  tabsPaletteItem('tabs-vertical-elevated', 'Card sidebar', 'Elevated card-style sidebar', 'ri-layout-left-line', 'vertical', 'elevated', {
+    contentBorderStyle: 'elevated',
+    contentAnimation: 'slide-up'
+  }),
   {
     id: 'header',
     type: 'header',
@@ -195,6 +435,58 @@ export const PALETTE_ITEMS: PaletteItem[] = [
       alignment: 'left',
       maxHeight: 48
     }
+  },
+  {
+    id: 'shape',
+    type: 'shape',
+    label: 'Shape',
+    description: 'Decorative shape with solid or gradient fill',
+    icon: 'ri-shape-line',
+    category: 'media',
+    defaultProps: {
+      variant: 'rectangle',
+      alignment: 'center',
+      width: 200,
+      height: 200,
+      fillType: 'gradient',
+      fillColor: '#6366f1',
+      gradientStart: '#6366f1',
+      gradientEnd: '#8b5cf6',
+      gradientAngle: 135,
+      gradientStyle: 'linear',
+      strokeWidth: 0,
+      strokeColor: '#1a1a2e',
+      opacity: 100,
+      rotation: 0,
+      borderRadius: 12,
+      lineStyle: 'solid'
+    }
+  },
+  {
+    id: 'divider',
+    type: 'shape',
+    label: 'Divider',
+    description: 'Horizontal line with divider styles',
+    icon: 'ri-separator',
+    category: 'media',
+    defaultProps: {
+      variant: 'line',
+      alignment: 'center',
+      width: 480,
+      height: 8,
+      fillType: 'solid',
+      fillColor: '#cbd5e1',
+      gradientStart: '#6366f1',
+      gradientEnd: '#8b5cf6',
+      gradientAngle: 90,
+      gradientStyle: 'linear',
+      strokeWidth: 0,
+      strokeColor: '#1a1a2e',
+      opacity: 100,
+      rotation: 0,
+      borderRadius: 0,
+      lineStyle: 'solid'
+    }
   }
 ]
 
@@ -317,6 +609,6 @@ export function createStarterBlocks(): Block[] {
 
 export const STORAGE_KEY_PREFIX = 'your-space-page'
 
-export function getStorageKey(tenantSlug: string) {
-  return `${STORAGE_KEY_PREFIX}:${tenantSlug}`
+export function getStorageKey(tenantSlug: string, pageSlug = 'home') {
+  return `${STORAGE_KEY_PREFIX}:${tenantSlug}:${pageSlug}`
 }

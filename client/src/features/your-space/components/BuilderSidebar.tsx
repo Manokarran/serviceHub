@@ -10,6 +10,7 @@ import { builderEdgeSx, builderSidePanelSx } from '../constants/builderChrome'
 import { useBuilder } from '../context/BuilderContext'
 import type { BuilderSidebarPanel } from '../types'
 import { ComponentPaletteContent } from './ComponentPalette'
+import { PagesPanel } from './pages/PagesPanel'
 import { SiteStylesPanel } from './site-styles/SiteStylesPanel'
 
 type Props = {
@@ -154,7 +155,9 @@ export function BuilderSidebar({ panelOpen, onPanelClose, onPanelOpen }: Props) 
           pointerEvents: panelOpen ? 'auto' : 'none'
         }}
       >
-        {sidebarPanel === 'blocks' ? (
+        {sidebarPanel === 'pages' ? (
+          <PagesPanel onClose={onPanelClose} />
+        ) : sidebarPanel === 'blocks' ? (
           <ComponentPaletteContent onClose={onPanelClose} />
         ) : sidebarPanel === 'design' ? (
           <SiteStylesPanel onClose={onPanelClose} />

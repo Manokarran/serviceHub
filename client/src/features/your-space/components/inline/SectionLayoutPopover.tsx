@@ -12,5 +12,7 @@ type Props = {
 export function SectionLayoutPopover({ props, onUpdate }: Props) {
   const siteStyles = useSiteStyles()
 
-  return <SectionLayoutControls props={props} accentColor={siteStyles.colors.accent} onUpdate={onUpdate} />
+  return (
+    <SectionLayoutControls props={props} accentColor={siteStyles.colors.accent} onUpdate={onUpdate} />
+  )
 }

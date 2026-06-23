@@ -27,7 +27,7 @@ export const BUILDER_Z_INDEX = {
 } as const
 
 export const BUILDER_SIDEBAR_ITEMS = [
-  { id: 'pages' as const, icon: 'ri-pages-line', label: 'Pages', comingSoon: true },
+  { id: 'pages' as const, icon: 'ri-pages-line', label: 'Pages', comingSoon: false },
   { id: 'blocks' as const, icon: 'ri-layout-grid-line', label: 'Blocks', comingSoon: false },
   { id: 'design' as const, icon: 'ri-palette-line', label: 'Site Styles', comingSoon: false }
 ]

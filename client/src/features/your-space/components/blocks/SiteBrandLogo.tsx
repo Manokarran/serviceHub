@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography'
 
 import { getOptimizedImageUrl } from '@/lib/imagekit/urls'
 import type { LogoPosition } from '../../types'
+import { normalizeSiteFonts } from '../../utils/siteStylesHelpers'
 import { InlineEditableText } from '../inline/InlineEditableText'
 import { useCanvasBlockEdit } from '../inline/CanvasBlockEditContext'
 import { useSiteStyles } from '../SiteStylesScope'
@@ -20,9 +21,11 @@ export function SiteBrandLogo({ logoText, logoUrl, textColor }: Props) {
   const editContext = useCanvasBlockEdit()
   const optimizedLogo = logoUrl ? getOptimizedImageUrl(logoUrl, { width: 320, height: 120, quality: 85 }) : ''
   const showText = Boolean(logoText) || editContext !== null
+  const fonts = normalizeSiteFonts(siteStyles.fonts)
   const logoTextSx = {
-    fontFamily: siteStyles.fonts.headingFamily,
-    fontWeight: siteStyles.fonts.headingWeight,
+    fontFamily: fonts.headingFamily,
+    fontWeight: fonts.headingWeight,
+    fontSize: fonts.logoSize,
     color: textColor,
     lineHeight: 1.2,
     display: 'block'

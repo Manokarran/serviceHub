@@ -4,6 +4,8 @@ import { HERO_SPLIT_VISUAL_ANIMATION_OPTIONS } from '@/features/your-space/const
 
 const blockTypeSchema = z.enum([
   'section',
+  'carousel',
+  'tabs',
   'header',
   'footer',
   'hero',
@@ -12,7 +14,8 @@ const blockTypeSchema = z.enum([
   'button',
   'image',
   'video',
-  'logo'
+  'logo',
+  'shape'
 ])
 
 const heroSplitVisualAnimationSchema = z.enum(
@@ -90,6 +93,26 @@ export const siteStylesSchema = z.object({
 export const saveSitePageSchema = z.object({
   blocks: z.array(sitePageBlockSchema).max(100),
   siteStyles: siteStylesSchema.optional()
+})
+
+export const createPageSchema = z.object({
+  title: z.string().min(1).max(120),
+  slug: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'URL must be lowercase letters, numbers, and hyphens')
+    .optional()
+})
+
+export const updatePageMetaSchema = z.object({
+  title: z.string().min(1).max(120).optional(),
+  description: z.string().max(300).optional(),
+  sortOrder: z.number().min(0).max(999).optional()
+})
+
+export const reorderPagesSchema = z.object({
+  orderedSlugs: z.array(z.string().min(1).max(64)).min(1).max(50)
 })
 
 export type SaveSitePageInput = z.infer<typeof saveSitePageSchema>

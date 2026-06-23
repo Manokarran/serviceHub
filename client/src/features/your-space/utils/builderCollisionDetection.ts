@@ -9,6 +9,14 @@ function getDropTargetPriority(id: string | number): number {
     return 0
   }
 
+  if (idStr.startsWith('carousel-drop:')) {
+    return 1
+  }
+
+  if (idStr.startsWith('tabs-drop:')) {
+    return 1
+  }
+
   if (idStr.startsWith('section-drop:')) {
     return 1
   }

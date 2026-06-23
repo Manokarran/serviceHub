@@ -3,12 +3,14 @@
 import type {
   Block,
   ButtonBlockProps,
+  CarouselBlockProps,
   FooterBlockProps,
   HeaderBlockProps,
   HeadingBlockProps,
   HeroBlockProps,
   ImageBlockProps,
   LogoBlockProps,
+  ShapeBlockProps,
   TextBlockProps,
   VideoBlockProps
 } from '../../types'
@@ -19,6 +21,9 @@ import { HeadingBlock } from './HeadingBlock'
 import { HeroBlock } from './HeroBlock'
 import { ImageBlock } from './ImageBlock'
 import { LogoBlock } from './LogoBlock'
+import { ShapeBlock } from './ShapeBlock'
+import { CarouselBlock, CarouselBlockPreview } from './CarouselBlock'
+import { TabsBlock, TabsBlockPreview } from './TabsBlock'
 import { SectionBlock, SectionBlockPreview } from './SectionBlock'
 import { TextBlock } from './TextBlock'
 import { VideoBlock } from './VideoBlock'
@@ -38,6 +43,10 @@ export function BlockRenderer({ block, preview = false }: Props) {
       return <HeroBlock props={block.props as HeroBlockProps} />
     case 'section':
       return preview ? <SectionBlockPreview block={block} /> : <SectionBlock block={block} />
+    case 'carousel':
+      return preview ? <CarouselBlockPreview block={block} /> : <CarouselBlock block={block} />
+    case 'tabs':
+      return preview ? <TabsBlockPreview block={block} /> : <TabsBlock block={block} />
     case 'heading':
       return <HeadingBlock props={block.props as HeadingBlockProps} />
     case 'text':
@@ -50,6 +59,8 @@ export function BlockRenderer({ block, preview = false }: Props) {
       return <VideoBlock props={block.props as VideoBlockProps} />
     case 'logo':
       return <LogoBlock props={block.props as LogoBlockProps} />
+    case 'shape':
+      return <ShapeBlock props={block.props as ShapeBlockProps} />
     default:
       return null
   }
@@ -58,6 +69,8 @@ export function BlockRenderer({ block, preview = false }: Props) {
 export function getBlockLabel(type: Block['type']) {
   const labels: Record<Block['type'], string> = {
     section: 'Section',
+    carousel: 'Carousel',
+    tabs: 'Tabs',
     header: 'Header',
     footer: 'Footer',
     hero: 'Hero',
@@ -66,7 +79,8 @@ export function getBlockLabel(type: Block['type']) {
     button: 'Button',
     image: 'Image',
     video: 'Video',
-    logo: 'Logo'
+    logo: 'Logo',
+    shape: 'Shape'
   }
 
   return labels[type]

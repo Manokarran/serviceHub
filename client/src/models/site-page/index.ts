@@ -5,5 +5,6 @@ export type {
   ISitePageDocument,
   ISitePageVersion,
   ISitePageVersionDocument,
-  PublishedVersionSummary
+  PublishedVersionSummary,
+  SitePageSummary
 } from './site-page.types'

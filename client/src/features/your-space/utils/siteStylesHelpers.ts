@@ -1,20 +1,41 @@
 import type { SxProps, Theme } from '@mui/material/styles'
 
 import type { BlockPropsMap, BlockType } from '../types'
-import { DEFAULT_SITE_STYLES } from '../constants/siteStylePresets'
+import { DEFAULT_FORMS, DEFAULT_SITE_STYLES } from '../constants/siteStylePresets'
 import type { ButtonShape, ButtonStyleConfig, SiteColors, SiteFonts, SiteForms, SiteMisc, SiteStyles } from '../types/siteStyles'
+
+export function normalizeSiteFonts(fonts: Partial<SiteFonts>): SiteFonts {
+  return { ...DEFAULT_SITE_STYLES.fonts, ...fonts }
+}
+
+export function normalizeSiteForms(forms: Partial<SiteForms>): SiteForms {
+  return { ...DEFAULT_FORMS, ...forms }
+}
+
+export function getHeadingFontSize(level: 1 | 2 | 3, fonts: SiteFonts): number {
+  const { headingSize, headingScale } = normalizeSiteFonts(fonts)
+  const levelScale = level === 1 ? 1 : level === 2 ? 0.75 : 0.625
+
+  return Math.round(headingSize * levelScale * headingScale)
+}
+
+export function getHeroTitleFontSize(fonts: SiteFonts, viewport: 'mobile' | 'desktop'): number {
+  const { headingSize, headingScale } = normalizeSiteFonts(fonts)
+
+  return Math.round(headingSize * (viewport === 'desktop' ? 1.5 : 1) * headingScale)
+}
 
 export function mergeSiteStyles(partial: Partial<SiteStyles>, base: SiteStyles): SiteStyles {
   return {
     themeId: partial.themeId ?? base.themeId,
-    fonts: { ...base.fonts, ...partial.fonts },
+    fonts: { ...DEFAULT_SITE_STYLES.fonts, ...base.fonts, ...partial.fonts },
     colors: { ...base.colors, ...partial.colors },
     buttons: {
       primary: { ...base.buttons.primary, ...partial.buttons?.primary },
       secondary: { ...base.buttons.secondary, ...partial.buttons?.secondary },
       tertiary: { ...base.buttons.tertiary, ...partial.buttons?.tertiary }
     },
-    forms: { ...base.forms, ...partial.forms },
+    forms: { ...DEFAULT_FORMS, ...base.forms, ...partial.forms },
     misc: { ...DEFAULT_SITE_STYLES.misc, ...base.misc, ...partial.misc }
   }
 }
@@ -62,13 +83,15 @@ export function getSiteButtonSx(
 ): SxProps<Theme> {
   const config = siteStyles.buttons[role]
   const { colors, fonts } = siteStyles
+  const normalizedFonts = normalizeSiteFonts(fonts)
   const accent = overrideColor ?? colors.accent
   const borderRadius =
     overrideBorderRadius !== undefined ? overrideBorderRadius : getButtonBorderRadius(config.shape)
-  const fontFamily = getFontFamily(config.fontSource, fonts)
+  const fontFamily = getFontFamily(config.fontSource, normalizedFonts)
 
   const base: SxProps<Theme> = {
     fontFamily,
+    fontSize: normalizedFonts.buttonSize,
     fontWeight: 600,
     textTransform: 'none',
     borderRadius,
@@ -108,14 +131,21 @@ export function getSiteButtonSx(
 }
 
 export function getFormFieldSx(forms: SiteForms, fonts: SiteFonts): SxProps<Theme> {
+  const normalizedForms = normalizeSiteForms(forms)
+
   return {
-    fontFamily: getFontFamily(forms.labelFontSource, fonts),
+    fontFamily: getFontFamily(normalizedForms.labelFontSource, normalizeSiteFonts(fonts)),
+    fontSize: normalizedForms.fieldFontSize,
     '& .MuiOutlinedInput-root': {
-      borderRadius: getButtonBorderRadius(forms.fieldShape),
-      backgroundColor: forms.fieldBackground,
+      borderRadius: getButtonBorderRadius(normalizedForms.fieldShape),
+      backgroundColor: normalizedForms.fieldBackground,
+      fontSize: normalizedForms.fieldFontSize,
       '& fieldset': {
-        borderWidth: forms.fieldBorderWidth,
-        borderColor: forms.fieldBorderColor
+        borderWidth: normalizedForms.fieldBorderWidth,
+        borderColor: normalizedForms.fieldBorderColor
+      },
+      '& .MuiOutlinedInput-input': {
+        fontSize: normalizedForms.fieldFontSize
       }
     }
   }
@@ -129,12 +159,20 @@ export function getSpacingMultiplier(misc: SiteMisc): number {
 }
 
 export function siteStylesToCssVars(colors: SiteColors, fonts: SiteFonts): Record<string, string> {
+  const normalizedFonts = normalizeSiteFonts(fonts)
+
   return {
     '--site-accent': colors.accent,
     '--site-bg': colors.background,
     '--site-text': colors.text,
-    '--site-heading-font': fonts.headingFamily,
-    '--site-body-font': fonts.bodyFamily,
+    '--site-heading-font': normalizedFonts.headingFamily,
+    '--site-body-font': normalizedFonts.bodyFamily,
+    '--site-heading-size': `${normalizedFonts.headingSize}px`,
+    '--site-body-size': `${normalizedFonts.bodySize}px`,
+    '--site-button-size': `${normalizedFonts.buttonSize}px`,
+    '--site-nav-size': `${normalizedFonts.navSize}px`,
+    '--site-label-size': `${normalizedFonts.labelSize}px`,
+    '--site-logo-size': `${normalizedFonts.logoSize}px`,
     '--site-swatch-1': colors.swatch1,
     '--site-swatch-2': colors.swatch2,
     '--site-swatch-3': colors.swatch3,
@@ -187,6 +225,19 @@ export function applySiteThemeToBlockProps<T extends BlockType>(
         backgroundType: 'color',
         backgroundOpacity: 0
       }
+    case 'carousel':
+      return {
+        ...props,
+        dotColor: colors.accent,
+        arrowColor: colors.text
+      }
+    case 'tabs':
+      return {
+        ...props,
+        indicatorColor: colors.accent,
+        activeTabColor: colors.text,
+        inactiveTabColor: colors.swatch4
+      }
     case 'heading':
       return {
         ...props,
@@ -201,6 +252,13 @@ export function applySiteThemeToBlockProps<T extends BlockType>(
       return {
         ...props,
         color: colors.accent
+      }
+    case 'shape':
+      return {
+        ...props,
+        fillColor: colors.accent,
+        gradientStart: colors.accent,
+        gradientEnd: colors.swatch2
       }
     default:
       return props
