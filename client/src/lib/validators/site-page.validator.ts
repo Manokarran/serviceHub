@@ -15,7 +15,9 @@ const blockTypeSchema = z.enum([
   'image',
   'video',
   'logo',
-  'shape'
+  'shape',
+  'icon',
+  'contactForm'
 ])
 
 const heroSplitVisualAnimationSchema = z.enum(

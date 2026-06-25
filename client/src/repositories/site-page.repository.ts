@@ -119,7 +119,8 @@ export class SitePageRepository {
     tenantId: string,
     slug: string,
     title: string,
-    sortOrder: number
+    sortOrder: number,
+    draftBlocks: ISitePageBlock[] = []
   ): Promise<ISitePageDocument> {
     await connectDB()
 
@@ -128,7 +129,8 @@ export class SitePageRepository {
       slug,
       title,
       sortOrder,
-      draftBlocks: [],
+      description: slug === 'contact' ? 'Get in touch with us' : '',
+      draftBlocks,
       publishedBlocks: [],
       publishedAt: null
     })

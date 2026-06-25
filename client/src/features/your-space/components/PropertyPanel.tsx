@@ -27,10 +27,12 @@ import { ImageBlockProperties } from './property/blocks/ImageBlockProperties'
 import { VideoBlockProperties } from './property/blocks/VideoBlockProperties'
 import { LogoBlockProperties } from './property/blocks/LogoBlockProperties'
 import { ShapeBlockProperties } from './property/blocks/ShapeBlockProperties'
+import { IconBlockProperties } from './property/blocks/IconBlockProperties'
 import { HeroBlockProperties } from './property/blocks/HeroBlockProperties'
 import { SectionBlockProperties } from './property/blocks/SectionBlockProperties'
 import { CarouselBlockProperties } from './property/blocks/CarouselBlockProperties'
 import { TabsBlockProperties } from './property/blocks/TabsBlockProperties'
+import { ContactFormBlockProperties } from './property/blocks/ContactFormBlockProperties'
 import { HeaderBlockProperties } from './property/blocks/HeaderBlockProperties'
 import { FooterBlockProperties } from './property/blocks/FooterBlockProperties'
 
@@ -74,6 +76,10 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
       return <LogoBlockProperties block={block as Block<'logo'>} activeTab={activeTab} />
     case 'shape':
       return <ShapeBlockProperties block={block as Block<'shape'>} activeTab={activeTab} />
+    case 'icon':
+      return <IconBlockProperties block={block as Block<'icon'>} activeTab={activeTab} />
+    case 'contactForm':
+      return <ContactFormBlockProperties block={block as Block<'contactForm'>} activeTab={activeTab} />
     default:
       return null
   }

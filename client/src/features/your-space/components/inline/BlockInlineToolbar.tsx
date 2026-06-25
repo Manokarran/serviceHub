@@ -16,6 +16,7 @@ import type {
   HeadingBlockProps,
   HeroBlockProps,
   ImageBlockProps,
+  IconBlockProps,
   LogoBlockProps,
   ShapeBlockProps,
   SectionBlockProps,
@@ -38,11 +39,12 @@ import {
   SectionBorderPopover,
   SectionSpacingPopover
 } from './SectionInlinePopovers'
-import { HeroLayoutPopover } from './HeroInlinePopovers'
+import { HeroBackgroundPopover, HeroLayoutPopover, HeroSpacingPopover } from './HeroInlinePopovers'
 import { SectionLayoutPopover } from './SectionLayoutPopover'
 import { HERO_LAYOUT_OPTIONS } from '../../constants/heroLayout'
 import { SECTION_LAYOUT_OPTIONS } from '../../constants/sectionLayout'
 import { ARTISTIC_LINE_STYLE_OPTIONS, CLASSIC_LINE_STYLE_OPTIONS, SHAPE_VARIANT_OPTIONS } from '../../constants/shapeBlock'
+import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
   block: Block
@@ -99,14 +101,17 @@ function InlineToolbarTextButton({
 }
 
 export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = 'above', onDelete, dragHandleProps }: Props) {
-  const { blocks, updateBlock, selectBlock } = useBuilder()
+  const { blocks, updateBlock, selectBlock, copyBlock, pasteBlock, copiedBlock } = useBuilder()
   const shell = useBuilderShell()
+  const siteStyles = useSiteStyles()
   const [mediaAnchor, setMediaAnchor] = useState<HTMLElement | null>(null)
   const [linkAnchor, setLinkAnchor] = useState<HTMLElement | null>(null)
   const [backgroundAnchor, setBackgroundAnchor] = useState<HTMLElement | null>(null)
   const [spacingAnchor, setSpacingAnchor] = useState<HTMLElement | null>(null)
   const [borderAnchor, setBorderAnchor] = useState<HTMLElement | null>(null)
   const [heroLayoutAnchor, setHeroLayoutAnchor] = useState<HTMLElement | null>(null)
+  const [heroBackgroundAnchor, setHeroBackgroundAnchor] = useState<HTMLElement | null>(null)
+  const [heroSpacingAnchor, setHeroSpacingAnchor] = useState<HTMLElement | null>(null)
   const [sectionLayoutAnchor, setSectionLayoutAnchor] = useState<HTMLElement | null>(null)
 
   const parentSectionId = nested ? findParentSectionId(blocks, block.id) : null
@@ -239,6 +244,22 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
           </>
         )
       }
+      case 'icon': {
+        const props = block.props as IconBlockProps
+
+        return (
+          <>
+            <AlignmentToggleGroup value={props.alignment} onChange={alignment => update({ alignment })} />
+            <InlineToolbarDivider />
+            <InlineToolbarButton
+              icon='ri-contrast-drop-2-line'
+              label={props.showIconBackground ? 'Hide icon background' : 'Show icon background'}
+              active={props.showIconBackground}
+              onClick={() => update({ showIconBackground: !props.showIconBackground })}
+            />
+          </>
+        )
+      }
       case 'shape': {
         const props = block.props as ShapeBlockProps
 
@@ -301,7 +322,6 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
       }
       case 'hero': {
         const props = block.props as HeroBlockProps
-        const isSplitLayout = props.layout === 'split-left' || props.layout === 'split-right'
 
         return (
           <>
@@ -316,17 +336,52 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
             ))}
             <InlineToolbarDivider />
             <InlineToolbarButton
+              icon='ri-price-tag-3-line'
+              label={props.eyebrow?.trim() ? 'Remove eyebrow' : 'Add eyebrow'}
+              active={Boolean(props.eyebrow?.trim())}
+              onClick={() => update({ eyebrow: props.eyebrow?.trim() ? '' : 'Now live' })}
+            />
+            <InlineToolbarButton
+              icon='ri-add-circle-line'
+              label={props.buttonText?.trim() ? 'Remove primary CTA' : 'Add primary CTA'}
+              active={Boolean(props.buttonText?.trim())}
+              onClick={() =>
+                update(
+                  props.buttonText?.trim()
+                    ? { buttonText: '', buttonLink: '#' }
+                    : { buttonText: 'Get started', buttonLink: '#' }
+                )
+              }
+            />
+            <InlineToolbarButton
+              icon='ri-checkbox-blank-circle-line'
+              label={props.secondaryButtonText?.trim() ? 'Remove secondary CTA' : 'Add secondary CTA'}
+              active={Boolean(props.secondaryButtonText?.trim())}
+              onClick={() =>
+                update(
+                  props.secondaryButtonText?.trim()
+                    ? { secondaryButtonText: '', secondaryButtonLink: '#' }
+                    : { secondaryButtonText: 'Learn more', secondaryButtonLink: '#' }
+                )
+              }
+            />
+            <InlineToolbarDivider />
+            <InlineToolbarButton
+              icon='ri-palette-line'
+              label='Background'
+              onClick={e => setHeroBackgroundAnchor(e.currentTarget as HTMLElement)}
+            />
+            <InlineToolbarButton
+              icon='ri-expand-left-right-line'
+              label='Spacing'
+              onClick={e => setHeroSpacingAnchor(e.currentTarget as HTMLElement)}
+            />
+            <InlineToolbarDivider />
+            <InlineToolbarButton
               icon='ri-layout-line'
               label='Layout controls'
               onClick={e => setHeroLayoutAnchor(e.currentTarget as HTMLElement)}
             />
-            {isSplitLayout && (
-              <InlineToolbarButton
-                icon='ri-sparkling-2-line'
-                label='Split panel style'
-                onClick={e => setHeroLayoutAnchor(e.currentTarget as HTMLElement)}
-              />
-            )}
           </>
         )
       }
@@ -527,6 +582,18 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
             label='More settings'
             onClick={() => openPanel(block.type === 'section' ? 'style' : undefined)}
           />
+          <InlineToolbarButton
+            icon='ri-file-copy-line'
+            label='Copy block'
+            onClick={() => copyBlock(block)}
+          />
+          {copiedBlock && (
+            <InlineToolbarButton
+              icon='ri-clipboard-line'
+              label={`Paste "${getInlineBlockLabel(copiedBlock.type)}" after this block`}
+              onClick={() => pasteBlock(block.id)}
+            />
+          )}
           <InlineToolbarButton icon='ri-delete-bin-line' label='Delete block' onClick={onDelete} />
         </Box>
       </InlineToolbarShell>
@@ -564,7 +631,7 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
             anchorEl={backgroundAnchor}
             onClose={() => setBackgroundAnchor(null)}
             title='Section background'
-            width={320}
+            width={380}
           >
             <SectionBackgroundPopover block={block as Block<'section'>} onUpdate={update} />
           </InlineToolbarPopover>
@@ -602,15 +669,35 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
       )}
 
       {block.type === 'hero' && (
-        <InlineToolbarPopover
-          open={Boolean(heroLayoutAnchor)}
-          anchorEl={heroLayoutAnchor}
-          onClose={() => setHeroLayoutAnchor(null)}
-          title='Layout controls'
-          width={360}
-        >
-          <HeroLayoutPopover props={block.props as HeroBlockProps} onUpdate={update} />
-        </InlineToolbarPopover>
+        <>
+          <InlineToolbarPopover
+            open={Boolean(heroBackgroundAnchor)}
+            anchorEl={heroBackgroundAnchor}
+            onClose={() => setHeroBackgroundAnchor(null)}
+            title='Hero background'
+            width={380}
+          >
+            <HeroBackgroundPopover props={block.props as HeroBlockProps} onUpdate={update} />
+          </InlineToolbarPopover>
+          <InlineToolbarPopover
+            open={Boolean(heroSpacingAnchor)}
+            anchorEl={heroSpacingAnchor}
+            onClose={() => setHeroSpacingAnchor(null)}
+            title='Hero spacing'
+            width={300}
+          >
+            <HeroSpacingPopover props={block.props as HeroBlockProps} onUpdate={update} />
+          </InlineToolbarPopover>
+          <InlineToolbarPopover
+            open={Boolean(heroLayoutAnchor)}
+            anchorEl={heroLayoutAnchor}
+            onClose={() => setHeroLayoutAnchor(null)}
+            title='Layout controls'
+            width={360}
+          >
+            <HeroLayoutPopover props={block.props as HeroBlockProps} onUpdate={update} />
+          </InlineToolbarPopover>
+        </>
       )}
     </>
   )
@@ -630,7 +717,9 @@ function getInlineBlockLabel(type: Block['type']): string {
     image: 'Image',
     video: 'Video',
     logo: 'Logo',
-    shape: 'Shape'
+    shape: 'Shape',
+    icon: 'Icon',
+    contactForm: 'Contact Form'
   }
 
   return labels[type]

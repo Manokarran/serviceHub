@@ -2,9 +2,20 @@
 
 import { useBuilder } from '../../../context/BuilderContext'
 import { useSiteStyles } from '../../SiteStylesScope'
-import type { Block, ImageBlockProps, ImageHoverEffect } from '../../../types'
+import type {
+  Block,
+  ImageBlockProps,
+  ImageContinuousAnimation,
+  ImageEntranceAnimation,
+  ImageHoverEffect
+} from '../../../types'
 import type { PropertyPanelTab } from '../PropertyPanelUi'
-import { PropertyFields, PropertySection, LayoutOptionGroup } from '../PropertyPanelUi'
+import {
+  LayoutOptionGroup,
+  PropertyFieldLabel,
+  PropertyFields,
+  PropertySection
+} from '../PropertyPanelUi'
 import { PropertyTextField } from '../PropertyTextField'
 import { PropertySliderField } from '../PropertySliderField'
 import { AlignmentControl } from '../AlignmentControl'
@@ -17,6 +28,24 @@ const HOVER_OPTIONS: LayoutOption<ImageHoverEffect>[] = [
   { value: 'none', label: 'None', icon: 'ri-forbid-line' },
   { value: 'zoom', label: 'Zoom', icon: 'ri-zoom-in-line' },
   { value: 'fade', label: 'Fade', icon: 'ri-contrast-drop-2-line' }
+]
+
+const ENTRANCE_OPTIONS: LayoutOption<ImageEntranceAnimation>[] = [
+  { value: 'none', label: 'None', icon: 'ri-forbid-line' },
+  { value: 'fade-in', label: 'Fade in', icon: 'ri-eye-line' },
+  { value: 'slide-up', label: 'Slide up', icon: 'ri-arrow-up-line' },
+  { value: 'zoom-in', label: 'Zoom in', icon: 'ri-zoom-in-line' },
+  { value: 'blur-in', label: 'Blur in', icon: 'ri-contrast-line' },
+  { value: 'flip-up', label: 'Flip up', icon: 'ri-refresh-line' }
+]
+
+const CONTINUOUS_OPTIONS: LayoutOption<ImageContinuousAnimation>[] = [
+  { value: 'none', label: 'None', icon: 'ri-forbid-line' },
+  { value: 'float', label: 'Float', icon: 'ri-arrow-up-down-line' },
+  { value: 'pulse', label: 'Pulse', icon: 'ri-pulse-line' },
+  { value: 'breathe', label: 'Breathe', icon: 'ri-contrast-drop-2-line' },
+  { value: 'shimmer', label: 'Shimmer', icon: 'ri-sparkle-2-line' },
+  { value: 'swing', label: 'Swing', icon: 'ri-loop-right-line' }
 ]
 
 type Props = {
@@ -69,6 +98,20 @@ export function ImageBlockProperties({ block, activeTab }: Props) {
           value={props.hoverEffect ?? siteStyles.misc.imageHoverEffect}
           options={HOVER_OPTIONS}
           onChange={hoverEffect => update({ hoverEffect })}
+        />
+      </PropertySection>
+      <PropertySection title='Animation' collapsible defaultOpen>
+        <PropertyFieldLabel>On appear</PropertyFieldLabel>
+        <LayoutOptionGroup
+          value={props.entranceAnimation ?? 'none'}
+          options={ENTRANCE_OPTIONS}
+          onChange={entranceAnimation => update({ entranceAnimation })}
+        />
+        <PropertyFieldLabel>Loop</PropertyFieldLabel>
+        <LayoutOptionGroup
+          value={props.continuousAnimation ?? 'none'}
+          options={CONTINUOUS_OPTIONS}
+          onChange={continuousAnimation => update({ continuousAnimation })}
         />
       </PropertySection>
       <PropertySection title='Shape' collapsible defaultOpen>

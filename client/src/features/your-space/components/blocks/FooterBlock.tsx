@@ -8,8 +8,10 @@ import type { FooterBlockProps } from '../../types'
 import { applyBackgroundAlpha, getBlockBackgroundOpacity } from '../../utils/sectionStyleHelpers'
 import { getFixedBlockShellSx } from '../../utils/mediaBlockHelpers'
 import { normalizeSiteFonts } from '../../utils/siteStylesHelpers'
+import { getSiteNavLinkSx } from '../../utils/siteInteractiveHelpers'
 import { InlineEditableText } from '../inline/InlineEditableText'
 import { useCanvasBlockEdit } from '../inline/CanvasBlockEditContext'
+import { SitePageLink } from '../SitePageLink'
 import { useSiteStyles } from '../SiteStylesScope'
 import { getChromeJustify, getHorizontalOrder, getNavJustify, SiteBrandLogo } from './SiteBrandLogo'
 import { siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
@@ -30,9 +32,7 @@ export function FooterBlock({ props }: Props) {
     fontSize: fonts.navSize,
     fontWeight: 500,
     color: 'inherit',
-    textDecoration: 'none',
-    opacity: 0.85,
-    '&:hover': { opacity: 1 }
+    ...getSiteNavLinkSx()
   }
 
   const copyrightSx = {
@@ -85,7 +85,17 @@ export function FooterBlock({ props }: Props) {
             width: isVertical || props.logoPosition !== 'center' ? 'auto' : '100%'
           }}
         >
-          <SiteBrandLogo logoText={props.logoText} logoUrl={props.logoUrl} textColor={props.textColor} />
+          <SiteBrandLogo
+            logoText={props.logoText}
+            logoUrl={props.logoUrl}
+            logoIcon={props.logoIcon}
+            logoIconColor={props.logoIconColor}
+            logoIconSize={props.logoIconSize}
+            logoIconShowBackground={props.logoIconShowBackground}
+            logoIconBackgroundColor={props.logoIconBackgroundColor}
+            logoIconBorderRadius={props.logoIconBorderRadius}
+            textColor={props.textColor}
+          />
         </Box>
 
         {props.navLinks.length > 0 && (
@@ -104,9 +114,8 @@ export function FooterBlock({ props }: Props) {
             {props.navLinks.map((link, index) => (
               <Typography
                 key={`${link.label}-${index}`}
-                component='a'
+                component={SitePageLink}
                 href={link.href || '#'}
-                onClick={e => editContext && e.preventDefault()}
                 sx={navLinkSx}
               >
                 <InlineEditableText

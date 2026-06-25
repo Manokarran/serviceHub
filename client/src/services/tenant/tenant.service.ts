@@ -2,6 +2,7 @@ import { AppError } from '@/lib/errors'
 import { completeRegistrationSchema, type CompleteRegistrationInput } from '@/lib/validators'
 import { slugify } from '@/lib/utils/slug'
 import { tenantRepository, userRepository } from '@/repositories'
+import { sitePageService } from '@/services/site-page'
 
 export class TenantService {
   async completeRegistration(userId: string, input: CompleteRegistrationInput) {
@@ -44,6 +45,12 @@ export class TenantService {
 
       if (!updatedUser) {
         throw new AppError('Failed to link organization to your account', 500, 'REGISTRATION_FAILED')
+      }
+
+      try {
+        await sitePageService.ensureContactPage(tenant._id.toString())
+      } catch (error) {
+        console.error('[TenantService] Failed to create default contact page', error)
       }
 
       return { tenantId: tenant._id.toString(), slug: tenant.slug }

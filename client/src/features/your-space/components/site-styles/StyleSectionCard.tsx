@@ -178,9 +178,9 @@ export function StyleNavRow({ label, onClick }: { label: string; onClick: () => 
 export function ColorSwatchRow({ colors }: { colors: string[] }) {
   return (
     <Box sx={{ display: 'flex', gap: 0.5 }}>
-      {colors.map(color => (
+      {colors.map((color, index) => (
         <Box
-          key={color}
+          key={index}
           sx={{
             flex: 1,
             height: 28,

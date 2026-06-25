@@ -85,7 +85,7 @@ function carouselPaletteItem(
     label,
     description,
     icon,
-    category: 'layout',
+    category: 'carousel',
     defaultProps: {
       ...CAROUSEL_BASE_PROPS,
       transition,
@@ -98,7 +98,7 @@ const DEFAULT_TAB_PANELS = [
   {
     id: 'tab-1',
     label: 'Overview',
-    icon: 'ri-layout-grid-line',
+    icon: 'Hub',
     children: [
       {
         id: 'tab-1-heading',
@@ -124,7 +124,7 @@ const DEFAULT_TAB_PANELS = [
   {
     id: 'tab-2',
     label: 'Features',
-    icon: 'ri-star-line',
+    icon: 'AutoAwesome',
     children: [
       {
         id: 'tab-2-heading',
@@ -141,7 +141,7 @@ const DEFAULT_TAB_PANELS = [
   {
     id: 'tab-3',
     label: 'Details',
-    icon: 'ri-file-list-3-line',
+    icon: 'Assessment',
     children: [
       {
         id: 'tab-3-heading',
@@ -200,7 +200,7 @@ function tabsPaletteItem(
     label,
     description,
     icon,
-    category: 'layout',
+    category: 'tabs',
     defaultProps: {
       ...TABS_BASE_PROPS,
       orientation,
@@ -336,17 +336,29 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     icon: 'ri-image-line',
     category: 'sections',
     defaultProps: {
-      title: 'Build something amazing',
-      subtitle: 'Create a beautiful website for your business in minutes.',
-      buttonText: 'Get Started',
+      title: 'Build something people love',
+      subtitle: 'Launch a polished site in minutes — modern, fast, and unmistakably yours.',
+      eyebrow: 'Now live',
+      buttonText: 'Get started',
       buttonLink: '#',
-      background: '#6366f1',
-      backgroundType: 'color',
-      backgroundOpacity: 0,
+      secondaryButtonText: 'See how it works',
+      secondaryButtonLink: '#',
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 52%, #312e81 100%)',
+      backgroundType: 'gradient',
+      backgroundOpacity: 100,
       textColor: '#ffffff',
       alignment: 'center',
       layout: 'centered',
-      minHeight: 480,
+      verticalAlign: 'center',
+      minHeight: 560,
+      contentMaxWidth: 'lg',
+      contentPaddingX: 32,
+      contentPaddingY: 64,
+      splitRatio: 50,
+      titleStyle: 'gradient',
+      contentSurface: 'none',
+      buttonStyle: 'theme',
+      mediaOverlay: 'gradient',
       splitVisualAnimation: 'aurora'
     }
   },
@@ -463,6 +475,40 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     }
   },
   {
+    id: 'icon',
+    type: 'icon',
+    label: 'Icon',
+    description: 'IT & tech icon for services or product lists',
+    icon: 'ri-apps-2-line',
+    category: 'typography',
+    defaultProps: {
+      iconName: 'Cloud',
+      alignment: 'left',
+      iconColor: '#6366f1',
+      iconSize: 44,
+      showIconBackground: false,
+      iconBackgroundColor: '#6366f1',
+      iconBorderRadius: 12
+    }
+  },
+  {
+    id: 'contactForm',
+    type: 'contactForm',
+    label: 'Contact Form',
+    description: 'Collect visitor details and notify your team',
+    icon: 'ri-mail-send-line',
+    category: 'forms',
+    defaultProps: {
+      title: 'Get in touch',
+      subtitle: 'We would love to hear from you. Send us a message and we will respond as soon as we can.',
+      submitLabel: 'Send message',
+      successMessage: 'Thank you! Your message has been sent.',
+      signupLabel: 'I am interested in signing up',
+      showSignupOption: true,
+      alignment: 'left'
+    }
+  },
+  {
     id: 'divider',
     type: 'shape',
     label: 'Divider',
@@ -503,10 +549,13 @@ export function getPaletteItem(paletteId?: string, type?: PaletteItem['type']): 
 }
 
 export const PALETTE_CATEGORIES = [
-  { id: 'layout' as const, label: 'Layout', icon: 'ri-layout-grid-line' },
-  { id: 'sections' as const, label: 'Sections', icon: 'ri-layout-masonry-line' },
-  { id: 'media' as const, label: 'Media', icon: 'ri-image-line' },
-  { id: 'typography' as const, label: 'Typography', icon: 'ri-font-size-2' }
+  { id: 'sections' as const, label: 'Sections', icon: 'ri-layout-masonry-line', defaultExpanded: true },
+  { id: 'layout' as const, label: 'Columns', icon: 'ri-layout-grid-line', defaultExpanded: true },
+  { id: 'carousel' as const, label: 'Carousels', icon: 'ri-carousel-view', defaultExpanded: false },
+  { id: 'tabs' as const, label: 'Tabs', icon: 'ri-layout-top-2-line', defaultExpanded: false },
+  { id: 'typography' as const, label: 'Typography', icon: 'ri-font-size-2', defaultExpanded: false },
+  { id: 'media' as const, label: 'Media', icon: 'ri-image-line', defaultExpanded: false },
+  { id: 'forms' as const, label: 'Forms', icon: 'ri-mail-send-line', defaultExpanded: false }
 ]
 
 export const STARTER_BLOCKS: Block[] = [
@@ -536,15 +585,24 @@ export const STARTER_BLOCKS: Block[] = [
     props: {
       title: 'Welcome to your website',
       subtitle: 'Drag components from the left panel to customize your page.',
+      eyebrow: 'Your space',
       buttonText: 'Get Started',
       buttonLink: '#',
-      background: '#6366f1',
-      backgroundType: 'color',
-      backgroundOpacity: 0,
+      secondaryButtonText: '',
+      secondaryButtonLink: '#',
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 52%, #312e81 100%)',
+      backgroundType: 'gradient',
+      backgroundOpacity: 100,
       textColor: '#ffffff',
       alignment: 'center',
       layout: 'centered',
-      minHeight: 480
+      verticalAlign: 'center',
+      minHeight: 560,
+      contentMaxWidth: 'lg',
+      titleStyle: 'gradient',
+      buttonStyle: 'theme',
+      mediaOverlay: 'gradient',
+      splitVisualAnimation: 'aurora'
     }
   },
   {

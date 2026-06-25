@@ -1,6 +1,6 @@
 import { DEFAULT_HERO_SPLIT_VISUAL_ANIMATION } from '../constants/heroVisual'
-import { getBlockBackgroundOpacity } from './sectionStyleHelpers'
-import type { SectionBlockProps, SplitVisualConfig } from '../types'
+import { isEffectiveAnimatedBackgroundMode } from './sectionStyleHelpers'
+import type { SectionBlockProps, SectionVisualPlacement, SplitVisualConfig } from '../types'
 
 export function getSectionSplitVisualAnimation(props: SectionBlockProps) {
   return props.splitVisualAnimation ?? DEFAULT_HERO_SPLIT_VISUAL_ANIMATION
@@ -14,32 +14,39 @@ export function getSectionSplitVisualConfig(props: SectionBlockProps): SplitVisu
   }
 }
 
-export function shouldRenderSectionSplitVisual(props: SectionBlockProps): boolean {
-  if (getBlockBackgroundOpacity(props) < 100) {
-    return false
-  }
-
-  return getSectionSplitVisualAnimation(props) !== 'static'
+export function getSectionVisualPlacement(props: SectionBlockProps): SectionVisualPlacement {
+  return props.splitVisualPlacement ?? 'background'
 }
 
-/** Full-section animated layer — single-column layouts only. */
+export function shouldRenderSectionSplitVisual(props: SectionBlockProps): boolean {
+  return isEffectiveAnimatedBackgroundMode(props)
+}
+
+/** Full-section animated layer — single-column layouts, or split with full-section placement. */
 export function shouldRenderSectionBackgroundVisual(props: SectionBlockProps): boolean {
   if (!shouldRenderSectionSplitVisual(props)) {
     return false
   }
 
-  return props.layout === 'default'
+  if (props.layout === 'default') {
+    return true
+  }
+
+  return getSectionVisualPlacement(props) === 'background'
 }
 
-/** Per-column animated layer — split layouts apply animation at the layout/column level. */
-export function shouldRenderSectionColumnVisual(props: SectionBlockProps): boolean {
+/** Per-column animated layer — split layouts with column-specific placement. */
+export function shouldRenderSectionColumnVisual(
+  props: SectionBlockProps,
+  column: 'primary' | 'secondary'
+): boolean {
   if (props.layout !== 'split-horizontal' && props.layout !== 'split-vertical') {
     return false
   }
 
-  if (getBlockBackgroundOpacity(props) < 100) {
+  if (!shouldRenderSectionSplitVisual(props)) {
     return false
   }
 
-  return getSectionSplitVisualAnimation(props) !== 'static'
+  return getSectionVisualPlacement(props) === column
 }

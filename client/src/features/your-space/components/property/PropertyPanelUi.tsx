@@ -50,13 +50,15 @@ export function PropertyPanelHeader({
               sx={{
                 width: 28,
                 height: 28,
-                borderRadius: 1,
+                borderRadius: 1.25,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                color: 'primary.main'
+                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.16)} 0%, ${alpha(theme.palette.primary.main, 0.07)} 100%)`,
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
+                color: 'primary.main',
+                boxShadow: `0 1px 3px ${alpha(theme.palette.primary.main, 0.1)}`
               }}
             >
               <i className={icon} style={{ fontSize: '0.875rem' }} />
@@ -115,10 +117,10 @@ export function PropertyPanelTabs({
         display: 'flex',
         gap: 0,
         px: 2,
-        py: 1,
+        py: 0.875,
         borderBottom: 'none',
         position: 'relative',
-        backgroundColor: alpha(theme.palette.primary.main, 0.015),
+        backgroundColor: alpha(theme.palette.primary.main, 0.012),
         '&::after': {
           content: '""',
           position: 'absolute',
@@ -143,23 +145,21 @@ export function PropertyPanelTabs({
               border: 'none',
               cursor: 'pointer',
               py: 0.5,
-              px: 0.75,
-              borderRadius: 0.75,
+              px: 0.875,
+              borderRadius: '5px',
               ...BUILDER_TYPOGRAPHY.tab,
               color: value === tab.id ? 'text.primary' : 'text.secondary',
-              backgroundColor:
-                value === tab.id ? 'background.paper' : 'transparent',
-              boxShadow:
-                value === tab.id
-                  ? `0 1px 2px ${alpha(theme.palette.common.black, 0.06)}`
-                  : 'none',
-              transition: 'background-color 0.12s, color 0.12s, box-shadow 0.12s',
+              backgroundColor: value === tab.id ? 'background.paper' : 'transparent',
+              boxShadow: value === tab.id
+                ? `0 1px 3px ${alpha(theme.palette.common.black, 0.08)}, 0 0 0 1px ${alpha(theme.palette.common.black, 0.05)}`
+                : 'none',
+              transition: 'background-color 0.15s, color 0.15s, box-shadow 0.15s',
               '&:hover': {
                 color: 'text.primary',
                 backgroundColor:
                   value === tab.id
                     ? 'background.paper'
-                    : alpha(theme.palette.text.primary, 0.04)
+                    : alpha(theme.palette.text.primary, 0.05)
               }
             }}
           >
@@ -198,23 +198,29 @@ export function PropertySection({
   }
 
   const header = (
-    <Typography
-      component='p'
-      sx={{
-        ...BUILDER_TYPOGRAPHY.sectionLabel,
-        color: 'text.disabled',
-        m: 0,
-        ...(collapsible && { cursor: 'pointer', userSelect: 'none' })
-      }}
+    <Box
+      component={collapsible ? 'button' : 'div'}
+      type={collapsible ? 'button' : undefined}
       onClick={collapsible ? () => setOpen(v => !v) : undefined}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5,
+        background: 'none',
+        border: 'none',
+        p: 0,
+        cursor: collapsible ? 'pointer' : 'default',
+        userSelect: collapsible ? 'none' : 'auto',
+        width: '100%',
+        textAlign: 'left'
+      }}
     >
       {collapsible && (
         <Box
           component='span'
           sx={{
             display: 'inline-flex',
-            mr: 0.5,
-            verticalAlign: 'middle',
+            flexShrink: 0,
             color: 'text.disabled',
             transition: 'transform 0.15s',
             transform: open ? 'rotate(90deg)' : 'rotate(0deg)'
@@ -223,8 +229,17 @@ export function PropertySection({
           <i className='ri-arrow-right-s-line' style={{ fontSize: '0.75rem' }} />
         </Box>
       )}
-      {title}
-    </Typography>
+      <Typography
+        component='span'
+        sx={{
+          ...BUILDER_TYPOGRAPHY.sectionLabel,
+          color: 'text.disabled',
+          m: 0
+        }}
+      >
+        {title}
+      </Typography>
+    </Box>
   )
 
   return (

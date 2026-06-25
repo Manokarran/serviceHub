@@ -11,11 +11,15 @@ export const VIEWPORT_WIDTHS: Record<BuilderViewport, number | null> = {
   mobile: 390
 }
 
-export const BUILDER_SIDEBAR_RAIL_WIDTH = 48
+export const BUILDER_PAGE_NAV_WIDTH = 168
+export const BUILDER_CONTENT_PANEL_WIDTH = 272
+/** @deprecated Use BUILDER_PAGE_NAV_WIDTH + BUILDER_CONTENT_PANEL_WIDTH */
+export const BUILDER_SIDEBAR_RAIL_WIDTH = 52
+/** @deprecated Use BUILDER_CONTENT_PANEL_WIDTH */
 export const BUILDER_SIDEBAR_PANEL_WIDTH = 300
 export const BUILDER_PROPERTY_PANEL_WIDTH = 320
-export const BUILDER_TOP_BAR_HEIGHT = 48
-export const BUILDER_CANVAS_TOOLBAR_HEIGHT = 40
+export const BUILDER_TOP_BAR_HEIGHT = 52
+export const BUILDER_CANVAS_TOOLBAR_HEIGHT = 44
 
 /** Stacking order for canvas blocks and inline editing chrome */
 export const BUILDER_Z_INDEX = {
@@ -26,27 +30,26 @@ export const BUILDER_Z_INDEX = {
   blockToolbar: 120
 } as const
 
-export const BUILDER_SIDEBAR_ITEMS = [
-  { id: 'pages' as const, icon: 'ri-pages-line', label: 'Pages', comingSoon: false },
-  { id: 'blocks' as const, icon: 'ri-layout-grid-line', label: 'Blocks', comingSoon: false },
-  { id: 'design' as const, icon: 'ri-palette-line', label: 'Site Styles', comingSoon: false }
+export const BUILDER_CONTENT_TABS = [
+  { id: 'blocks' as const, icon: 'ri-layout-grid-line', label: 'Blocks' },
+  { id: 'design' as const, icon: 'ri-palette-line', label: 'Site styles' }
 ]
 
 /** Typography tokens for builder chrome — thin, sharp UI labels */
 export const BUILDER_TYPOGRAPHY = {
-  title: { fontWeight: 600, letterSpacing: '-0.02em', fontSize: '0.8125rem', lineHeight: 1.3 },
+  title: { fontWeight: 700, letterSpacing: '-0.025em', fontSize: '0.8125rem', lineHeight: 1.3 },
   sectionLabel: {
-    fontWeight: 600,
+    fontWeight: 700,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
+    letterSpacing: '0.055em',
     fontSize: '0.625rem',
     lineHeight: 1.4
   },
-  label: { fontWeight: 500, fontSize: '0.6875rem', lineHeight: 1.4, letterSpacing: '0.01em' },
+  label: { fontWeight: 500, fontSize: '0.6875rem', lineHeight: 1.4, letterSpacing: '0.005em' },
   subtle: { fontWeight: 400, fontSize: '0.75rem', lineHeight: 1.5, letterSpacing: '-0.01em' },
-  action: { fontWeight: 500, fontSize: '0.75rem', lineHeight: 1.4, letterSpacing: '-0.01em' },
+  action: { fontWeight: 500, fontSize: '0.75rem', lineHeight: 1.4, letterSpacing: '-0.015em' },
   input: { fontWeight: 400, fontSize: '0.75rem', lineHeight: 1.5, letterSpacing: '-0.01em' },
-  tab: { fontWeight: 500, fontSize: '0.6875rem', lineHeight: 1.4, letterSpacing: '0.02em' }
+  tab: { fontWeight: 600, fontSize: '0.6875rem', lineHeight: 1.4, letterSpacing: '0.01em' }
 } as const
 
 /** Compact pill-style segmented control — used in canvas toolbar, tabs, etc. */
@@ -56,7 +59,7 @@ export const builderSegmentedControlSx = (theme: Theme) => ({
   gap: 0,
   '& .MuiToggleButtonGroup-grouped': {
     border: 'none !important',
-    borderRadius: '4px !important',
+    borderRadius: '5px !important',
     mx: 0
   },
   '& .MuiToggleButton-root': {
@@ -69,10 +72,11 @@ export const builderSegmentedControlSx = (theme: Theme) => ({
     fontSize: '0.6875rem',
     color: 'text.secondary',
     lineHeight: 1,
+    transition: 'background-color 0.15s, color 0.15s, box-shadow 0.15s',
     '&.Mui-selected': {
       backgroundColor: 'background.paper',
       color: 'text.primary',
-      boxShadow: `0 1px 2px ${alpha(theme.palette.common.black, 0.06)}, 0 0 0 1px ${alpha(theme.palette.common.black, 0.04)}`
+      boxShadow: `0 1px 3px ${alpha(theme.palette.common.black, 0.08)}, 0 0 0 1px ${alpha(theme.palette.common.black, 0.05)}`
     },
     '&:hover': {
       backgroundColor: alpha(theme.palette.text.primary, 0.06)
@@ -86,11 +90,11 @@ export const builderSegmentedControlSx = (theme: Theme) => ({
 /** Shared panel header chrome */
 export const builderPanelHeaderSx = (theme: Theme) => ({
   flexShrink: 0,
-  px: 1.75,
-  py: 1.25,
+  px: 2,
+  py: 1.5,
   borderBottom: 'none',
   position: 'relative' as const,
-  backgroundColor: alpha(theme.palette.background.paper, 0.96),
+  backgroundColor: alpha(theme.palette.background.paper, 0.97),
   '&::after': {
     content: '""',
     position: 'absolute',
@@ -108,7 +112,7 @@ export const builderIconGroupSx = (theme: Theme) => ({
   display: 'inline-flex',
   alignItems: 'center',
   gap: 0.25,
-  p: '2px',
+  p: '3px',
   ...builderControlTrackSx(theme)
 })
 

@@ -6,6 +6,11 @@ export interface ITenantSettings {
   primaryColor?: string
   logoUrl?: string
   customDomain?: string
+  /** Overrides owner email for contact form notifications. */
+  contactNotificationEmail?: string
+  contactAutoReplyEnabled?: boolean
+  contactAutoReplySubject?: string
+  contactAutoReplyMessage?: string
 }
 
 export interface ITenant {

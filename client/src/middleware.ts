@@ -7,5 +7,5 @@ const { auth } = NextAuth(authConfig)
 export default auth
 
 export const config = {
-  matcher: ['/home/:path*', '/your-space/:path*', '/about/:path*', '/login', '/register']
+  matcher: ['/home/:path*', '/your-space/:path*', '/leads', '/leads/:path*', '/about/:path*', '/login', '/register']
 }

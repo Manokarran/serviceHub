@@ -36,7 +36,11 @@ const tenantSchema = new Schema<ITenantDocument>(
     settings: {
       primaryColor: { type: String, trim: true },
       logoUrl: { type: String, trim: true },
-      customDomain: { type: String, trim: true, lowercase: true }
+      customDomain: { type: String, trim: true, lowercase: true },
+      contactNotificationEmail: { type: String, trim: true, lowercase: true, maxlength: 254 },
+      contactAutoReplyEnabled: { type: Boolean, default: false },
+      contactAutoReplySubject: { type: String, trim: true, maxlength: 200 },
+      contactAutoReplyMessage: { type: String, trim: true, maxlength: 2000 }
     }
   },
   {

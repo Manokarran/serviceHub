@@ -7,7 +7,13 @@ import { alpha, useTheme } from '@mui/material/styles'
 
 import type { Block, SectionBlockProps } from '../../types'
 import type { BlockColumn } from '../../utils/blockTreeUtils'
-import { getSectionColumnBackground, getBlockBackgroundOpacity, applyBackgroundAlpha, isSimpleColor } from '../../utils/sectionStyleHelpers'
+import {
+  getSectionColumnBackground,
+  getBlockBackgroundOpacity,
+  applyBackgroundAlpha,
+  isMediaBackground,
+  isSimpleColor
+} from '../../utils/sectionStyleHelpers'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { BlockInsertDropZone } from './BlockInsertDropZone'
 import { SortableBlockList } from './SortableBlockList'
@@ -32,6 +38,7 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
   const showBuilderChrome = editMode && splitStyle !== 'contrast'
   const backgroundOpacity = getBlockBackgroundOpacity(sectionProps)
   const isTransparentSection = backgroundOpacity < 100
+  const hasMediaBackground = isMediaBackground(sectionProps)
   const location = { container: 'section' as const, sectionId, column }
   const isEmpty = children.length === 0
 
@@ -64,7 +71,7 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
           ? isSimpleColor(columnBg)
             ? { backgroundColor: applyBackgroundAlpha(columnBg, backgroundOpacity) }
             : {}
-          : isTransparentSection
+          : hasMediaBackground || isTransparentSection
             ? { backgroundColor: 'transparent' }
             : showBuilderChrome
               ? { backgroundColor: alpha(theme.palette.text.primary, 0.02) }

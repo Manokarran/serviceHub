@@ -49,6 +49,7 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   const { blocks, mode, selectedBlock, addBlock, moveBlock } = useBuilder()
   const [activeDrag, setActiveDrag] = useState<ActiveDragItem | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [pagesOpen, setPagesOpen] = useState(false)
   const [propertiesOpen, setPropertiesOpen] = useState(false)
   const [stylesOpen, setStylesOpen] = useState(false)
   const [sidebarPanelOpen, setSidebarPanelOpen] = useState(true)
@@ -92,6 +93,7 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   useEffect(() => {
     if (!isEditMode) {
       setPaletteOpen(false)
+      setPagesOpen(false)
       setPropertiesOpen(false)
       setStylesOpen(false)
       setSidebarPanelOpen(true)
@@ -183,9 +185,9 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
         <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0 }}>
           {isEditMode && (
             <BuilderSidebar
-              panelOpen={sidebarPanelOpen}
-              onPanelClose={() => setSidebarPanelOpen(false)}
-              onPanelOpen={() => setSidebarPanelOpen(true)}
+              contentPanelOpen={sidebarPanelOpen}
+              onContentPanelClose={() => setSidebarPanelOpen(false)}
+              onContentPanelOpen={() => setSidebarPanelOpen(true)}
             />
           )}
           <BuilderCanvas isMobileLayout={isMobileLayout} />
@@ -201,12 +203,15 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
         </Box>
         {isEditMode && isMobileLayout && (
           <BuilderMobileDrawers
+            pagesOpen={pagesOpen}
             paletteOpen={paletteOpen}
             propertiesOpen={propertiesOpen}
             stylesOpen={stylesOpen}
             hasSelectedBlock={Boolean(selectedBlock)}
             propertyPanelFocusTab={propertyPanelFocusTab}
             onPropertyPanelFocusTabConsumed={() => setPropertyPanelFocusTab(null)}
+            onPagesOpen={() => setPagesOpen(true)}
+            onPagesClose={() => setPagesOpen(false)}
             onPaletteOpen={() => setPaletteOpen(true)}
             onPaletteClose={() => setPaletteOpen(false)}
             onPropertiesOpen={() => setPropertiesOpen(true)}

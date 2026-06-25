@@ -15,6 +15,7 @@ import { useBuilder } from '../context/BuilderContext'
 import { insertDropId } from '../utils/blockTreeUtils'
 import { getCanvasCornerRadius } from '../utils/siteStylesHelpers'
 import { siteCanvasContainerSx } from '../utils/siteResponsiveHelpers'
+import { SitePageTransition } from './SitePageTransition'
 import { SiteStylesScope } from './SiteStylesScope'
 import { SitePageBackgroundLayer } from './SitePageBackgroundLayer'
 import { BuilderCanvasToolbar } from './BuilderCanvasToolbar'
@@ -27,7 +28,7 @@ type Props = {
 
 export function BuilderCanvas({ isMobileLayout = false }: Props) {
   const theme = useTheme()
-  const { blocks, mode, viewport, selectBlock, siteStyles } = useBuilder()
+  const { blocks, mode, viewport, selectBlock, siteStyles, currentPageSlug } = useBuilder()
   const isEditMode = mode === 'edit'
   const { active } = useDndContext()
   const isDragging = Boolean(active)
@@ -55,6 +56,7 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
 
       <Box
         ref={setNodeRef}
+        data-builder-canvas-scroll
         sx={{
           flex: 1,
           overflowY: 'auto',
@@ -114,6 +116,7 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
             }
           >
         <SiteStylesScope siteStyles={siteStyles}>
+          <SitePageTransition transitionKey={currentPageSlug}>
           <Box
             sx={{
               position: 'relative',
@@ -174,6 +177,7 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
           )}
             </Box>
           </Box>
+          </SitePageTransition>
         </SiteStylesScope>
           </Box>
         </Box>

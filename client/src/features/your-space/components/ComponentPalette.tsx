@@ -11,14 +11,107 @@ import { alpha, useTheme } from '@mui/material/styles'
 import { PALETTE_CATEGORIES, PALETTE_ITEMS } from '../constants'
 import { BUILDER_TYPOGRAPHY } from '../constants/builderLayout'
 import { builderControlTrackSx, builderHairlineHorizontal } from '../constants/builderChrome'
+import type { PaletteItem } from '../types'
 import { PropertyPanelHeader } from './property/PropertyPanelUi'
 import { DraggablePaletteItem } from './dnd/DraggablePaletteItem'
 
 type PaletteContentProps = {
   onClose?: () => void
+  /** Hides the panel header when the parent sidebar already shows tabs */
+  embedded?: boolean
 }
 
-export function ComponentPaletteContent({ onClose }: PaletteContentProps) {
+type PaletteCategoryConfig = (typeof PALETTE_CATEGORIES)[number]
+
+function PaletteCategorySection({
+  category,
+  items,
+  forceExpanded
+}: {
+  category: PaletteCategoryConfig
+  items: PaletteItem[]
+  forceExpanded: boolean
+}) {
+  const theme = useTheme()
+  const [expanded, setExpanded] = useState(category.defaultExpanded ?? true)
+  const isExpanded = forceExpanded || expanded
+
+  return (
+    <Box>
+      <Box
+        component='button'
+        type='button'
+        onClick={() => setExpanded(v => !v)}
+        aria-expanded={isExpanded}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0.75,
+          width: '100%',
+          p: 0,
+          mb: isExpanded ? 1 : 0,
+          border: 'none',
+          background: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+          color: 'text.disabled',
+          '&:hover': {
+            color: 'text.secondary'
+          }
+        }}
+      >
+        <Box
+          component='span'
+          sx={{
+            display: 'inline-flex',
+            flexShrink: 0,
+            transition: 'transform 0.15s',
+            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)'
+          }}
+        >
+          <i className='ri-arrow-right-s-line' style={{ fontSize: '0.8rem' }} />
+        </Box>
+        <i className={category.icon} style={{ fontSize: '0.8rem', flexShrink: 0, opacity: 0.85 }} />
+        <Typography
+          component='span'
+          sx={{
+            flex: 1,
+            ...BUILDER_TYPOGRAPHY.sectionLabel,
+            color: 'inherit',
+            m: 0
+          }}
+        >
+          {category.label}
+        </Typography>
+        <Typography
+          component='span'
+          sx={{
+            fontSize: '0.65rem',
+            fontWeight: 600,
+            color: 'text.disabled',
+            px: 0.625,
+            py: 0.125,
+            borderRadius: 0.75,
+            backgroundColor: alpha(theme.palette.text.primary, 0.05),
+            lineHeight: 1.4
+          }}
+        >
+          {items.length}
+        </Typography>
+      </Box>
+
+      {isExpanded && (
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.75, pl: 0.25 }}>
+          {items.map(item => (
+            <DraggablePaletteItem key={item.id} item={item} compact />
+          ))}
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+export function ComponentPaletteContent({ onClose, embedded = false }: PaletteContentProps) {
   const theme = useTheme()
   const [search, setSearch] = useState('')
 
@@ -45,9 +138,13 @@ export function ComponentPaletteContent({ onClose }: PaletteContentProps) {
     })).filter(category => category.items.length > 0)
   }, [search])
 
+  const isSearching = search.trim().length > 0
+
   return (
     <>
-      <PropertyPanelHeader title='Add blocks' subtitle='Drag onto your page' icon='ri-layout-grid-line' onClose={onClose} />
+      {!embedded && (
+        <PropertyPanelHeader title='Add blocks' subtitle='Drag onto your page' icon='ri-layout-grid-line' onClose={onClose} />
+      )}
 
       <Box
         sx={{
@@ -86,31 +183,19 @@ export function ComponentPaletteContent({ onClose }: PaletteContentProps) {
         />
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', p: 1.75, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ flex: 1, overflowY: 'auto', p: 1.75, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         {grouped.length === 0 ? (
           <Typography variant='body2' color='text.secondary' sx={{ py: 2, textAlign: 'center' }}>
             No blocks match your search
           </Typography>
         ) : (
           grouped.map(category => (
-            <Box key={category.id}>
-              <Typography
-                variant='caption'
-                sx={{
-                  display: 'block',
-                  ...BUILDER_TYPOGRAPHY.sectionLabel,
-                  color: 'text.disabled',
-                  mb: 1
-                }}
-              >
-                {category.label}
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.75 }}>
-                {category.items.map(item => (
-                  <DraggablePaletteItem key={item.id} item={item} compact />
-                ))}
-              </Box>
-            </Box>
+            <PaletteCategorySection
+              key={category.id}
+              category={category}
+              items={category.items}
+              forceExpanded={isSearching}
+            />
           ))
         )}
       </Box>

@@ -26,6 +26,12 @@ export function HeaderBlockProperties({ block, activeTab }: Props) {
         <ChromeBlockBrandingFields
           logoText={props.logoText}
           logoUrl={props.logoUrl ?? ''}
+          logoIcon={props.logoIcon}
+          logoIconColor={props.logoIconColor}
+          logoIconSize={props.logoIconSize}
+          logoIconShowBackground={props.logoIconShowBackground}
+          logoIconBackgroundColor={props.logoIconBackgroundColor}
+          logoIconBorderRadius={props.logoIconBorderRadius}
           navLinks={props.navLinks}
           onUpdate={update}
         />

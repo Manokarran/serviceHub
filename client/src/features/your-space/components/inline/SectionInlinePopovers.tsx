@@ -5,11 +5,10 @@ import Slider from '@mui/material/Slider'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
-import BackgroundPicker from '@/components/builder/BackgroundPicker'
 import type { Block, SectionBlockProps } from '../../types'
-import { getBlockBackground, SECTION_BORDER_OPTIONS } from '../../utils/sectionStyleHelpers'
+import { SECTION_BORDER_OPTIONS } from '../../utils/sectionStyleHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
-import { BackgroundOpacityField } from '../property/BackgroundOpacityField'
+import { BlockBackgroundModePanel } from '../BlockBackgroundModePanel'
 import { PropertyFieldLabel } from '../property/PropertyPanelUi'
 import { InlineToolbarButton } from './InlineToolbarUi'
 
@@ -27,30 +26,13 @@ export function SectionBackgroundPopover({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <BackgroundPicker
-        value={getBlockBackground(props)}
-        backgroundType={props.backgroundType ?? 'color'}
-        sectionType={block.type}
-        photoOpacity={props.backgroundPhotoOpacity ?? 100}
-        photoAnimation={props.backgroundPhotoAnimation}
-        defaultPhotoAnimation={siteStyles.misc.imageHoverEffect}
-        onStyleChange={(key, nextValue) => {
-          if (key === 'backgroundType') {
-            onUpdate({ backgroundType: nextValue as SectionBlockProps['backgroundType'] })
-          } else if (key === 'background') {
-            onUpdate({ background: nextValue })
-          } else if (key === 'backgroundOpacity') {
-            onUpdate({ backgroundOpacity: Number(nextValue) })
-          } else if (key === 'backgroundPhotoOpacity') {
-            onUpdate({ backgroundPhotoOpacity: Number(nextValue) })
-          } else if (key === 'backgroundPhotoAnimation') {
-            onUpdate({ backgroundPhotoAnimation: nextValue as SectionBlockProps['backgroundPhotoAnimation'] })
-          }
-        }}
-      />
-      <BackgroundOpacityField
-        value={props.backgroundOpacity ?? 100}
-        onChange={backgroundOpacity => onUpdate({ backgroundOpacity })}
+      <BlockBackgroundModePanel
+        props={props}
+        accentColor={siteStyles.colors.accent}
+        sectionType='section'
+        fallbackColor='#ffffff'
+        sectionLayout={props.layout}
+        onUpdate={onUpdate}
       />
     </Box>
   )

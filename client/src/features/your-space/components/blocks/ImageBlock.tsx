@@ -1,12 +1,19 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
+
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import { getOptimizedImageUrl } from '@/lib/imagekit/urls'
 import type { ImageBlockProps } from '../../types'
-import { getMediaFrameSx, getMediaOpacityFraction } from '../../utils/mediaBlockHelpers'
+import {
+  getContinuousAnimationSx,
+  getEntranceAnimationSx,
+  getMediaFrameSx,
+  getMediaOpacityFraction
+} from '../../utils/mediaBlockHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
@@ -22,17 +29,70 @@ export function ImageBlock({ props }: Props) {
   const cornerRadius = props.borderRadius ?? siteStyles.misc.imageCornerRadius
   const optimizedSrc = props.src ? getOptimizedImageUrl(props.src) : ''
 
+  const entranceAnimation = props.entranceAnimation ?? 'none'
+  const continuousAnimation = props.continuousAnimation ?? 'none'
+
+  // Track whether the block has scrolled into the viewport for the entrance animation.
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [hasEntered, setHasEntered] = useState(entranceAnimation === 'none')
+
+  useEffect(() => {
+    if (entranceAnimation === 'none') {
+      setHasEntered(true)
+      return
+    }
+
+    // Reset so the animation replays when the user changes the entrance type in the builder
+    setHasEntered(false)
+
+    const el = containerRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setHasEntered(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.1 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [entranceAnimation])
+
+  const entranceSx = getEntranceAnimationSx(entranceAnimation, hasEntered)
+  const continuousSx = getContinuousAnimationSx(continuousAnimation, opacity)
+
+  // Breathe animation controls opacity via CSS custom properties — skip static opacity
+  const frameOpacity = continuousAnimation === 'breathe' ? undefined : opacity
+
+  const imageFrameSx = {
+    width: '100%',
+    maxWidth: 720,
+    ...(frameOpacity !== undefined ? { opacity: frameOpacity } : {}),
+    ...(frameSx as object),
+    ...(continuousSx as object)
+  }
+
   return (
     <Box
+      ref={containerRef}
       sx={{
         px: 4,
         py: 2,
         display: 'flex',
-        justifyContent: props.alignment === 'center' ? 'center' : props.alignment === 'right' ? 'flex-end' : 'flex-start'
+        justifyContent:
+          props.alignment === 'center'
+            ? 'center'
+            : props.alignment === 'right'
+              ? 'flex-end'
+              : 'flex-start',
+        ...entranceSx
       }}
     >
       {optimizedSrc ? (
-        <Box sx={{ width: '100%', maxWidth: 720, opacity, ...frameSx }}>
+        <Box sx={imageFrameSx}>
           <Box
             component='img'
             className='media-block-image'

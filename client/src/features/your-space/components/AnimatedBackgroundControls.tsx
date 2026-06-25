@@ -5,14 +5,8 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
 
-import {
-  DEFAULT_HERO_SPLIT_VISUAL_ANIMATION,
-  HERO_SPLIT_VISUAL_ANIMATION_OPTIONS
-} from '../constants/heroVisual'
-import {
-  getSectionVisualPlacementHint,
-  getSectionVisualPlacementOptions
-} from '../constants/sectionVisual'
+import { DEFAULT_HERO_SPLIT_VISUAL_ANIMATION, HERO_SPLIT_VISUAL_ANIMATION_OPTIONS } from '../constants/heroVisual'
+import { getSectionVisualPlacementHint, getSectionVisualPlacementOptions } from '../constants/sectionVisual'
 import type { HeroSplitVisualAnimation, SectionLayout, SectionVisualPlacement, SplitVisualConfig } from '../types'
 import { resolveHeroVisualColors } from '../utils/heroVisualHelpers'
 import { builderSoftCardSx } from '../constants/builderChrome'
@@ -20,16 +14,12 @@ import { BUILDER_TYPOGRAPHY } from '../constants/builderLayout'
 import { AnimationGradientColorControls } from './AnimationGradientColorControls'
 import { LayoutOptionGroup, PropertyBodyText, PropertyFieldLabel } from './property/PropertyPanelUi'
 
-type SplitVisualUpdate = Partial<
-  SplitVisualConfig & { backgroundOpacity?: number; splitVisualPlacement?: SectionVisualPlacement }
->
+type SplitVisualUpdate = Partial<SplitVisualConfig & { splitVisualPlacement?: SectionVisualPlacement }>
 
 type Props = {
   config: SplitVisualConfig
   accentColor: string
   onUpdate: (changes: SplitVisualUpdate) => void
-  /** Ensures animated backgrounds render on section/hero blocks (opacity must be 100). */
-  syncBlockBackgroundOpacity?: boolean
   sectionLayout?: SectionLayout
   splitVisualPlacement?: SectionVisualPlacement
   hideColorControls?: boolean
@@ -95,9 +85,8 @@ export function AnimatedBackgroundControls({
   config,
   accentColor,
   onUpdate,
-  syncBlockBackgroundOpacity = false,
   sectionLayout,
-  splitVisualPlacement = 'primary',
+  splitVisualPlacement = 'background',
   hideColorControls = false,
   hidePlacementControls = false,
   placementHint: placementHintOverride
@@ -112,35 +101,7 @@ export function AnimatedBackgroundControls({
     placementHintOverride ??
     (sectionLayout && !hidePlacementControls
       ? getSectionVisualPlacementHint(sectionLayout, splitVisualPlacement)
-      : 'Decorative motion layer. Separate from the section fill above.')
-
-  const withBlockBackgroundSync = (changes: SplitVisualUpdate): SplitVisualUpdate => {
-    if (!syncBlockBackgroundOpacity) {
-      return changes
-    }
-
-    const isGradientSelection =
-      changes.splitVisualColorStart !== undefined || changes.splitVisualColorEnd !== undefined
-    const isAnimationSelection = changes.splitVisualAnimation !== undefined
-    const nextAnimation =
-      changes.splitVisualAnimation ??
-      (isGradientSelection && animation === 'static' ? DEFAULT_HERO_SPLIT_VISUAL_ANIMATION : animation)
-
-    const enablesVisual =
-      (isAnimationSelection && changes.splitVisualAnimation !== 'static') || isGradientSelection
-
-    if (!enablesVisual || nextAnimation === 'static') {
-      return changes
-    }
-
-    return {
-      ...changes,
-      backgroundOpacity: 100,
-      ...(isGradientSelection && animation === 'static' && !changes.splitVisualAnimation
-        ? { splitVisualAnimation: DEFAULT_HERO_SPLIT_VISUAL_ANIMATION }
-        : {})
-    }
-  }
+      : 'Pick an animation and gradient colors for the motion layer.')
 
   const renderAnimationGroup = (title: string, options: typeof HERO_SPLIT_VISUAL_ANIMATION_OPTIONS) => (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -160,11 +121,9 @@ export function AnimatedBackgroundControls({
             option={option}
             active={animation === option.value}
             onClick={() =>
-              onUpdate(
-                withBlockBackgroundSync({
-                  splitVisualAnimation: option.value as HeroSplitVisualAnimation
-                })
-              )
+              onUpdate({
+                splitVisualAnimation: option.value as HeroSplitVisualAnimation
+              })
             }
           />
         ))}
@@ -196,10 +155,8 @@ export function AnimatedBackgroundControls({
           colorEnd={config.splitVisualColorEnd || colors.end}
           presetStart={config.splitVisualColorStart ?? ''}
           presetEnd={config.splitVisualColorEnd ?? ''}
-          onColorStartChange={splitVisualColorStart =>
-            onUpdate(withBlockBackgroundSync({ splitVisualColorStart }))
-          }
-          onColorEndChange={splitVisualColorEnd => onUpdate(withBlockBackgroundSync({ splitVisualColorEnd }))}
+          onColorStartChange={splitVisualColorStart => onUpdate({ splitVisualColorStart })}
+          onColorEndChange={splitVisualColorEnd => onUpdate({ splitVisualColorEnd })}
         />
       )}
     </Box>

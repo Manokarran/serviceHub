@@ -7,13 +7,14 @@ import { getSectionColumnChildren } from '../../utils/blockTreeUtils'
 import {
   getBlockBackgroundShellSx,
   getPhotoAnimation,
-  getPhotoOpacity,
+  getBlockFillOpacity,
   getSectionColumnShellSx,
   getSectionDividerSx,
   getSectionFrameSx,
   getSectionSplitContainerSx,
   isPhotoBackground,
   isVideoBackground,
+  shouldRenderBlockBackgroundLayers,
   shouldShowSplitDivider
 } from '../../utils/sectionStyleHelpers'
 import {
@@ -55,7 +56,7 @@ function SectionColumn({
 }) {
   const siteStyles = useSiteStyles()
   const children = getSectionColumnChildren(block, column)
-  const showVisual = shouldRenderSectionColumnVisual(props)
+  const showVisual = shouldRenderSectionColumnVisual(props, column)
   const columnConfig = getSectionSplitVisualConfig(props)
   const visualColors = resolveHeroVisualColors(columnConfig, siteStyles.colors.accent)
 
@@ -161,8 +162,9 @@ function SectionShell({ block, preview }: Props) {
   const hasPhoto = isPhotoBackground(props)
   const hasVideo = isVideoBackground(props)
   const hasMedia = hasPhoto || hasVideo
-  const photoOpacity = getPhotoOpacity(props)
+  const fillOpacity = getBlockFillOpacity(props)
   const photoAnimation = hasMedia ? getPhotoAnimation(props, siteStyles.misc.imageHoverEffect) : 'none'
+  const showStaticBackgroundLayers = shouldRenderBlockBackgroundLayers(props)
   const showBackgroundVisual = shouldRenderSectionBackgroundVisual(props)
   const visualColors = resolveHeroVisualColors(props, siteStyles.colors.accent)
 
@@ -171,7 +173,9 @@ function SectionShell({ block, preview }: Props) {
       component='section'
       sx={{
         position: 'relative',
-        ...getBlockBackgroundShellSx(props, photoAnimation, photoOpacity),
+        ...getBlockBackgroundShellSx(props, photoAnimation, fillOpacity, '#ffffff', {
+          fillEnabled: showStaticBackgroundLayers
+        }),
         py: `${props.paddingY}px`,
         px: `${props.paddingX}px`,
         ...siteCanvasBelow({
@@ -188,11 +192,25 @@ function SectionShell({ block, preview }: Props) {
         />
       )}
       {editMode && <SectionEditChip sectionId={block.id} />}
-      <BlockBackgroundLayers props={props} photoOpacity={photoOpacity} />
+      {showStaticBackgroundLayers && (
+        <Box
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 0,
+            overflow: 'hidden',
+            pointerEvents: 'none'
+          }}
+        >
+          <BlockBackgroundLayers props={props} photoOpacity={fillOpacity} />
+        </Box>
+      )}
       <Box
         sx={{
           position: 'relative',
           zIndex: 1,
+          backgroundColor: 'transparent',
           maxWidth: typeof maxWidth === 'number' ? maxWidth : maxWidth,
           mx: props.maxWidth === 'full' ? 0 : 'auto',
           ...getSectionFrameSx(props),

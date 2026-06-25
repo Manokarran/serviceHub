@@ -408,7 +408,7 @@ export const FORM_PACK_PRESETS: FormPackPreset[] = [
   {
     id: 'pill-light',
     name: 'Pill — Light border',
-    forms: DEFAULT_FORMS
+    forms: { ...DEFAULT_FORMS, fieldShape: 'pill' }
   },
   {
     id: 'rounded-subtle',

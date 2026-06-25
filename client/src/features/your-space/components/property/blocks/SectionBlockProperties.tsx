@@ -28,7 +28,7 @@ export function SectionBlockProperties({ block, activeTab }: Props) {
   if (activeTab === 'layout') {
     return (
       <PropertyFields>
-        <SectionLayoutControls props={props} accentColor={siteStyles.colors.accent} onUpdate={update} />
+        <SectionLayoutControls props={props} onUpdate={update} />
       </PropertyFields>
     )
   }

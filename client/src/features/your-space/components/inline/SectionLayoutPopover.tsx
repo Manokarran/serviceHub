@@ -1,7 +1,6 @@
 'use client'
 
 import type { SectionBlockProps } from '../../types'
-import { useSiteStyles } from '../SiteStylesScope'
 import { SectionLayoutControls } from '../SectionLayoutControls'
 
 type Props = {
@@ -10,9 +9,5 @@ type Props = {
 }
 
 export function SectionLayoutPopover({ props, onUpdate }: Props) {
-  const siteStyles = useSiteStyles()
-
-  return (
-    <SectionLayoutControls props={props} accentColor={siteStyles.colors.accent} onUpdate={onUpdate} />
-  )
+  return <SectionLayoutControls props={props} onUpdate={onUpdate} />
 }

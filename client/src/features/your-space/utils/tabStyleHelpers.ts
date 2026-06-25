@@ -9,6 +9,7 @@ import type {
   TabsBlockProps
 } from '../types'
 import { siteCanvasBelow } from './siteResponsiveHelpers'
+import { SITE_BUTTON_ACTIVE_SX, SITE_BUTTON_HOVER_SX, SITE_INTERACTIVE_TRANSITION } from './siteInteractiveHelpers'
 
 const MAX_WIDTH_MAP = {
   sm: 640,
@@ -162,7 +163,6 @@ export function getTabButtonSx(
   const inactiveColor = props.inactiveTabColor
   const tabBg = props.tabBackgroundColor
   const radius = props.tabBorderRadius ?? 2
-  const duration = props.animationDuration ?? 280
   const useSlidingIndicator = props.variant === 'underline'
 
   const base: SxProps<Theme> = {
@@ -174,7 +174,7 @@ export function getTabButtonSx(
     lineHeight: 1.4,
     color: isActive ? activeColor : inactiveColor,
     backgroundColor: 'transparent',
-    transition: `color ${duration}ms cubic-bezier(0.4, 0, 0.2, 1), background-color ${duration}ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow ${duration}ms cubic-bezier(0.4, 0, 0.2, 1), border-color ${duration}ms cubic-bezier(0.4, 0, 0.2, 1), transform 120ms ease`,
+    transition: SITE_INTERACTIVE_TRANSITION,
     whiteSpace: 'nowrap',
     textAlign: isVertical ? 'left' : 'center',
     display: 'inline-flex',
@@ -184,11 +184,10 @@ export function getTabButtonSx(
     minWidth: 0,
     position: 'relative',
     '&:hover': {
-      color: activeColor
+      color: activeColor,
+      ...(isActive ? {} : SITE_BUTTON_HOVER_SX)
     },
-    '&:active': {
-      transform: 'scale(0.97)'
-    },
+    '&:active': isActive ? { transform: 'scale(0.98)' } : SITE_BUTTON_ACTIVE_SX,
     ...siteCanvasBelow({
       fontSize: '0.8125rem',
       flexShrink: 0,
@@ -203,12 +202,6 @@ export function getTabButtonSx(
           borderBottomLeftRadius: radius,
           borderBottomRightRadius: radius,
           mb: 0
-        }
-      : {}),
-    ...(props.variant === 'elevated'
-      ? {
-          transform: isActive ? 'none' : 'none',
-          '&:hover': { transform: 'none' }
         }
       : {})
   })
@@ -246,9 +239,11 @@ export function getTabButtonSx(
         color: isActive ? accent : inactiveColor,
         boxShadow: isActive ? `0 0 0 1px ${alpha(accent, 0.2)}` : 'none',
         '&:hover': {
+          ...(!isActive ? SITE_BUTTON_HOVER_SX : {}),
           backgroundColor: isActive ? alpha(accent, 0.16) : alpha(accent, 0.06),
           color: isActive ? accent : activeColor
         },
+        '&:active': SITE_BUTTON_ACTIVE_SX,
         ...mobileButtonOverrides
       }
 
@@ -264,11 +259,10 @@ export function getTabButtonSx(
         boxShadow: isActive ? `0 1px 4px ${alpha(theme.palette.common.black, 0.1)}` : 'none',
         transform: isActive ? 'scale(1)' : undefined,
         '&:hover': {
+          ...(!isActive ? SITE_BUTTON_HOVER_SX : {}),
           color: activeColor
         },
-        '&:active': {
-          transform: 'scale(0.98)'
-        },
+        '&:active': SITE_BUTTON_ACTIVE_SX,
         ...siteCanvasBelow({ flex: '0 0 auto', minWidth: 'max-content' }),
         ...mobileButtonOverrides
       }
@@ -312,11 +306,12 @@ export function getTabButtonSx(
         transform: isActive ? 'translateY(-1px)' : 'none',
         '&:hover': {
           backgroundColor: isActive ? theme.palette.background.paper : alpha(theme.palette.text.primary, 0.06),
-          transform: isActive ? 'translateY(-1px)' : 'none'
+          transform: isActive ? 'translateY(-1px)' : 'translateY(-2px)',
+          boxShadow: isActive
+            ? `0 4px 12px ${alpha(theme.palette.common.black, 0.1)}, 0 0 0 1px ${alpha(theme.palette.divider, 0.08)}`
+            : `0 4px 14px ${alpha(theme.palette.common.black, 0.08)}`
         },
-        '&:active': {
-          transform: isActive ? 'translateY(0) scale(0.98)' : 'scale(0.97)'
-        },
+        '&:active': SITE_BUTTON_ACTIVE_SX,
         ...siteCanvasBelow({ width: 'auto' }),
         ...mobileButtonOverrides
       }

@@ -12,6 +12,8 @@ export type BlockType =
   | 'video'
   | 'logo'
   | 'shape'
+  | 'icon'
+  | 'contactForm'
 
 export type LogoPosition = 'left' | 'center' | 'right'
 
@@ -20,6 +22,18 @@ export type TextAlign = 'left' | 'center' | 'right'
 export type HeaderLayout = 'horizontal' | 'vertical'
 
 export type HeroLayout = 'centered' | 'split-left' | 'split-right'
+
+export type HeroContentMaxWidth = 'sm' | 'md' | 'lg' | 'full'
+
+export type HeroVerticalAlign = 'center' | 'bottom'
+
+export type HeroMediaOverlay = 'none' | 'subtle' | 'strong' | 'gradient'
+
+export type HeroContentSurface = 'none' | 'glass'
+
+export type HeroTitleStyle = 'solid' | 'gradient'
+
+export type HeroButtonStyle = 'theme' | 'contrast'
 
 export interface SplitVisualConfig {
   splitVisualAnimation?: HeroSplitVisualAnimation
@@ -56,9 +70,16 @@ export type BackgroundType = 'color' | 'pattern' | 'gradient' | 'photo' | 'video
 
 export type ImageHoverEffect = 'none' | 'zoom' | 'fade'
 
+/** Animation that plays once when the image scrolls into view. */
+export type ImageEntranceAnimation = 'none' | 'fade-in' | 'slide-up' | 'zoom-in' | 'blur-in' | 'flip-up'
+
+/** Animation that loops continuously while the image is visible. */
+export type ImageContinuousAnimation = 'none' | 'float' | 'pulse' | 'breathe' | 'shimmer' | 'swing'
+
 export interface NavLinkItem {
   label: string
   href: string
+  children?: NavLinkItem[]
 }
 
 export type BuilderMode = 'edit' | 'preview'
@@ -67,9 +88,9 @@ export type { SiteStyles, SiteStylesView } from './types/siteStyles'
 
 export type BuilderViewport = 'desktop' | 'tablet' | 'mobile'
 
-export type BuilderSidebarPanel = 'pages' | 'blocks' | 'design'
+export type BuilderSidebarPanel = 'blocks' | 'design'
 
-export type PaletteCategory = 'layout' | 'sections' | 'media' | 'typography'
+export type PaletteCategory = 'layout' | 'carousel' | 'tabs' | 'sections' | 'media' | 'typography' | 'forms'
 
 export interface BlockBackgroundProps {
   background?: string
@@ -87,6 +108,13 @@ export interface BlockBackgroundProps {
 export interface HeaderBlockProps {
   logoText: string
   logoUrl: string
+  /** MUI icon name when no logo image is set (IconPicker). */
+  logoIcon?: string
+  logoIconColor?: string
+  logoIconSize?: number
+  logoIconShowBackground?: boolean
+  logoIconBackgroundColor?: string
+  logoIconBorderRadius?: number
   logoPosition: LogoPosition
   navLinks: NavLinkItem[]
   layout: HeaderLayout
@@ -100,6 +128,13 @@ export interface HeaderBlockProps {
 export interface FooterBlockProps {
   logoText: string
   logoUrl: string
+  /** MUI icon name when no logo image is set (IconPicker). */
+  logoIcon?: string
+  logoIconColor?: string
+  logoIconSize?: number
+  logoIconShowBackground?: boolean
+  logoIconBackgroundColor?: string
+  logoIconBorderRadius?: number
   logoPosition: LogoPosition
   copyrightText: string
   navLinks: NavLinkItem[]
@@ -114,12 +149,25 @@ export interface FooterBlockProps {
 export interface HeroBlockProps {
   title: string
   subtitle: string
+  eyebrow?: string
   buttonText: string
   buttonLink: string
+  secondaryButtonText?: string
+  secondaryButtonLink?: string
+  /** `theme` uses site-wide button styles; `contrast` adapts to hero text color. */
+  buttonStyle?: HeroButtonStyle
   textColor: string
   alignment: TextAlign
   layout: HeroLayout
+  verticalAlign?: HeroVerticalAlign
   minHeight: number
+  contentMaxWidth?: HeroContentMaxWidth
+  contentPaddingX?: number
+  contentPaddingY?: number
+  splitRatio?: number
+  titleStyle?: HeroTitleStyle
+  contentSurface?: HeroContentSurface
+  mediaOverlay?: HeroMediaOverlay
   splitVisualAnimation?: HeroSplitVisualAnimation
   splitVisualColorStart?: string
   splitVisualColorEnd?: string
@@ -154,8 +202,10 @@ export type TabBorderStyle = SectionBorderStyle
 export interface TabPanel {
   id: string
   label: string
-  /** Optional Remix Icon class name (e.g. 'ri-user-line') shown next to the tab label */
+  /** Optional icon name (MUI IconPicker) or legacy Remix class (ri-*). */
   icon?: string
+  iconColor?: string
+  iconSize?: number
   children: Block[]
 }
 
@@ -270,6 +320,10 @@ export interface ImageBlockProps {
   borderRadius?: number
   /** Image opacity (0–100). Lower values make the image more transparent. */
   opacity?: number
+  /** One-shot animation that plays when the image enters the viewport. */
+  entranceAnimation?: ImageEntranceAnimation
+  /** Looping animation applied continuously to the image. */
+  continuousAnimation?: ImageContinuousAnimation
 }
 
 export interface VideoBlockProps {
@@ -328,6 +382,36 @@ export interface ShapeBlockProps {
   lineStyle?: ShapeLineStyle
 }
 
+export interface IconBlockProps {
+  /** MUI icon name from IconPicker (e.g. Cloud, Security). */
+  iconName: string
+  alignment: TextAlign
+  iconColor: string
+  iconSize: number
+  showIconBackground: boolean
+  iconBackgroundColor: string
+  iconBorderRadius: number
+}
+
+export type ContactFormFieldStyle = 'theme' | 'square' | 'rounded' | 'pill'
+export type ContactFormSubmitVariant = 'theme' | 'contained' | 'outlined' | 'text'
+
+export interface ContactFormBlockProps {
+  title: string
+  subtitle?: string
+  submitLabel: string
+  successMessage: string
+  signupLabel: string
+  showSignupOption: boolean
+  alignment: TextAlign
+  fieldStyle?: ContactFormFieldStyle
+  fieldBorderRadius?: number
+  fieldBorderWidth?: number
+  submitVariant?: ContactFormSubmitVariant
+  submitColor?: string
+  submitBorderRadius?: number
+}
+
 export type BlockPropsMap = {
   section: SectionBlockProps
   carousel: CarouselBlockProps
@@ -342,6 +426,8 @@ export type BlockPropsMap = {
   video: VideoBlockProps
   logo: LogoBlockProps
   shape: ShapeBlockProps
+  icon: IconBlockProps
+  contactForm: ContactFormBlockProps
 }
 
 export interface Block<T extends BlockType = BlockType> {

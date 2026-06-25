@@ -67,6 +67,12 @@ export class UserRepository {
       .populate('tenantId', 'name slug status plan')
       .exec()
   }
+
+  async findOwnerByTenantId(tenantId: string): Promise<IUserDocument | null> {
+    await connectDB()
+
+    return UserModel.findOne({ tenantId, role: 'owner', isActive: true }).exec()
+  }
 }
 
 export const userRepository = new UserRepository()

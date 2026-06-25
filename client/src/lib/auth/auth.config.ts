@@ -38,7 +38,10 @@ export const authConfig = {
       const isRegistered = Boolean(auth?.user?.registrationComplete)
       const pathname = nextUrl.pathname
       const isProtectedRoute =
-        pathname.startsWith('/home') || pathname.startsWith('/your-space') || pathname.startsWith('/about')
+        pathname.startsWith('/home') ||
+        pathname.startsWith('/your-space') ||
+        pathname.startsWith('/leads') ||
+        pathname.startsWith('/about')
       const isRegisterRoute = pathname.startsWith('/register')
       const isLoginRoute = pathname.startsWith('/login')
 

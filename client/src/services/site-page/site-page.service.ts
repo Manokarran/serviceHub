@@ -1,10 +1,11 @@
 import type { Block } from '@/features/your-space/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
+import { createContactPageBlocks } from '@/features/your-space/constants/pageTemplates'
 import { AppError } from '@/lib/errors'
 import { ensureUniqueSlug, isHomePageSlug, isReservedPageSlug, slugifyPageTitle } from '@/lib/utils/page-slug'
 import { toPlainJson } from '@/lib/utils/plain-json'
 import { createPageSchema, saveSitePageSchema, updatePageMetaSchema } from '@/lib/validators/site-page.validator'
-import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-page'
+import type { PublishedVersionSummary, SitePageSummary, ISitePageBlock } from '@/models/site-page'
 import { sitePageRepository, sitePageVersionRepository } from '@/repositories/site-page.repository'
 import { tenantRepository } from '@/repositories/tenant.repository'
 
@@ -189,6 +190,36 @@ export class SitePageService {
     return page
   }
 
+  async publishAll(tenantId: string, userId: string) {
+    assertTenantId(tenantId)
+
+    await this.ensureHomePage(tenantId)
+
+    const pageDocs = await sitePageRepository.listByTenant(tenantId)
+    let publishedAt = new Date()
+
+    for (const pageDoc of pageDocs) {
+      const slug = pageDoc.slug
+      const draftBlocks = (pageDoc.draftBlocks?.length ? pageDoc.draftBlocks : pageDoc.blocks ?? []) as unknown as Block[]
+      const isHome = isHomePageSlug(slug)
+      const siteStyles = isHome
+        ? ((pageDoc.draftSiteStyles ?? pageDoc.publishedSiteStyles ?? null) as SiteStyles | null)
+        : undefined
+
+      const page = await this.publish(
+        tenantId,
+        userId,
+        slug,
+        draftBlocks,
+        siteStyles ?? undefined
+      )
+
+      publishedAt = page.publishedAt ?? page.updatedAt ?? publishedAt
+    }
+
+    return { publishedAt: publishedAt.toISOString() }
+  }
+
   async listPublishedVersions(tenantId: string, pageSlug = 'home'): Promise<PublishedVersionSummary[]> {
     assertTenantId(tenantId)
 
@@ -222,7 +253,7 @@ export class SitePageService {
     }
   }
 
-  async createPage(tenantId: string, input: { title: string; slug?: string }) {
+  async createPage(tenantId: string, input: { title: string; slug?: string; draftBlocks?: ISitePageBlock[] }) {
     assertTenantId(tenantId)
 
     const parsed = createPageSchema.safeParse(input)
@@ -244,10 +275,35 @@ export class SitePageService {
     )
 
     const sortOrder = existingPages.length > 0 ? Math.max(...existingPages.map(p => p.sortOrder ?? 0)) + 1 : 1
+    const draftBlocks = input.draftBlocks ?? []
 
-    const page = await sitePageRepository.createPage(tenantId, slug, parsed.data.title, sortOrder)
+    const page = await sitePageRepository.createPage(
+      tenantId,
+      slug,
+      parsed.data.title,
+      sortOrder,
+      draftBlocks
+    )
 
     return mapPageToSummary(page)
+  }
+
+  async ensureContactPage(tenantId: string): Promise<SitePageSummary> {
+    assertTenantId(tenantId)
+
+    await this.ensureHomePage(tenantId)
+
+    const existing = await sitePageRepository.findByTenantAndSlug(tenantId, 'contact')
+
+    if (existing) {
+      return mapPageToSummary(existing)
+    }
+
+    return this.createPage(tenantId, {
+      title: 'Contact',
+      slug: 'contact',
+      draftBlocks: createContactPageBlocks() as unknown as ISitePageBlock[]
+    })
   }
 
   async updatePageMeta(

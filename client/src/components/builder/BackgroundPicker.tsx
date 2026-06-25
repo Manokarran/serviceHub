@@ -8,7 +8,6 @@ import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
-import Slider from '@mui/material/Slider'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
@@ -18,7 +17,6 @@ import { BUILDER_TYPOGRAPHY, builderSegmentedControlSx } from '@/features/your-s
 import { PropertyFieldLabel } from '@/features/your-space/components/property/PropertyPanelUi'
 import type { ImageHoverEffect } from '@/features/your-space/types'
 import {
-  BLOCK_BACKGROUND_PREVIEW_OPACITY,
   buildPhotoBackgroundCss,
   buildVideoBackgroundValue,
   isVideoBackground,
@@ -36,10 +34,10 @@ type Props = {
   value: string
   backgroundType?: BackgroundType
   sectionType: string
-  photoOpacity?: number
   photoAnimation?: ImageHoverEffect
   defaultPhotoAnimation?: ImageHoverEffect
   onStyleChange: (key: string, value: string) => void
+  onMediaSelect?: (url: string, mediaType: 'photo' | 'video') => void
 }
 
 type PatternPreset = {
@@ -68,16 +66,8 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'photo', label: 'Photo' }
 ]
 
-function applyBackgroundPreviewOpacity(onStyleChange: Props['onStyleChange']) {
-  onStyleChange('backgroundOpacity', String(BLOCK_BACKGROUND_PREVIEW_OPACITY))
-}
-
 function setBackgroundType(onStyleChange: Props['onStyleChange'], type: BackgroundType) {
   onStyleChange('backgroundType', type)
-
-  if (type !== 'color') {
-    applyBackgroundPreviewOpacity(onStyleChange)
-  }
 }
 
 const PATTERN_PRESETS: PatternPreset[] = [
@@ -423,18 +413,18 @@ function PhotoTab({
   value,
   backgroundType,
   sectionType,
-  photoOpacity = 100,
   photoAnimation,
   defaultPhotoAnimation = 'none',
-  onStyleChange
+  onStyleChange,
+  onMediaSelect
 }: {
   value: string
   backgroundType?: BackgroundType
   sectionType: string
-  photoOpacity?: number
   photoAnimation?: ImageHoverEffect
   defaultPhotoAnimation?: ImageHoverEffect
   onStyleChange: Props['onStyleChange']
+  onMediaSelect?: Props['onMediaSelect']
 }) {
   const theme = useTheme()
   const defaultQuery = getDefaultUnsplashQuery(sectionType)
@@ -547,22 +537,32 @@ function PhotoTab({
   }
 
   const handleSelect = (photo: UnsplashPhoto) => {
-    const css = buildPhotoBackgroundCss(photo.urls.regular)
+    const url = photo.urls.regular
 
     setSelectedPhoto(photo)
-    setBackgroundType(onStyleChange, 'photo')
-    onStyleChange('background', css)
+
+    if (onMediaSelect) {
+      onMediaSelect(url, 'photo')
+    } else {
+      setBackgroundType(onStyleChange, 'photo')
+      onStyleChange('background', url)
+    }
   }
 
   const handleUploadedMedia = (result: { url: string; mediaType: 'image' | 'video' }) => {
     setSelectedPhoto(null)
+
+    if (onMediaSelect) {
+      onMediaSelect(result.url, result.mediaType === 'video' ? 'video' : 'photo')
+      return
+    }
 
     if (result.mediaType === 'video') {
       setBackgroundType(onStyleChange, 'video')
       onStyleChange('background', buildVideoBackgroundValue(result.url))
     } else {
       setBackgroundType(onStyleChange, 'photo')
-      onStyleChange('background', buildPhotoBackgroundCss(result.url))
+      onStyleChange('background', result.url)
     }
   }
 
@@ -722,17 +722,7 @@ function PhotoTab({
 
       {hasMediaSelected && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 0.5 }}>
-          <PropertyFieldLabel>{isCurrentVideo ? 'Video properties' : 'Photo properties'}</PropertyFieldLabel>
-          <Box>
-            <PropertyFieldLabel>Opacity: {photoOpacity}%</PropertyFieldLabel>
-            <Slider
-              value={photoOpacity}
-              min={0}
-              max={100}
-              step={5}
-              onChange={(_, v) => onStyleChange('backgroundPhotoOpacity', String(v))}
-            />
-          </Box>
+          <PropertyFieldLabel>{isCurrentVideo ? 'Video effects' : 'Photo effects'}</PropertyFieldLabel>
           <FormControl size='small' fullWidth>
             <InputLabel>Hover effect</InputLabel>
             <Select
@@ -763,10 +753,10 @@ export default function BackgroundPicker({
   value,
   backgroundType = 'color',
   sectionType,
-  photoOpacity = 100,
   photoAnimation,
   defaultPhotoAnimation = 'none',
-  onStyleChange
+  onStyleChange,
+  onMediaSelect
 }: Props) {
   const theme = useTheme()
   const [activeTab, setActiveTab] = useState<TabId>(backgroundType)
@@ -793,9 +783,8 @@ export default function BackgroundPicker({
             type='button'
             onClick={() => {
               setActiveTab(tab.id)
-
-              if (tab.id !== 'color') {
-                applyBackgroundPreviewOpacity(onStyleChange)
+              if (tab.id !== 'photo') {
+                setBackgroundType(onStyleChange, tab.id)
               }
             }}
             sx={{
@@ -836,10 +825,10 @@ export default function BackgroundPicker({
             value={displayValue}
             backgroundType={backgroundType}
             sectionType={sectionType}
-            photoOpacity={photoOpacity}
             photoAnimation={photoAnimation}
             defaultPhotoAnimation={defaultPhotoAnimation}
             onStyleChange={onStyleChange}
+            onMediaSelect={onMediaSelect}
           />
         )}
       </Box>

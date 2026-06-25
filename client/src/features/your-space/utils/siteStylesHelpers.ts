@@ -3,6 +3,7 @@ import type { SxProps, Theme } from '@mui/material/styles'
 import type { BlockPropsMap, BlockType } from '../types'
 import { DEFAULT_FORMS, DEFAULT_SITE_STYLES } from '../constants/siteStylePresets'
 import type { ButtonShape, ButtonStyleConfig, SiteColors, SiteFonts, SiteForms, SiteMisc, SiteStyles } from '../types/siteStyles'
+import { getSiteButtonInteractiveSx, SITE_BUTTON_ACTIVE_SX, SITE_BUTTON_HOVER_SX } from './siteInteractiveHelpers'
 
 export function normalizeSiteFonts(fonts: Partial<SiteFonts>): SiteFonts {
   return { ...DEFAULT_SITE_STYLES.fonts, ...fonts }
@@ -51,6 +52,19 @@ export function getButtonBorderRadius(shape: ButtonShape): number | string {
   return 0
 }
 
+function resolveMultilineFieldRadius(shape: ButtonShape, singleLineRadius: number | string): number | string {
+  if (shape === 'pill') return 8
+  if (typeof singleLineRadius === 'number' && singleLineRadius > 10) return 8
+
+  return singleLineRadius
+}
+
+export type FormFieldSxOptions = {
+  fieldShape?: ButtonShape
+  fieldBorderRadius?: number
+  fieldBorderWidth?: number
+}
+
 export function getFontFamily(source: 'heading' | 'body', fonts: SiteFonts): string {
   return source === 'heading' ? fonts.headingFamily : fonts.bodyFamily
 }
@@ -87,18 +101,24 @@ export function getSiteButtonSx(
   const accent = overrideColor ?? colors.accent
   const borderRadius =
     overrideBorderRadius !== undefined ? overrideBorderRadius : getButtonBorderRadius(config.shape)
+  const radiusCss = typeof borderRadius === 'number' ? `${borderRadius}px` : String(borderRadius)
   const fontFamily = getFontFamily(config.fontSource, normalizedFonts)
+  const interactive = getSiteButtonInteractiveSx()
 
   const base: SxProps<Theme> = {
     fontFamily,
     fontSize: normalizedFonts.buttonSize,
     fontWeight: 600,
     textTransform: 'none',
-    borderRadius,
+    borderRadius: radiusCss,
+    '&.MuiButton-root, &.MuiButton-contained, &.MuiButton-outlined, &.MuiButton-text': {
+      borderRadius: radiusCss
+    },
     px: `${config.paddingX}px`,
     py: `${config.paddingY}px`,
     boxShadow: 'none',
-    textDecoration: 'none'
+    textDecoration: 'none',
+    ...interactive
   }
 
   if (config.style === 'solid') {
@@ -107,7 +127,13 @@ export function getSiteButtonSx(
       backgroundColor: accent,
       color: '#ffffff',
       border: `${config.borderWidth}px solid ${accent}`,
-      '&:hover': { backgroundColor: accent, opacity: 0.9, boxShadow: 'none' }
+      '&:hover': {
+        ...SITE_BUTTON_HOVER_SX,
+        backgroundColor: accent,
+        opacity: 0.92,
+        boxShadow: `0 8px 24px ${accent}40`
+      },
+      '&:active': SITE_BUTTON_ACTIVE_SX
     }
   }
 
@@ -117,7 +143,12 @@ export function getSiteButtonSx(
       backgroundColor: 'transparent',
       color: accent,
       border: `${Math.max(config.borderWidth, 1)}px solid ${accent}`,
-      '&:hover': { backgroundColor: `${accent}14`, boxShadow: 'none' }
+      '&:hover': {
+        ...SITE_BUTTON_HOVER_SX,
+        backgroundColor: `${accent}14`,
+        boxShadow: `0 6px 18px ${accent}22`
+      },
+      '&:active': SITE_BUTTON_ACTIVE_SX
     }
   }
 
@@ -126,28 +157,82 @@ export function getSiteButtonSx(
     backgroundColor: 'transparent',
     color: accent,
     border: 'none',
-    '&:hover': { backgroundColor: `${accent}0f`, boxShadow: 'none' }
+    '&:hover': {
+      ...SITE_BUTTON_HOVER_SX,
+      backgroundColor: `${accent}0f`
+    },
+    '&:active': SITE_BUTTON_ACTIVE_SX
   }
 }
 
-export function getFormFieldSx(forms: SiteForms, fonts: SiteFonts): SxProps<Theme> {
+export function getFormFieldSx(forms: SiteForms, fonts: SiteFonts, options?: FormFieldSxOptions): SxProps<Theme> {
   const normalizedForms = normalizeSiteForms(forms)
+  const fieldShape = options?.fieldShape ?? normalizedForms.fieldShape
+  const singleLineRadius = options?.fieldBorderRadius ?? getButtonBorderRadius(fieldShape)
+  const multilineRadius =
+    options?.fieldBorderRadius !== undefined
+      ? singleLineRadius
+      : resolveMultilineFieldRadius(fieldShape, singleLineRadius)
+  const fieldBorderWidth = options?.fieldBorderWidth ?? normalizedForms.fieldBorderWidth
 
   return {
     fontFamily: getFontFamily(normalizedForms.labelFontSource, normalizeSiteFonts(fonts)),
     fontSize: normalizedForms.fieldFontSize,
     '& .MuiOutlinedInput-root': {
-      borderRadius: getButtonBorderRadius(normalizedForms.fieldShape),
+      borderRadius: singleLineRadius,
       backgroundColor: normalizedForms.fieldBackground,
       fontSize: normalizedForms.fieldFontSize,
       '& fieldset': {
-        borderWidth: normalizedForms.fieldBorderWidth,
+        borderWidth: fieldBorderWidth,
         borderColor: normalizedForms.fieldBorderColor
+      },
+      '&:hover fieldset': {
+        borderWidth: fieldBorderWidth
+      },
+      '&.Mui-focused fieldset': {
+        borderWidth: fieldBorderWidth > 0 ? Math.max(fieldBorderWidth, 1) : fieldBorderWidth
       },
       '& .MuiOutlinedInput-input': {
         fontSize: normalizedForms.fieldFontSize
+      },
+      '&.MuiInputBase-multiline': {
+        borderRadius: multilineRadius,
+        '& fieldset': {
+          borderRadius: multilineRadius
+        }
       }
     }
+  }
+}
+
+export function getContactFormFieldSx(
+  siteStyles: SiteStyles,
+  fieldStyle?: 'theme' | ButtonShape,
+  fieldBorderRadius?: number,
+  fieldBorderWidth?: number
+): SxProps<Theme> {
+  const fieldShape = fieldStyle && fieldStyle !== 'theme' ? fieldStyle : siteStyles.forms.fieldShape
+
+  return getFormFieldSx(siteStyles.forms, siteStyles.fonts, {
+    fieldShape,
+    fieldBorderRadius,
+    fieldBorderWidth
+  })
+}
+
+export function getContactFormSubmitButtonConfig(
+  siteStyles: SiteStyles,
+  submitVariant?: 'theme' | 'contained' | 'outlined' | 'text',
+  submitColor?: string,
+  submitBorderRadius?: number
+): { variant: 'contained' | 'outlined' | 'text'; sx: SxProps<Theme> } {
+  const usesTheme = !submitVariant || submitVariant === 'theme'
+  const variant = usesTheme ? mapButtonStyleToVariant(siteStyles.buttons.primary.style) : submitVariant
+  const role = usesTheme ? 'primary' : mapBlockVariantToButtonRole(submitVariant)
+
+  return {
+    variant,
+    sx: getSiteButtonSx(role, siteStyles, submitColor, submitBorderRadius)
   }
 }
 
@@ -186,6 +271,13 @@ export function mapBlockVariantToButtonRole(variant: 'contained' | 'outlined' | 
   if (variant === 'text') return 'tertiary'
 
   return 'primary'
+}
+
+export function mapButtonStyleToVariant(style: ButtonStyleConfig['style']): 'contained' | 'outlined' | 'text' {
+  if (style === 'outline') return 'outlined'
+  if (style === 'ghost') return 'text'
+
+  return 'contained'
 }
 
 /** Apply the active site theme palette to freshly dropped block defaults */
@@ -259,6 +351,12 @@ export function applySiteThemeToBlockProps<T extends BlockType>(
         fillColor: colors.accent,
         gradientStart: colors.accent,
         gradientEnd: colors.swatch2
+      }
+    case 'icon':
+      return {
+        ...props,
+        iconColor: colors.accent,
+        iconBackgroundColor: colors.accent
       }
     default:
       return props

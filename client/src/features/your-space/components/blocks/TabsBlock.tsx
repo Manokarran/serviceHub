@@ -6,6 +6,7 @@ import Box from '@mui/material/Box'
 import TextField from '@mui/material/TextField'
 import { alpha, useTheme } from '@mui/material/styles'
 
+import { ServiceIconGraphic } from '@/components/IconPicker'
 import type { Block, TabPanel, TabsBlockProps } from '../../types'
 import { createBlockId } from '../../utils/blockFactory'
 import {
@@ -40,6 +41,8 @@ const EMPTY_INDICATOR: IndicatorState = { left: 0, top: 0, width: 0, height: 0 }
 function TabNavButton({
   label,
   icon,
+  iconColor,
+  iconSize,
   isActive,
   props,
   onClick,
@@ -51,6 +54,8 @@ function TabNavButton({
 }: {
   label: string
   icon?: string
+  iconColor?: string
+  iconSize?: number
   isActive: boolean
   props: TabsBlockProps
   onClick: () => void
@@ -79,7 +84,8 @@ function TabNavButton({
     }
   }
 
-  const iconSize = props.orientation === 'vertical' ? '0.875rem' : '0.9375rem'
+  const defaultIconSize = props.orientation === 'vertical' ? 14 : 15
+  const resolvedIconSize = iconSize ?? defaultIconSize
 
   return (
     <Box data-tab-button-wrapper sx={{ display: 'flex', alignItems: 'center', gap: 0.25, minWidth: 0 }}>
@@ -125,14 +131,11 @@ function TabNavButton({
           sx={getTabButtonSx(props, isActive, theme)}
         >
           {icon && (
-            <i
-              className={icon}
-              style={{
-                fontSize: iconSize,
-                opacity: isActive ? 1 : 0.65,
-                flexShrink: 0,
-                lineHeight: 1
-              }}
+            <ServiceIconGraphic
+              icon={icon}
+              fontSize={resolvedIconSize}
+              color={iconColor ?? 'inherit'}
+              sx={{ opacity: isActive ? 1 : 0.65 }}
             />
           )}
           {label}
@@ -289,6 +292,8 @@ function TabList({
           key={tab.id}
           label={tab.label}
           icon={tab.icon}
+          iconColor={tab.iconColor}
+          iconSize={tab.iconSize}
           isActive={activeIndex === index}
           props={props}
           onClick={() => onSelect(index)}
@@ -470,7 +475,7 @@ function TabsShell({ block, preview }: Props) {
       panelId={panel.id}
       children={panel.children}
       editMode={editMode}
-      emptyLabel='Drop heading, text, button, image, video, logo, or shape blocks here'
+      emptyLabel='Drop heading, text, button, image, video, logo, shape, or icon blocks here'
     />
   )
 

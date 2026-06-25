@@ -302,6 +302,13 @@ const THUMBNAILS: Record<string, Renderer> = {
     </>
   ),
 
+  'icon': ({ accent, frame }) => (
+    <>
+      <rect x="29" y="13" width="22" height="22" rx="6" fill={alpha(accent, 0.14)} stroke={alpha(accent, 0.32)} strokeWidth="0.9" />
+      <path d="M35 24 L40 19 L45 24" fill="none" stroke={accent} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
+    </>
+  ),
+
   'divider': ({ accent, mid }) => (
     <>
       <line x1="10" y1="19" x2="70" y2="19" stroke={mid} strokeWidth="1.5" strokeLinecap="round" />

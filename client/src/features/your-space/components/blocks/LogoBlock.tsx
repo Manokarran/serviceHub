@@ -6,6 +6,8 @@ import { alpha, useTheme } from '@mui/material/styles'
 
 import { getOptimizedImageUrl } from '@/lib/imagekit/urls'
 import type { LogoBlockProps } from '../../types'
+import { SitePageLink } from '../SitePageLink'
+import { getSiteLogoLinkSx } from '../../utils/siteInteractiveHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
@@ -60,7 +62,7 @@ export function LogoBlock({ props }: Props) {
       }}
     >
       {props.link && optimizedSrc ? (
-        <Box component='a' href={props.link} sx={{ display: 'inline-flex', textDecoration: 'none' }}>
+        <Box component={SitePageLink} href={props.link} sx={getSiteLogoLinkSx()}>
           {logoImage}
         </Box>
       ) : (

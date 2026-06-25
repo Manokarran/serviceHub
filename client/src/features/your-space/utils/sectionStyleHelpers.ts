@@ -1,7 +1,8 @@
 import type { SxProps, Theme } from '@mui/material/styles'
 import { alpha } from '@mui/material/styles'
 
-import type { BackgroundType, BlockBackgroundProps, ImageHoverEffect, SectionBlockProps, SectionBorderStyle, SectionLayout, SectionSplitStyle } from '../types'
+import { DEFAULT_HERO_SPLIT_VISUAL_ANIMATION } from '../constants/heroVisual'
+import type { BackgroundType, BlockBackgroundProps, ImageHoverEffect, SectionBlockProps, SectionBorderStyle, SectionLayout, SectionSplitStyle, SplitVisualConfig } from '../types'
 import { siteCanvasAbove, siteCanvasBelow } from './siteResponsiveHelpers'
 
 export function getBlockBackground(props: BlockBackgroundProps, fallback = '#ffffff'): string {
@@ -15,8 +16,40 @@ export function getBlockBackgroundType(props: BlockBackgroundProps): BackgroundT
   return props.backgroundType ?? 'color'
 }
 
-/** Opacity applied when selecting gradient, pattern, photo, video, or split-panel animation. */
-export const BLOCK_BACKGROUND_PREVIEW_OPACITY = 90
+export type BlockBackgroundMode = 'static' | 'animated'
+
+export function isAnimatedBackgroundMode(config: SplitVisualConfig): boolean {
+  const animation = config.splitVisualAnimation ?? 'static'
+
+  return animation !== 'static'
+}
+
+/** Photo, video, pattern, and gradient fills always use static layers — not animated visuals. */
+export function isEffectiveAnimatedBackgroundMode(
+  config: BlockBackgroundProps & SplitVisualConfig
+): boolean {
+  if (isMediaBackground(config)) {
+    return false
+  }
+
+  const backgroundType = getBlockBackgroundType(config)
+
+  if (isVisualBackgroundType(backgroundType) && backgroundType !== 'color') {
+    return false
+  }
+
+  return isAnimatedBackgroundMode(config)
+}
+
+export function shouldRenderBlockBackgroundLayers(
+  config: BlockBackgroundProps & SplitVisualConfig
+): boolean {
+  return !isEffectiveAnimatedBackgroundMode(config)
+}
+
+export function getBlockBackgroundMode(config: BlockBackgroundProps & SplitVisualConfig): BlockBackgroundMode {
+  return isEffectiveAnimatedBackgroundMode(config) ? 'animated' : 'static'
+}
 
 export function isVisualBackgroundType(backgroundType: string): boolean {
   return (
@@ -41,9 +74,37 @@ export function isSimpleColor(value: string): boolean {
 }
 
 export function parsePhotoUrl(background: string): string | null {
-  const match = background.match(/url\((['"]?)(.*?)\1\)/)
+  const trimmed = background.trim()
 
-  return match?.[2] ?? null
+  if (!trimmed.startsWith('url(')) {
+    return null
+  }
+
+  const quotedMatch = trimmed.match(/^url\(\s*(['"])(.*?)\1/)
+  if (quotedMatch?.[2]) {
+    return quotedMatch[2].trim()
+  }
+
+  const unquotedMatch = trimmed.match(/^url\(\s*([^)]+)\s*\)/)
+  if (unquotedMatch?.[1]) {
+    return unquotedMatch[1].trim()
+  }
+
+  return null
+}
+
+export function isValidMediaUrl(url: string | null | undefined): url is string {
+  if (!url?.trim()) {
+    return false
+  }
+
+  try {
+    const parsed = new URL(url.trim())
+
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' || parsed.protocol === 'blob:'
+  } catch {
+    return false
+  }
 }
 
 export function parseMediaUrl(background: string): string | null {
@@ -62,14 +123,44 @@ export function parseMediaUrl(background: string): string | null {
   return null
 }
 
+/** Normalize persisted photo/video values to a bare URL string. */
+export function normalizeStoredMediaUrl(background: string, backgroundType?: BackgroundType): string {
+  if (backgroundType !== 'photo' && backgroundType !== 'video') {
+    return background
+  }
+
+  const parsed = parseMediaUrl(background)
+
+  if (parsed && isValidMediaUrl(parsed)) {
+    return parsed
+  }
+
+  if (isValidMediaUrl(background)) {
+    return background.trim()
+  }
+
+  return background
+}
+
+export function resolveBlockMediaUrl(props: BlockBackgroundProps, fallback?: string): string | null {
+  const raw = getBlockBackground(props, fallback ?? '')
+  const parsed = parseMediaUrl(raw) ?? (isValidMediaUrl(raw) ? raw.trim() : null)
+
+  return parsed && isValidMediaUrl(parsed) ? parsed : null
+}
+
 export function isVideoBackground(props: BlockBackgroundProps): boolean {
+  const mediaUrl = resolveBlockMediaUrl(props)
+
+  if (!mediaUrl) {
+    return false
+  }
+
   if (props.backgroundType === 'video') {
     return true
   }
 
-  const mediaUrl = parseMediaUrl(getBlockBackground(props))
-
-  if (!mediaUrl) {
+  if (props.backgroundType === 'photo') {
     return false
   }
 
@@ -77,18 +168,18 @@ export function isVideoBackground(props: BlockBackgroundProps): boolean {
 }
 
 export function isPhotoBackground(props: BlockBackgroundProps): boolean {
+  const mediaUrl = resolveBlockMediaUrl(props)
+
+  if (!mediaUrl) {
+    return false
+  }
+
   if (props.backgroundType === 'video') {
     return false
   }
 
   if (props.backgroundType === 'photo') {
     return true
-  }
-
-  const mediaUrl = parseMediaUrl(getBlockBackground(props))
-
-  if (!mediaUrl) {
-    return false
   }
 
   return !/\.(mp4|webm|mov)(\?|#|$)/i.test(mediaUrl)
@@ -113,16 +204,37 @@ export function getPhotoAnimation(
   return props.backgroundPhotoAnimation ?? siteDefault
 }
 
-export function getPhotoOpacity(props: BlockBackgroundProps): number {
-  const opacity = props.backgroundPhotoOpacity ?? 100
+/** Unified fill opacity for color, pattern, gradient, photo, and video backgrounds. */
+export function getBlockFillOpacity(props: BlockBackgroundProps): number {
+  const opacity = props.backgroundOpacity ?? props.backgroundPhotoOpacity ?? 100
+
+  // Sections default to 0 for a transparent color fill; photo/video must remain visible.
+  if (opacity === 0 && isMediaBackground(props)) {
+    return 100
+  }
 
   return Math.min(100, Math.max(0, opacity))
 }
 
-export function getBlockBackgroundOpacity(props: { backgroundOpacity?: number }): number {
-  const opacity = props.backgroundOpacity ?? 100
+/** @deprecated Use `getBlockFillOpacity` */
+export const getPhotoOpacity = getBlockFillOpacity
 
-  return Math.min(100, Math.max(0, opacity))
+export function getBlockBackgroundOpacity(props: BlockBackgroundProps): number {
+  return getBlockFillOpacity(props)
+}
+
+export function getStaticBackgroundModeUpdate(): Pick<SplitVisualConfig, 'splitVisualAnimation'> {
+  return { splitVisualAnimation: 'static' }
+}
+
+export function getAnimatedBackgroundModeUpdate(
+  config: SplitVisualConfig
+): Pick<SplitVisualConfig, 'splitVisualAnimation'> {
+  if (isAnimatedBackgroundMode(config)) {
+    return {}
+  }
+
+  return { splitVisualAnimation: DEFAULT_HERO_SPLIT_VISUAL_ANIMATION }
 }
 
 export function applyBackgroundAlpha(color: string, opacityPercent: number): string {
@@ -190,8 +302,10 @@ export function getBlockBackgroundShellSx(
   props: BlockBackgroundProps,
   photoAnimation: ImageHoverEffect,
   photoOpacity: number,
-  fallbackColor = '#ffffff'
+  fallbackColor = '#ffffff',
+  options?: { fillEnabled?: boolean }
 ): SxProps<Theme> {
+  const fillEnabled = options?.fillEnabled ?? true
   const background = getBlockBackground(props, fallbackColor)
   const usesSimpleColor = isSimpleColor(background)
   const hasMedia = isMediaBackground(props)
@@ -200,12 +314,12 @@ export function getBlockBackgroundShellSx(
   return {
     position: 'relative',
     overflow: 'hidden',
-    ...(usesSimpleColor && !hasMedia
+    ...(fillEnabled && usesSimpleColor && !hasMedia
       ? { backgroundColor: applyBackgroundAlpha(background, backgroundOpacity) }
-      : !hasMedia
+      : !fillEnabled || !hasMedia
         ? { backgroundColor: 'transparent' }
         : {}),
-    ...(hasMedia ? getPhotoHoverSectionSx(photoAnimation, photoOpacity) : {})
+    ...(fillEnabled && hasMedia ? getPhotoHoverSectionSx(photoAnimation, photoOpacity) : {})
   }
 }
 

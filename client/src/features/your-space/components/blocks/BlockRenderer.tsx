@@ -8,17 +8,21 @@ import type {
   HeaderBlockProps,
   HeadingBlockProps,
   HeroBlockProps,
+  IconBlockProps,
+  ContactFormBlockProps,
   ImageBlockProps,
   LogoBlockProps,
   ShapeBlockProps,
   TextBlockProps,
   VideoBlockProps
 } from '../../types'
+import { ContactFormBlock } from './ContactFormBlock'
 import { ButtonBlock } from './ButtonBlock'
 import { FooterBlock } from './FooterBlock'
 import { HeaderBlock } from './HeaderBlock'
 import { HeadingBlock } from './HeadingBlock'
 import { HeroBlock } from './HeroBlock'
+import { IconBlock } from './IconBlock'
 import { ImageBlock } from './ImageBlock'
 import { LogoBlock } from './LogoBlock'
 import { ShapeBlock } from './ShapeBlock'
@@ -61,6 +65,10 @@ export function BlockRenderer({ block, preview = false }: Props) {
       return <LogoBlock props={block.props as LogoBlockProps} />
     case 'shape':
       return <ShapeBlock props={block.props as ShapeBlockProps} />
+    case 'icon':
+      return <IconBlock props={block.props as IconBlockProps} />
+    case 'contactForm':
+      return <ContactFormBlock blockId={block.id} props={block.props as ContactFormBlockProps} />
     default:
       return null
   }
@@ -80,7 +88,9 @@ export function getBlockLabel(type: Block['type']) {
     image: 'Image',
     video: 'Video',
     logo: 'Logo',
-    shape: 'Shape'
+    shape: 'Shape',
+    icon: 'Icon',
+    contactForm: 'Contact Form'
   }
 
   return labels[type]

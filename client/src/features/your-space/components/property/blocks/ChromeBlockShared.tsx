@@ -5,6 +5,8 @@ import IconButton from '@mui/material/IconButton'
 import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
 
+import { IconPicker } from '@/components/IconPicker'
+import { DEFAULT_LOGO_ICON_STYLE, type IconPickerStyle } from '@/components/iconPickerStyle'
 import { BUILDER_TYPOGRAPHY } from '../../../constants/builderLayout'
 import { builderSoftCardSx } from '../../../constants/builderChrome'
 import type { HeaderLayout, LogoPosition, NavLinkItem } from '../../../types'
@@ -45,6 +47,39 @@ function NavLinksEditor({
 
   const removeLink = (index: number) => onChange(links.filter((_, i) => i !== index))
   const addLink = () => onChange([...links, { label: 'New link', href: '#' }])
+  const addChildLink = (index: number) =>
+    onChange(
+      links.map((link, i) =>
+        i === index
+          ? {
+              ...link,
+              children: [...(link.children ?? []), { label: 'New child link', href: '#' }]
+            }
+          : link
+      )
+    )
+  const updateChildLink = (index: number, childIndex: number, changes: Partial<NavLinkItem>) =>
+    onChange(
+      links.map((link, i) =>
+        i === index
+          ? {
+              ...link,
+              children: (link.children ?? []).map((child, ci) => (ci === childIndex ? { ...child, ...changes } : child))
+            }
+          : link
+      )
+    )
+  const removeChildLink = (index: number, childIndex: number) =>
+    onChange(
+      links.map((link, i) =>
+        i === index
+          ? {
+              ...link,
+              children: (link.children ?? []).filter((_, ci) => ci !== childIndex)
+            }
+          : link
+      )
+    )
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -89,6 +124,56 @@ function NavLinksEditor({
               value={link.href}
               onChange={href => updateLink(index, { href })}
             />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, pl: 1 }}>
+              <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.secondary', m: 0 }}>
+                Child items
+              </Typography>
+              {(link.children ?? []).map((child, childIndex) => (
+                <Box
+                  key={`${index}-child-${childIndex}`}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.75,
+                    p: 1,
+                    borderRadius: 1,
+                    border: `1px dashed ${theme.palette.divider}`,
+                    backgroundColor: theme.palette.background.paper
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.secondary', m: 0 }}>
+                      Child {childIndex + 1}
+                    </Typography>
+                    <IconButton
+                      size='small'
+                      onClick={() => removeChildLink(index, childIndex)}
+                      aria-label='Remove child link'
+                      sx={{ width: 22, height: 22, color: 'text.secondary' }}
+                    >
+                      <i className='ri-close-line' style={{ fontSize: '0.75rem' }} />
+                    </IconButton>
+                  </Box>
+                  <PropertyTextField
+                    label='Label'
+                    value={child.label}
+                    onChange={label => updateChildLink(index, childIndex, { label })}
+                    placeholder='Sub item'
+                  />
+                  <PageLinkField
+                    label='Link'
+                    value={child.href}
+                    onChange={href => updateChildLink(index, childIndex, { href })}
+                  />
+                </Box>
+              ))}
+              <CompactButton
+                startIcon={<i className='ri-add-line' style={{ fontSize: '0.8rem' }} />}
+                onClick={() => addChildLink(index)}
+              >
+                Add child item
+              </CompactButton>
+            </Box>
           </Box>
         ))}
       </Box>
@@ -107,11 +192,61 @@ function NavLinksEditor({
 type BrandingProps = {
   logoText: string
   logoUrl: string
+  logoIcon?: string
+  logoIconColor?: string
+  logoIconSize?: number
+  logoIconShowBackground?: boolean
+  logoIconBackgroundColor?: string
+  logoIconBorderRadius?: number
   navLinks: NavLinkItem[]
-  onUpdate: (changes: { logoText?: string; logoUrl?: string; navLinks?: NavLinkItem[] }) => void
+  onUpdate: (changes: {
+    logoText?: string
+    logoUrl?: string
+    logoIcon?: string
+    logoIconColor?: string
+    logoIconSize?: number
+    logoIconShowBackground?: boolean
+    logoIconBackgroundColor?: string
+    logoIconBorderRadius?: number
+    navLinks?: NavLinkItem[]
+  }) => void
 }
 
-export function ChromeBlockBrandingFields({ logoText, logoUrl, navLinks, onUpdate }: BrandingProps) {
+function toLogoIconStyle(props: BrandingProps): IconPickerStyle {
+  return {
+    color: props.logoIconColor ?? DEFAULT_LOGO_ICON_STYLE.color,
+    size: props.logoIconSize ?? DEFAULT_LOGO_ICON_STYLE.size,
+    showBackground: props.logoIconShowBackground ?? DEFAULT_LOGO_ICON_STYLE.showBackground,
+    backgroundColor: props.logoIconBackgroundColor ?? DEFAULT_LOGO_ICON_STYLE.backgroundColor,
+    borderRadius: props.logoIconBorderRadius ?? DEFAULT_LOGO_ICON_STYLE.borderRadius
+  }
+}
+
+function fromLogoIconStyle(style: IconPickerStyle): Pick<
+  BrandingProps,
+  'logoIconColor' | 'logoIconSize' | 'logoIconShowBackground' | 'logoIconBackgroundColor' | 'logoIconBorderRadius'
+> {
+  return {
+    logoIconColor: style.color,
+    logoIconSize: style.size,
+    logoIconShowBackground: style.showBackground,
+    logoIconBackgroundColor: style.backgroundColor,
+    logoIconBorderRadius: style.borderRadius
+  }
+}
+
+export function ChromeBlockBrandingFields({
+  logoText,
+  logoUrl,
+  logoIcon,
+  logoIconColor,
+  logoIconSize,
+  logoIconShowBackground,
+  logoIconBackgroundColor,
+  logoIconBorderRadius,
+  navLinks,
+  onUpdate
+}: BrandingProps) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <PropertySection title='Branding' collapsible defaultOpen>
@@ -128,6 +263,29 @@ export function ChromeBlockBrandingFields({ logoText, logoUrl, navLinks, onUpdat
           onChange={logoUrl => onUpdate({ logoUrl })}
           clearLabel='Remove logo'
         />
+        <IconPicker
+          label='Logo icon'
+          value={logoIcon ?? null}
+          allowClear
+          showStyleControls
+          style={toLogoIconStyle({
+            logoText,
+            logoUrl,
+            logoIcon,
+            logoIconColor,
+            logoIconSize,
+            logoIconShowBackground,
+            logoIconBackgroundColor,
+            logoIconBorderRadius,
+            navLinks,
+            onUpdate
+          })}
+          onChange={icon => onUpdate({ logoIcon: icon ?? '' })}
+          onStyleChange={style => onUpdate(fromLogoIconStyle(style))}
+        />
+        <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, fontWeight: 400, color: 'text.disabled', m: 0, mt: -0.5 }}>
+          Used when no logo image is uploaded. Image takes priority when both are set.
+        </Typography>
       </PropertySection>
       <NavLinksEditor links={navLinks} onChange={navLinks => onUpdate({ navLinks })} />
     </Box>

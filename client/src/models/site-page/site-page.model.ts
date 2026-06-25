@@ -17,7 +17,9 @@ const BLOCK_TYPES: BlockType[] = [
   'image',
   'video',
   'logo',
-  'shape'
+  'shape',
+  'icon',
+  'contactForm'
 ]
 
 

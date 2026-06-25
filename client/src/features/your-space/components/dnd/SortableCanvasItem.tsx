@@ -82,9 +82,11 @@ export function SortableCanvasItem({
   const blockRef = useRef<HTMLElement | null>(null)
   const isSelected = selectedBlockId === block.id
   const isEditMode = mode === 'edit'
+  const isPreviewCanvas = preview || mode === 'preview'
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
+    disabled: isPreviewCanvas,
     data: { source: 'canvas', type: block.type, blockId: block.id }
   })
 
@@ -98,7 +100,7 @@ export function SortableCanvasItem({
     blockRef.current = node
   }
 
-  if (preview) {
+  if (isPreviewCanvas) {
     return <BlockRenderer block={block} preview />
   }
 
@@ -116,6 +118,7 @@ export function SortableCanvasItem({
       sx={{
         position: 'relative',
         overflow: 'visible',
+        backgroundColor: 'transparent',
         opacity: isDragging ? 0.5 : 1,
         zIndex: isSelected
           ? BUILDER_Z_INDEX.canvasBlockSelected
@@ -136,7 +139,7 @@ export function SortableCanvasItem({
       }}
     >
       <CanvasBlockEditProvider block={block} updateProps={changes => updateBlock(block.id, changes)}>
-        <BlockRenderer block={block} preview={mode === 'preview'} />
+        <BlockRenderer block={block} />
         {isEditMode && isSelected && (
           <SelectedBlockToolbar
             block={block}

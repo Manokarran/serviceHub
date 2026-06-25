@@ -5,9 +5,10 @@ import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import { useTheme } from '@mui/material/styles'
+import { alpha, useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
+import { getPublicPagePath } from '@/lib/utils/public-site-url'
 import {
   BUILDER_CANVAS_TOOLBAR_HEIGHT,
   BUILDER_TYPOGRAPHY,
@@ -23,10 +24,97 @@ const VIEWPORT_OPTIONS: { value: BuilderViewport; icon: string; label: string }[
   { value: 'mobile', icon: 'ri-smartphone-line', label: 'Mobile' }
 ]
 
+function CanvasAddressBar({
+  host,
+  path,
+  pageTitle,
+  isLoading
+}: {
+  host: string
+  path: string
+  pageTitle: string
+  isLoading: boolean
+}) {
+  const theme = useTheme()
+
+  return (
+    <Tooltip title={`${pageTitle} · ${host}${path}`} placement='bottom'>
+      <Box
+        aria-label={`Page URL: ${host}${path}`}
+        sx={{
+          display: { xs: 'none', sm: 'flex' },
+          alignItems: 'center',
+          gap: 0.75,
+          width: '100%',
+          maxWidth: 420,
+          px: 1.25,
+          py: 0.5,
+          borderRadius: '100px',
+          ...builderControlTrackSx(theme),
+          opacity: isLoading ? 0.55 : 1,
+          transition: 'opacity 0.2s ease',
+          cursor: 'default'
+        }}
+      >
+        <Box
+          component='span'
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 18,
+            height: 18,
+            flexShrink: 0,
+            borderRadius: '50%',
+            backgroundColor: alpha(theme.palette.success.main, 0.12),
+            color: 'success.main'
+          }}
+        >
+          <i className='ri-lock-line' style={{ fontSize: '0.6rem' }} />
+        </Box>
+        <Typography
+          component='span'
+          sx={{
+            ...BUILDER_TYPOGRAPHY.label,
+            color: 'text.disabled',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            fontSize: '0.625rem',
+            letterSpacing: 0,
+            flexShrink: 0
+          }}
+          noWrap
+        >
+          {host}
+        </Typography>
+        <Typography
+          component='span'
+          sx={{
+            ...BUILDER_TYPOGRAPHY.label,
+            color: 'text.secondary',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            fontSize: '0.6875rem',
+            letterSpacing: 0,
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {path}
+        </Typography>
+      </Box>
+    </Tooltip>
+  )
+}
+
 export function BuilderCanvasToolbar() {
   const theme = useTheme()
   const isNarrow = useMediaQuery(theme.breakpoints.down('md'))
-  const { mode, setMode, viewport, setViewport } = useBuilder()
+  const { mode, setMode, viewport, setViewport, tenantSlug, currentPageSlug, currentPageTitle, isPageSwitching } =
+    useBuilder()
+
+  const pagePath = getPublicPagePath(tenantSlug, currentPageSlug)
+  const displayHost = typeof window !== 'undefined' ? window.location.host : 'yoursite.com'
 
   return (
     <Box
@@ -45,7 +133,7 @@ export function BuilderCanvasToolbar() {
       }}
     >
       {/* Viewport switcher */}
-      <Box sx={{ display: 'flex', alignItems: 'center', flex: '1 1 auto', minWidth: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', minWidth: 0 }}>
         <ToggleButtonGroup
           exclusive
           size='small'
@@ -56,8 +144,8 @@ export function BuilderCanvasToolbar() {
           {VIEWPORT_OPTIONS.map(option => (
             <ToggleButton key={option.value} value={option.value} aria-label={option.label}>
               <Tooltip title={option.label}>
-                <Box component='span' sx={{ display: 'flex', alignItems: 'center', px: isNarrow ? 0.25 : 0 }}>
-                  <i className={option.icon} style={{ fontSize: '0.875rem' }} />
+                <Box component='span' sx={{ display: 'flex', alignItems: 'center', px: isNarrow ? 0.25 : 0.125 }}>
+                  <i className={option.icon} style={{ fontSize: '0.9rem' }} />
                 </Box>
               </Tooltip>
             </ToggleButton>
@@ -65,38 +153,26 @@ export function BuilderCanvasToolbar() {
         </ToggleButtonGroup>
       </Box>
 
-      {/* Page path — read-only breadcrumb */}
+      {/* Page URL — centered address bar */}
       <Box
         sx={{
           display: { xs: 'none', sm: 'flex' },
-          alignItems: 'center',
-          gap: 0.75,
-          px: 1.25,
-          py: 0.375,
-          borderRadius: 1,
-          ...builderControlTrackSx(theme),
-          maxWidth: 280,
-          minWidth: 140
+          flex: '1 1 0',
+          minWidth: 0,
+          justifyContent: 'center',
+          px: 1
         }}
       >
-        <i className='ri-home-4-line' style={{ fontSize: '0.75rem', opacity: 0.45 }} />
-        <Typography
-          component='span'
-          sx={{
-            ...BUILDER_TYPOGRAPHY.label,
-            color: 'text.secondary',
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-            fontSize: '0.6875rem',
-            letterSpacing: 0
-          }}
-          noWrap
-        >
-          /home
-        </Typography>
+        <CanvasAddressBar
+          host={displayHost}
+          path={pagePath}
+          pageTitle={currentPageTitle}
+          isLoading={isPageSwitching}
+        />
       </Box>
 
       {/* Edit / Preview */}
-      <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, ml: 'auto' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
         <ToggleButtonGroup
           exclusive
           size='small'

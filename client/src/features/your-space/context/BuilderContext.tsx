@@ -1,13 +1,14 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
 
 import {
   createSitePageAction,
   deleteSitePageAction,
+  duplicateSitePageAction,
   getSitePageAction,
   listSitePageVersionsAction,
-  publishSitePageAction,
+  publishAllSitePagesAction,
   saveSitePageDraftAction,
   updateSitePageMetaAction
 } from '@/app/actions/site-page.actions'
@@ -21,7 +22,7 @@ import type { Block, BlockType, BuilderMode, BuilderSidebarPanel, BuilderViewpor
 import type { SiteStyles } from '../types/siteStyles'
 import { blocksEqual } from '../utils/blocksEqual'
 import { normalizeBlocks } from '../utils/blockMigration'
-import { createBlock } from '../utils/blockFactory'
+import { cloneBlockWithNewIds, createBlock } from '../utils/blockFactory'
 import {
   addBlockToTree,
   deleteBlockFromTree,
@@ -220,7 +221,12 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         lastPublishedAt: action.publishedAt,
         lastSavedAt: action.publishedAt,
         versions: action.versions,
-        publishError: null
+        publishError: null,
+        pages: state.pages.map(page => ({
+          ...page,
+          hasUnpublishedChanges: false,
+          publishedAt: action.publishedAt
+        }))
       }
     case 'SET_SAVE_ERROR':
       return { ...state, isSaving: false, saveError: action.error }
@@ -258,6 +264,12 @@ type BuilderContextValue = BuilderState & {
   addBlock: (type: BlockType, target?: BlockLocation, paletteId?: string) => Block
   updateBlock: (id: string, props: Partial<Block['props']>) => void
   deleteBlock: (id: string) => void
+  /** The block currently held in the copy clipboard (null if empty). */
+  copiedBlock: Block | null
+  /** Copy a block to the clipboard. */
+  copyBlock: (block: Block) => void
+  /** Paste the clipboard block after a given block id (root-level). Clears clipboard after paste. */
+  pasteBlock: (afterBlockId?: string) => void
   moveBlock: (activeId: string, overId: string | number) => void
   selectBlock: (id: string | null) => void
   setMode: (mode: BuilderMode) => void
@@ -268,10 +280,16 @@ type BuilderContextValue = BuilderState & {
   savePage: () => Promise<void>
   publishPage: () => Promise<void>
   switchPage: (slug: string) => Promise<void>
-  createPage: (title: string) => Promise<{ success: true; page: SitePageSummary } | { success: false; error: string }>
+  createPage: (
+    title: string,
+    options?: { slug?: string }
+  ) => Promise<{ success: true; page: SitePageSummary } | { success: false; error: string }>
+  duplicatePage: (sourceSlug: string, newTitle: string) => Promise<{ success: true; page: SitePageSummary } | { success: false; error: string }>
   deletePage: (slug: string) => Promise<void>
   updatePageMeta: (slug: string, input: { title?: string; description?: string }) => Promise<void>
   refreshPages: () => Promise<void>
+  /** Replace current page draft with blocks from another page (paste-blocks-to-page). */
+  pasteBlocksFromPage: (sourceSlug: string) => Promise<void>
   restoreVersionToDraft: (blocks: Block[], savedAt: string) => void
   setVersions: (versions: PublishedVersionSummary[]) => void
   resetToStarter: () => void
@@ -396,7 +414,7 @@ export function BuilderProvider({
   }, [])
 
   const persistDraft = useCallback(
-    async (pageSlug: string, blocks: Block[], siteStyles: SiteStyles) => {
+    async (pageSlug: string, blocks: Block[], siteStyles: SiteStyles): Promise<boolean> => {
       dispatch({ type: 'SET_SAVING', isSaving: true })
 
       const stylesChanged = !siteStylesEqual(siteStyles, publishedSiteStylesRef.current)
@@ -409,7 +427,7 @@ export function BuilderProvider({
       if (!result.success) {
         dispatch({ type: 'SET_SAVE_ERROR', error: result.error })
 
-        return
+        return false
       }
 
       if (!isHomePageSlug(pageSlug) && stylesChanged) {
@@ -423,6 +441,8 @@ export function BuilderProvider({
       dispatch({ type: 'MARK_SAVED', savedAt: result.savedAt })
       localStorage.removeItem(getStorageKey(tenantSlug, pageSlug))
       void refreshPages()
+
+      return true
     },
     [tenantSlug, refreshPages]
   )
@@ -527,12 +547,24 @@ export function BuilderProvider({
     tenantSlug
   ])
 
-  const hasUnpublishedChanges = useMemo(
-    () =>
+  const hasUnpublishedChanges = useMemo(() => {
+    const currentPageHasChanges =
       !blocksEqual(state.blocks, state.publishedBlocks) ||
-      !siteStylesEqual(state.siteStyles, state.publishedSiteStyles),
-    [state.blocks, state.publishedBlocks, state.siteStyles, state.publishedSiteStyles]
-  )
+      !siteStylesEqual(state.siteStyles, state.publishedSiteStyles)
+
+    const otherPagesHaveChanges = state.pages.some(
+      page => page.slug !== state.currentPageSlug && page.hasUnpublishedChanges
+    )
+
+    return currentPageHasChanges || otherPagesHaveChanges
+  }, [
+    state.blocks,
+    state.publishedBlocks,
+    state.siteStyles,
+    state.publishedSiteStyles,
+    state.pages,
+    state.currentPageSlug
+  ])
 
   const selectedBlock = useMemo(
     () => (state.selectedBlockId ? findBlockInTree(state.blocks, state.selectedBlockId) : null),
@@ -555,6 +587,35 @@ export function BuilderProvider({
   const deleteBlock = useCallback((id: string) => {
     dispatch({ type: 'DELETE_BLOCK', id })
   }, [])
+
+  // Block clipboard — persists across page switches (component-level state, not in reducer)
+  const [copiedBlock, setCopiedBlock] = useState<Block | null>(null)
+
+  const copyBlock = useCallback((block: Block) => {
+    setCopiedBlock(block)
+  }, [])
+
+  const pasteBlock = useCallback(
+    (afterBlockId?: string) => {
+      if (!copiedBlock) return
+
+      const clone = cloneBlockWithNewIds(copiedBlock)
+
+      // Find root-level index to insert after; fall back to end
+      let index = blocksRef.current.length
+
+      if (afterBlockId) {
+        const rootIndex = blocksRef.current.findIndex(b => b.id === afterBlockId)
+
+        if (rootIndex !== -1) {
+          index = rootIndex + 1
+        }
+      }
+
+      dispatch({ type: 'ADD_BLOCK', block: clone, target: { container: 'root', index } })
+    },
+    [copiedBlock]
+  )
 
   const moveBlockAction = useCallback((activeId: string, overId: string | number) => {
     dispatch({ type: 'MOVE_BLOCK', activeId, overId })
@@ -590,16 +651,22 @@ export function BuilderProvider({
 
   const publishPage = useCallback(async () => {
     dispatch({ type: 'SET_PUBLISHING', isPublishing: true })
+    dispatch({ type: 'SET_PUBLISH_ERROR', error: null })
 
     const pageSlug = currentPageSlugRef.current
     const blocks = blocksRef.current
     const siteStyles = siteStylesRef.current
-    const stylesChanged = !siteStylesEqual(siteStyles, publishedSiteStylesRef.current)
-    const result = await publishSitePageAction(
-      pageSlug,
-      blocks,
-      isHomePageSlug(pageSlug) ? siteStyles : undefined
-    )
+    const pageSlugs = state.pages.map(page => page.slug)
+
+    const saved = await persistDraft(pageSlug, blocks, siteStyles)
+
+    if (!saved) {
+      dispatch({ type: 'SET_PUBLISHING', isPublishing: false })
+
+      return
+    }
+
+    const result = await publishAllSitePagesAction()
 
     if (!result.success) {
       dispatch({ type: 'SET_PUBLISH_ERROR', error: result.error })
@@ -607,24 +674,23 @@ export function BuilderProvider({
       return
     }
 
-    if (!isHomePageSlug(pageSlug) && stylesChanged) {
-      const homePage = await getSitePageAction('home')
-
-      if (homePage.success) {
-        await publishSitePageAction('home', homePage.page.draftBlocks, siteStyles)
-      }
-    }
+    const versionsResult = await listSitePageVersionsAction(pageSlug)
+    const versions = versionsResult.success ? versionsResult.versions : result.versions
 
     dispatch({
       type: 'MARK_PUBLISHED',
       publishedAt: result.publishedAt,
       publishedBlocks: blocks,
       publishedSiteStyles: siteStyles,
-      versions: result.versions
+      versions
     })
-    localStorage.removeItem(getStorageKey(tenantSlug, pageSlug))
+
+    for (const slug of pageSlugs) {
+      localStorage.removeItem(getStorageKey(tenantSlug, slug))
+    }
+
     void refreshPages()
-  }, [tenantSlug, refreshPages])
+  }, [persistDraft, tenantSlug, refreshPages, state.pages])
 
   const switchPage = useCallback(
     async (slug: string) => {
@@ -667,8 +733,8 @@ export function BuilderProvider({
   )
 
   const createPage = useCallback(
-    async (title: string) => {
-      const result = await createSitePageAction({ title })
+    async (title: string, options?: { slug?: string }) => {
+      const result = await createSitePageAction({ title, ...options })
 
       if (result.success) {
         void refreshPages()
@@ -677,6 +743,34 @@ export function BuilderProvider({
       return result
     },
     [refreshPages]
+  )
+
+  const duplicatePage = useCallback(
+    async (sourceSlug: string, newTitle: string) => {
+      const result = await duplicateSitePageAction(sourceSlug, newTitle)
+
+      if (result.success) {
+        void refreshPages()
+      }
+
+      return result
+    },
+    [refreshPages]
+  )
+
+  const pasteBlocksFromPage = useCallback(
+    async (sourceSlug: string) => {
+      const result = await getSitePageAction(sourceSlug)
+
+      if (!result.success) {
+        return
+      }
+
+      const sourceBlocks = normalizeBlocks(toPlainJson(result.page.draftBlocks) as Block[])
+
+      dispatch({ type: 'SET_BLOCKS', blocks: sourceBlocks, savedAt: state.lastSavedAt ?? new Date().toISOString() })
+    },
+    [state.lastSavedAt]
   )
 
   const deletePage = useCallback(
@@ -761,6 +855,9 @@ export function BuilderProvider({
       addBlock,
       updateBlock,
       deleteBlock,
+      copiedBlock,
+      copyBlock,
+      pasteBlock,
       moveBlock: moveBlockAction,
       selectBlock,
       setMode,
@@ -772,9 +869,11 @@ export function BuilderProvider({
       publishPage,
       switchPage,
       createPage,
+      duplicatePage,
       deletePage,
       updatePageMeta,
       refreshPages,
+      pasteBlocksFromPage,
       restoreVersionToDraft,
       setVersions,
       resetToStarter,
@@ -788,6 +887,9 @@ export function BuilderProvider({
       addBlock,
       updateBlock,
       deleteBlock,
+      copiedBlock,
+      copyBlock,
+      pasteBlock,
       moveBlockAction,
       selectBlock,
       setMode,
@@ -799,9 +901,11 @@ export function BuilderProvider({
       publishPage,
       switchPage,
       createPage,
+      duplicatePage,
       deletePage,
       updatePageMeta,
       refreshPages,
+      pasteBlocksFromPage,
       restoreVersionToDraft,
       setVersions,
       resetToStarter,

@@ -32,6 +32,14 @@ type Props = {
   onToggleFullscreen: () => void
 }
 
+const STATUS_ICONS: Record<string, string> = {
+  info: 'ri-loader-4-line',
+  warning: 'ri-alert-line',
+  success: 'ri-check-line',
+  error: 'ri-error-warning-line',
+  neutral: 'ri-save-line'
+}
+
 function SaveStatusIndicator({
   label,
   tone
@@ -52,38 +60,42 @@ function SaveStatusIndicator({
           }
 
   const isActive = tone === 'info'
+  const icon = STATUS_ICONS[tone]
 
   return (
     <Box
       sx={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 0.625,
+        gap: 0.5,
         px: 1,
         py: 0.375,
-        borderRadius: 1,
+        borderRadius: '100px',
         border: '1px solid',
-        borderColor: alpha(palette.main, 0.15),
+        borderColor: alpha(palette.main, 0.18),
         backgroundColor: palette.bg,
         maxWidth: { xs: 140, sm: 220 }
       }}
     >
       <Box
+        component='span'
         sx={{
-          width: 5,
-          height: 5,
-          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
           flexShrink: 0,
-          backgroundColor: palette.main,
+          color: palette.main,
+          fontSize: '0.7rem',
           ...(isActive && {
-            animation: 'builderPulse 1.4s ease-in-out infinite',
-            '@keyframes builderPulse': {
-              '0%, 100%': { opacity: 1, transform: 'scale(1)' },
-              '50%': { opacity: 0.45, transform: 'scale(0.85)' }
+            animation: 'builderSpin 1s linear infinite',
+            '@keyframes builderSpin': {
+              from: { transform: 'rotate(0deg)' },
+              to: { transform: 'rotate(360deg)' }
             }
           })
         }}
-      />
+      >
+        <i className={icon} />
+      </Box>
       <Typography
         variant='caption'
         sx={{
@@ -125,10 +137,119 @@ function ToolbarIconButton({
   )
 }
 
+function PageSwitcher({ compact = false }: { compact?: boolean }) {
+  const theme = useTheme()
+  const { pages, currentPageSlug, currentPageTitle, isPageSwitching, switchPage } = useBuilder()
+  const [anchor, setAnchor] = useState<null | HTMLElement>(null)
+  const open = Boolean(anchor)
+
+  const currentPage = pages.find(page => page.slug === currentPageSlug)
+
+  return (
+    <>
+      <Box
+        component='button'
+        type='button'
+        onClick={event => setAnchor(event.currentTarget)}
+        aria-haspopup='listbox'
+        aria-expanded={open}
+        aria-label='Switch page'
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.5,
+          maxWidth: compact ? 160 : 220,
+          px: compact ? 0.75 : 1,
+          py: 0.375,
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+          borderRadius: 1.25,
+          backgroundColor: alpha(theme.palette.primary.main, 0.05),
+          cursor: 'pointer',
+          color: 'text.primary',
+          transition: 'background-color 0.15s, border-color 0.15s',
+          '&:hover': {
+            backgroundColor: alpha(theme.palette.primary.main, 0.09),
+            borderColor: alpha(theme.palette.primary.main, 0.28)
+          }
+        }}
+      >
+        <i
+          className={currentPage?.isHome ? 'ri-home-4-fill' : 'ri-file-3-line'}
+          style={{ fontSize: '0.8rem', color: theme.palette.primary.main, flexShrink: 0 }}
+        />
+        <Box sx={{ minWidth: 0, textAlign: 'left' }}>
+          <Typography
+            component='span'
+            sx={{ ...BUILDER_TYPOGRAPHY.title, display: 'block', lineHeight: 1.2 }}
+            noWrap
+          >
+            {currentPageTitle}
+          </Typography>
+          {!compact && (
+            <Typography
+              component='span'
+              sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.disabled', display: 'block', lineHeight: 1.2 }}
+              noWrap
+            >
+              Editing page
+            </Typography>
+          )}
+        </Box>
+        <i className='ri-arrow-down-s-line' style={{ fontSize: '0.9rem', color: theme.palette.text.secondary, flexShrink: 0 }} />
+      </Box>
+
+      <Menu
+        anchorEl={anchor}
+        open={open}
+        onClose={() => setAnchor(null)}
+        transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+        slotProps={{ paper: { sx: { minWidth: 220, mt: 0.5, maxHeight: 360 } } }}
+      >
+        {pages.map(page => {
+          const isActive = page.slug === currentPageSlug
+
+          return (
+            <MenuItem
+              key={page.slug}
+              selected={isActive}
+              disabled={isPageSwitching}
+              onClick={() => {
+                setAnchor(null)
+
+                if (!isActive) {
+                  void switchPage(page.slug)
+                }
+              }}
+              sx={{ gap: 1 }}
+            >
+              <ListItemIcon sx={{ minWidth: 28 }}>
+                <i className={page.isHome ? 'ri-home-4-fill' : 'ri-file-3-line'} />
+              </ListItemIcon>
+              <ListItemText
+                primary={page.title}
+                secondary={page.isHome ? 'Home page' : undefined}
+                slotProps={{
+                  primary: { sx: BUILDER_TYPOGRAPHY.title },
+                  secondary: { sx: BUILDER_TYPOGRAPHY.label }
+                }}
+              />
+              {isActive && (
+                <i className='ri-check-line' style={{ fontSize: '0.9rem', color: theme.palette.primary.main }} />
+              )}
+            </MenuItem>
+          )
+        })}
+      </Menu>
+    </>
+  )
+}
+
 export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }: Props) {
   const theme = useTheme()
   const isCompact = useMediaQuery(theme.breakpoints.down('md'))
   const isNarrow = useMediaQuery(theme.breakpoints.down('sm'))
+  const isMobileSidebar = useMediaQuery(theme.breakpoints.down('lg'))
 
   const {
     isDirty,
@@ -208,35 +329,49 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
             px: { xs: 1.25, sm: 2 }
           }}
         >
-          {/* Left — site identity */}
+          {/* Left — site identity + page context */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: '1 1 140px' }}>
             <Box
               sx={{
-                width: 28,
-                height: 28,
-                borderRadius: 1,
-                display: 'flex',
+                width: 30,
+                height: 30,
+                borderRadius: 1.25,
+                display: { xs: isNarrow ? 'none' : 'flex', sm: 'flex' },
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                backgroundColor: alpha(theme.palette.text.primary, 0.05),
-                color: 'text.secondary'
+                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.2)} 0%, ${alpha(theme.palette.primary.main, 0.08)} 100%)`,
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
+                color: 'primary.main',
+                boxShadow: `0 1px 4px ${alpha(theme.palette.primary.main, 0.12)}`
               }}
             >
               <i className='ri-global-line' style={{ fontSize: '0.875rem' }} />
             </Box>
-            <Box sx={{ minWidth: 0, display: { xs: isNarrow ? 'none' : 'block', sm: 'block' } }}>
-              <Typography variant='body2' sx={{ ...BUILDER_TYPOGRAPHY.title, lineHeight: 1.2 }} noWrap>
-                {tenantName}
-              </Typography>
+            <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.375 }}>
               <Typography
-                variant='caption'
-                sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.disabled', display: 'block', lineHeight: 1.2 }}
+                variant='body2'
+                sx={{
+                  ...BUILDER_TYPOGRAPHY.title,
+                  lineHeight: 1.2,
+                  display: { xs: isNarrow ? 'none' : 'block', sm: 'block' }
+                }}
                 noWrap
               >
-                {currentPageTitle}
-                {currentPageSlug === 'home' ? ' · Home' : ''}
+                {tenantName}
               </Typography>
+              {isMobileSidebar ? (
+                <PageSwitcher compact={isNarrow} />
+              ) : (
+                <Typography
+                  variant='caption'
+                  sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.disabled', display: 'block', lineHeight: 1.2 }}
+                  noWrap
+                >
+                  {currentPageTitle}
+                  {currentPageSlug === 'home' ? ' · Home' : ''}
+                </Typography>
+              )}
             </Box>
           </Box>
 
@@ -287,19 +422,20 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
                 onClick={() => void savePage()}
                 disabled={isSaving || isPublishing}
                 sx={{
-                  border: 'none',
+                  border: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
                   background: 'none',
                   cursor: isSaving || isPublishing ? 'not-allowed' : 'pointer',
                   opacity: isSaving || isPublishing ? 0.5 : 1,
                   ...BUILDER_TYPOGRAPHY.action,
                   color: 'text.secondary',
-                  px: 0.75,
-                  py: 0.375,
-                  borderRadius: 0.75,
-                  transition: 'color 0.12s, background-color 0.12s',
+                  px: 1.125,
+                  py: 0.4375,
+                  borderRadius: '100px',
+                  transition: 'color 0.15s, background-color 0.15s, border-color 0.15s',
                   '&:hover': {
                     color: 'text.primary',
-                    backgroundColor: alpha(theme.palette.text.primary, 0.04)
+                    backgroundColor: alpha(theme.palette.text.primary, 0.05),
+                    borderColor: alpha(theme.palette.text.primary, 0.18)
                   }
                 }}
               >
@@ -316,22 +452,22 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
                 border: 'none',
                 cursor: isPublishing || isSaving || !hasUnpublishedChanges ? 'not-allowed' : 'pointer',
                 ...BUILDER_TYPOGRAPHY.action,
-                px: 1.25,
-                py: 0.4375,
-                borderRadius: 1,
+                px: 1.375,
+                py: 0.5,
+                borderRadius: '100px',
                 backgroundColor: 'text.primary',
                 color: 'background.paper',
-                transition: 'opacity 0.12s, background-color 0.12s',
-                opacity: isPublishing || isSaving || !hasUnpublishedChanges ? 0.45 : 1,
+                transition: 'opacity 0.15s, box-shadow 0.15s',
+                opacity: isPublishing || isSaving || !hasUnpublishedChanges ? 0.4 : 1,
+                boxShadow: isPublishing || isSaving || !hasUnpublishedChanges
+                  ? 'none'
+                  : `0 2px 8px ${alpha(theme.palette.common.black, 0.2)}, 0 1px 2px ${alpha(theme.palette.common.black, 0.12)}`,
                 '&:hover': {
-                  backgroundColor:
-                    isPublishing || isSaving || !hasUnpublishedChanges
-                      ? 'text.primary'
-                      : alpha(theme.palette.text.primary, 0.88)
+                  opacity: isPublishing || isSaving || !hasUnpublishedChanges ? 0.4 : 0.88
                 }
               }}
             >
-              {isPublishing ? 'Publishing...' : 'Publish'}
+              {isPublishing ? 'Publishing...' : 'Publish site'}
             </Box>
 
             <ToolbarIconButton

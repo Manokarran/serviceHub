@@ -8,17 +8,21 @@ import { alpha, useTheme } from '@mui/material/styles'
 
 import { builderControlTrackSx } from '../constants/builderChrome'
 import { ComponentPaletteContent } from './ComponentPalette'
+import { PagesPanel } from './pages/PagesPanel'
 import { PropertyPanelContent } from './PropertyPanel'
 import type { PropertyPanelTab } from './property/PropertyPanelUi'
 import { SiteStylesPanel } from './site-styles/SiteStylesPanel'
 
 type Props = {
+  pagesOpen: boolean
   paletteOpen: boolean
   propertiesOpen: boolean
   stylesOpen: boolean
   hasSelectedBlock: boolean
   propertyPanelFocusTab?: PropertyPanelTab | null
   onPropertyPanelFocusTabConsumed?: () => void
+  onPagesOpen: () => void
+  onPagesClose: () => void
   onPaletteOpen: () => void
   onPaletteClose: () => void
   onPropertiesOpen: () => void
@@ -28,12 +32,15 @@ type Props = {
 }
 
 export function BuilderMobileDrawers({
+  pagesOpen,
   paletteOpen,
   propertiesOpen,
   stylesOpen,
   hasSelectedBlock,
   propertyPanelFocusTab,
   onPropertyPanelFocusTabConsumed,
+  onPagesOpen,
+  onPagesClose,
   onPaletteOpen,
   onPaletteClose,
   onPropertiesOpen,
@@ -42,12 +49,25 @@ export function BuilderMobileDrawers({
   onStylesClose
 }: Props) {
   const theme = useTheme()
+  const anyDrawerOpen = pagesOpen || paletteOpen || propertiesOpen || stylesOpen
+
+  const closeOtherDrawers = (keep: 'pages' | 'palette' | 'properties' | 'styles') => {
+    if (keep !== 'pages') onPagesClose()
+    if (keep !== 'palette') onPaletteClose()
+    if (keep !== 'properties') onPropertiesClose()
+    if (keep !== 'styles') onStylesClose()
+  }
 
   return (
     <>
-      {paletteOpen && (
+      {anyDrawerOpen && (
         <Box
-          onClick={onPaletteClose}
+          onClick={() => {
+            onPagesClose()
+            onPaletteClose()
+            onPropertiesClose()
+            onStylesClose()
+          }}
           sx={{
             position: 'fixed',
             inset: 0,
@@ -57,6 +77,29 @@ export function BuilderMobileDrawers({
           }}
         />
       )}
+
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: theme.zIndex.drawer,
+          display: { xs: 'block', lg: 'none' },
+          transform: pagesOpen ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.3s ease',
+          maxHeight: '85vh',
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          overflow: 'hidden',
+          backgroundColor: 'background.paper',
+          boxShadow: `0 -8px 32px ${alpha(theme.palette.common.black, 0.12)}`
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
+          <PagesPanel onClose={onPagesClose} />
+        </Box>
+      </Box>
 
       <Box
         sx={{
@@ -80,19 +123,6 @@ export function BuilderMobileDrawers({
           <ComponentPaletteContent onClose={onPaletteClose} />
         </Box>
       </Box>
-
-      {propertiesOpen && (
-        <Box
-          onClick={onPropertiesClose}
-          sx={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: theme.zIndex.drawer - 1,
-            backgroundColor: alpha(theme.palette.common.black, 0.4),
-            display: { xs: 'block', lg: 'none' }
-          }}
-        />
-      )}
 
       <Box
         sx={{
@@ -144,19 +174,6 @@ export function BuilderMobileDrawers({
         </Box>
       </Box>
 
-      {stylesOpen && (
-        <Box
-          onClick={onStylesClose}
-          sx={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: theme.zIndex.drawer - 1,
-            backgroundColor: alpha(theme.palette.common.black, 0.4),
-            display: { xs: 'block', lg: 'none' }
-          }}
-        />
-      )}
-
       <Paper
         elevation={0}
         sx={{
@@ -177,26 +194,40 @@ export function BuilderMobileDrawers({
           boxShadow: `0 4px 24px ${alpha(theme.palette.common.black, 0.1)}, 0 0 0 1px ${alpha(theme.palette.primary.main, 0.06)}`
         }}
       >
-        <Tooltip title='Site styles'>
+        <Tooltip title='Pages'>
           <IconButton
             size='small'
-            onClick={onStylesOpen}
-            aria-label='Site styles'
+            onClick={() => {
+              if (pagesOpen) {
+                onPagesClose()
+              } else {
+                closeOtherDrawers('pages')
+                onPagesOpen()
+              }
+            }}
+            aria-label='Pages'
             sx={{
               width: 44,
               height: 44,
               borderRadius: '50%',
-              backgroundColor: stylesOpen ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
-              color: stylesOpen ? 'primary.main' : 'text.secondary'
+              backgroundColor: pagesOpen ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
+              color: pagesOpen ? 'primary.main' : 'text.secondary'
             }}
           >
-            <i className='ri-palette-line' style={{ fontSize: '1.15rem' }} />
+            <i className='ri-pages-line' style={{ fontSize: '1.15rem' }} />
           </IconButton>
         </Tooltip>
         <Tooltip title='Add blocks'>
           <IconButton
             size='small'
-            onClick={onPaletteOpen}
+            onClick={() => {
+              if (paletteOpen) {
+                onPaletteClose()
+              } else {
+                closeOtherDrawers('palette')
+                onPaletteOpen()
+              }
+            }}
             aria-label='Add blocks'
             sx={{
               width: 44,
@@ -209,11 +240,41 @@ export function BuilderMobileDrawers({
             <i className='ri-add-box-line' style={{ fontSize: '1.15rem' }} />
           </IconButton>
         </Tooltip>
+        <Tooltip title='Site styles'>
+          <IconButton
+            size='small'
+            onClick={() => {
+              if (stylesOpen) {
+                onStylesClose()
+              } else {
+                closeOtherDrawers('styles')
+                onStylesOpen()
+              }
+            }}
+            aria-label='Site styles'
+            sx={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              backgroundColor: stylesOpen ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
+              color: stylesOpen ? 'primary.main' : 'text.secondary'
+            }}
+          >
+            <i className='ri-palette-line' style={{ fontSize: '1.15rem' }} />
+          </IconButton>
+        </Tooltip>
         <Tooltip title='Block settings'>
           <span>
             <IconButton
               size='small'
-              onClick={onPropertiesOpen}
+              onClick={() => {
+                if (propertiesOpen) {
+                  onPropertiesClose()
+                } else {
+                  closeOtherDrawers('properties')
+                  onPropertiesOpen()
+                }
+              }}
               disabled={!hasSelectedBlock}
               aria-label='Block settings'
               sx={{

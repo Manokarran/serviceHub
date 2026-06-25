@@ -12,12 +12,10 @@ import { alpha, useTheme } from '@mui/material/styles'
 import { SECTION_LAYOUT_OPTIONS } from '../constants/sectionLayout'
 import { SECTION_SPLIT_STYLE_OPTIONS } from '../utils/sectionStyleHelpers'
 import type { SectionBlockProps } from '../types'
-import { AnimatedBackgroundControls } from './AnimatedBackgroundControls'
 import { LayoutOptionGroup, PropertyBodyText, PropertyFieldLabel, PropertySection } from './property/PropertyPanelUi'
 
 type Props = {
   props: SectionBlockProps
-  accentColor: string
   onUpdate: (changes: Partial<SectionBlockProps>) => void
 }
 
@@ -47,7 +45,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   )
 }
 
-export function SectionLayoutControls({ props, accentColor, onUpdate }: Props) {
+export function SectionLayoutControls({ props, onUpdate }: Props) {
   const isSplit = props.layout === 'split-horizontal' || props.layout === 'split-vertical'
 
   return (
@@ -98,17 +96,6 @@ export function SectionLayoutControls({ props, accentColor, onUpdate }: Props) {
             </PropertyFieldLabel>
             <Slider value={props.splitRatio ?? 50} min={30} max={70} step={5} onChange={(_, value) => onUpdate({ splitRatio: value as number })} />
           </Box>
-          <PropertySection title='Column animation' collapsible defaultOpen={false}>
-            <PropertyBodyText>Motion layer behind each column in this layout.</PropertyBodyText>
-            <AnimatedBackgroundControls
-              config={props}
-              accentColor={accentColor}
-              onUpdate={onUpdate}
-              syncBlockBackgroundOpacity
-              hidePlacementControls
-              placementHint='Applies to both columns in this layout.'
-            />
-          </PropertySection>
         </PropertySection>
       )}
 

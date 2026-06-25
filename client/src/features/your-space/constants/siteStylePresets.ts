@@ -28,7 +28,7 @@ export const DEFAULT_BUTTONS: SiteStyles['buttons'] = {
 }
 
 export const DEFAULT_FORMS: SiteStyles['forms'] = {
-  fieldShape: 'pill',
+  fieldShape: 'rounded',
   fieldBorderWidth: 1,
   fieldBorderColor: '#e2e8f0',
   fieldBackground: '#ffffff',

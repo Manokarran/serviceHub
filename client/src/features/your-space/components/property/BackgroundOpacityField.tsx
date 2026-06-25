@@ -11,13 +11,13 @@ type Props = {
   label?: string
 }
 
-export function BackgroundOpacityField({ value, onChange, label = 'Background opacity' }: Props) {
+export function BackgroundOpacityField({ value, onChange, label = 'Fill opacity' }: Props) {
   return (
     <Box>
       <PropertyFieldLabel>
         {label}: {value}%
       </PropertyFieldLabel>
-      <Slider value={value} min={0} max={100} step={5} onChange={(_, nextValue) => onChange(nextValue as number)} />
+      <Slider value={value} min={0} max={100} step={1} onChange={(_, nextValue) => onChange(nextValue as number)} />
     </Box>
   )
 }

@@ -7,9 +7,9 @@ function edgeColors(theme: Theme) {
   const isDark = theme.palette.mode === 'dark'
 
   return {
-    primary: alpha(theme.palette.primary.main, isDark ? 0.22 : 0.14),
-    mid: alpha(theme.palette.divider, isDark ? 0.28 : 0.22),
-    faint: alpha(theme.palette.primary.main, isDark ? 0.1 : 0.06)
+    primary: alpha(theme.palette.primary.main, isDark ? 0.26 : 0.16),
+    mid: alpha(theme.palette.divider, isDark ? 0.32 : 0.26),
+    faint: alpha(theme.palette.primary.main, isDark ? 0.12 : 0.07)
   }
 }
 
@@ -30,9 +30,9 @@ export function builderHairlineVertical(theme: Theme): string {
 /** Diagonal gradient ring for frames & cards */
 export function builderGradientRing(theme: Theme, emphasis = false): string {
   const { primary, mid, faint } = edgeColors(theme)
-  const boost = emphasis ? 0.08 : 0
+  const boost = emphasis ? 0.1 : 0
 
-  return `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.18 + boost)} 0%, ${mid} 42%, ${faint} 68%, ${primary} 100%)`
+  return `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.20 + boost)} 0%, ${mid} 42%, ${faint} 68%, ${primary} 100%)`
 }
 
 type Edge = 'top' | 'bottom' | 'left' | 'right'
@@ -78,9 +78,10 @@ export function builderShellSx(theme: Theme, isFullscreen: boolean): SxProps<The
 export function builderToolbarSx(theme: Theme): SxProps<Theme> {
   return {
     ...builderEdgeSx(theme, 'bottom'),
-    backgroundColor: alpha(theme.palette.background.paper, 0.92),
-    backdropFilter: 'blur(12px)',
-    boxShadow: `0 1px 0 ${alpha(theme.palette.primary.main, 0.04)}`
+    backgroundColor: alpha(theme.palette.background.paper, 0.88),
+    backdropFilter: 'blur(20px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    boxShadow: `0 1px 0 ${alpha(theme.palette.divider, 0.1)}, 0 2px 12px ${alpha(theme.palette.common.black, 0.05)}`
   }
 }
 
@@ -88,8 +89,9 @@ export function builderToolbarSx(theme: Theme): SxProps<Theme> {
 export function builderSidePanelSx(theme: Theme, edge: 'left' | 'right'): SxProps<Theme> {
   return {
     ...builderEdgeSx(theme, edge),
-    backgroundColor: alpha(theme.palette.background.paper, 0.96),
-    backdropFilter: 'blur(8px)'
+    backgroundColor: alpha(theme.palette.background.paper, 0.94),
+    backdropFilter: 'blur(16px) saturate(160%)',
+    WebkitBackdropFilter: 'blur(16px) saturate(160%)'
   }
 }
 
@@ -100,8 +102,10 @@ export function builderCanvasFrameOuterSx(theme: Theme, borderRadius: number): S
     borderRadius,
     background: builderGradientRing(theme, true),
     boxShadow: `
-      0 2px 8px ${alpha(theme.palette.common.black, 0.04)},
-      0 12px 40px ${alpha(theme.palette.common.black, 0.07)}
+      0 1px 3px ${alpha(theme.palette.common.black, 0.04)},
+      0 4px 16px ${alpha(theme.palette.common.black, 0.07)},
+      0 20px 56px ${alpha(theme.palette.common.black, 0.10)},
+      0 40px 96px ${alpha(theme.palette.common.black, 0.05)}
     `
   }
 }
@@ -123,11 +127,11 @@ export function builderSoftCardSx(theme: Theme, selected = false): SxProps<Theme
     borderRadius: 1.25,
     backgroundColor: alpha(theme.palette.background.paper, 0.8),
     boxShadow: selected
-      ? `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.35)}, 0 2px 12px ${alpha(theme.palette.primary.main, 0.08)}`
-      : `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.08)}, 0 1px 2px ${alpha(theme.palette.common.black, 0.03)}`,
+      ? `inset 0 0 0 1.5px ${alpha(theme.palette.primary.main, 0.4)}, 0 2px 12px ${alpha(theme.palette.primary.main, 0.12)}, 0 0 0 3px ${alpha(theme.palette.primary.main, 0.06)}`
+      : `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.09)}, 0 1px 3px ${alpha(theme.palette.common.black, 0.04)}`,
     transition: 'box-shadow 0.15s ease',
     '&:hover': {
-      boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.18)}, 0 4px 16px ${alpha(theme.palette.primary.main, 0.06)}`
+      boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.2)}, 0 4px 16px ${alpha(theme.palette.primary.main, 0.08)}`
     }
   }
 }
@@ -137,16 +141,16 @@ export function builderControlTrackSx(theme: Theme): SxProps<Theme> {
   return {
     border: 'none',
     borderRadius: 1.25,
-    background: `linear-gradient(145deg, ${alpha(theme.palette.primary.main, 0.06)} 0%, ${alpha(theme.palette.text.primary, 0.04)} 100%)`,
-    boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.07)}`
+    background: `linear-gradient(145deg, ${alpha(theme.palette.primary.main, 0.055)} 0%, ${alpha(theme.palette.text.primary, 0.035)} 100%)`,
+    boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.09)}, inset 0 1px 2px ${alpha(theme.palette.common.black, 0.04)}`
   }
 }
 
 /** MUI outlined field overrides for property panels */
 export function builderFormOutlineSx(theme: Theme): SxProps<Theme> {
-  const rest = alpha(theme.palette.primary.main, 0.12)
-  const hover = alpha(theme.palette.primary.main, 0.22)
-  const focus = alpha(theme.palette.primary.main, 0.42)
+  const rest = alpha(theme.palette.primary.main, 0.14)
+  const hover = alpha(theme.palette.primary.main, 0.24)
+  const focus = alpha(theme.palette.primary.main, 0.45)
 
   return {
     '& .MuiOutlinedInput-notchedOutline': {
@@ -163,16 +167,16 @@ export function builderFormOutlineSx(theme: Theme): SxProps<Theme> {
   }
 }
 
-/** Canvas workspace background — subtle mesh */
+/** Canvas workspace background — refined dot mesh */
 export function builderCanvasWorkspaceSx(theme: Theme): SxProps<Theme> {
-  const dot = alpha(theme.palette.primary.main, 0.07)
+  const dot = alpha(theme.palette.primary.main, 0.09)
 
   return {
-    backgroundColor: alpha(theme.palette.primary.main, 0.02),
+    backgroundColor: alpha(theme.palette.primary.main, 0.018),
     backgroundImage: `
-      radial-gradient(${dot} 1px, transparent 1px),
-      linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.03)} 0%, transparent 40%, ${alpha(theme.palette.background.default, 0.5)} 100%)
+      radial-gradient(circle, ${dot} 0.75px, transparent 0.75px),
+      linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.025)} 0%, transparent 35%, ${alpha(theme.palette.background.default, 0.4)} 100%)
     `,
-    backgroundSize: '20px 20px, 100% 100%'
+    backgroundSize: '18px 18px, 100% 100%'
   }
 }

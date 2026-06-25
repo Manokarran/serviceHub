@@ -27,7 +27,14 @@ export const serverEnv = {
   googleClientSecret: required('GOOGLE_CLIENT_SECRET', process.env.GOOGLE_CLIENT_SECRET),
   imagekitPrivateKey: optional(process.env.IMAGEKIT_PRIVATE_KEY, ''),
   imagekitPublicKey: optional(process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY, ''),
-  imagekitUrlEndpoint: optional(process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT, '')
+  imagekitUrlEndpoint: optional(process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT, ''),
+  emailFromName: optional(process.env.EMAIL_FROM_NAME, 'ServiceHub'),
+  emailFromAddress: optional(process.env.EMAIL_FROM_ADDRESS, ''),
+  smtpHost: optional(process.env.SMTP_HOST, ''),
+  smtpPort: Number(optional(process.env.SMTP_PORT, '587')),
+  smtpSecure: optional(process.env.SMTP_SECURE, 'false') === 'true',
+  smtpUser: optional(process.env.SMTP_USER, ''),
+  smtpPass: optional(process.env.SMTP_PASS, '')
 } as const
 
 export const publicEnv = {

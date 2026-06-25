@@ -19,7 +19,9 @@ export const SECTION_CHILD_TYPES: BlockType[] = [
   'image',
   'video',
   'logo',
-  'shape'
+  'shape',
+  'icon',
+  'contactForm'
 ]
 
 /** Blocks allowed inside a carousel slide or tab panel */

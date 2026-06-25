@@ -1,6 +1,9 @@
 // MUI Imports
 import { useTheme } from '@mui/material/styles'
 
+// Third-party Imports
+import { useSession } from 'next-auth/react'
+
 // Type Imports
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
 
@@ -15,6 +18,9 @@ import { useSettings } from '@core/hooks/useSettings'
 // Styled Component Imports
 import StyledHorizontalNavExpandIcon from '@menu/styles/horizontal/StyledHorizontalNavExpandIcon'
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
+
+// Util Imports
+import { isManagerRole } from '@/lib/constants/roles'
 
 // Style Imports
 import menuRootStyles from '@core/styles/horizontal/menuRootStyles'
@@ -49,6 +55,8 @@ const HorizontalMenu = () => {
   const verticalNavOptions = useVerticalNav()
   const theme = useTheme()
   const { settings } = useSettings()
+  const { data: session } = useSession()
+  const canManageLeads = isManagerRole(session?.user?.role)
 
   // Vars
   const { skin } = settings
@@ -88,6 +96,11 @@ const HorizontalMenu = () => {
         <MenuItem href='/your-space' icon={<i className='ri-layout-masonry-line' />}>
           Your Space
         </MenuItem>
+        {canManageLeads ? (
+          <MenuItem href='/leads' icon={<i className='ri-mail-line' />}>
+            Leads
+          </MenuItem>
+        ) : null}
         <MenuItem href='/about' icon={<i className='ri-information-line' />}>
           About
         </MenuItem>

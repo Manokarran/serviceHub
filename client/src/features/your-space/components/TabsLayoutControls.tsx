@@ -5,9 +5,10 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 import Switch from '@mui/material/Switch'
 import Slider from '@mui/material/Slider'
 import TextField from '@mui/material/TextField'
-import Tooltip from '@mui/material/Tooltip'
 import { alpha, useTheme } from '@mui/material/styles'
 
+import { IconPicker } from '@/components/IconPicker'
+import { DEFAULT_ICON_PICKER_STYLE, DEFAULT_TAB_ICON_STYLE, type IconPickerStyle } from '@/components/iconPickerStyle'
 import type { TabsBlockProps } from '../types'
 import {
   TAB_BORDER_STYLE_OPTIONS,
@@ -62,62 +63,38 @@ function ColorField({
   )
 }
 
-/** Compact icon preview button — shows the icon if set, or a placeholder */
-function TabIconButton({
+/** Compact icon picker for tab rows */
+function TabIconPicker({
   icon,
+  iconColor,
+  iconSize,
   onChange
 }: {
   icon: string | undefined
-  onChange: (icon: string | undefined) => void
+  iconColor?: string
+  iconSize?: number
+  onChange: (changes: { icon?: string; iconColor?: string; iconSize?: number }) => void
 }) {
-  const theme = useTheme()
-
-  const handleClick = () => {
-    const next = window.prompt('Enter a Remix Icon class (e.g. ri-user-line)\nLeave blank to remove the icon:', icon ?? '')
-
-    if (next === null) {
-      return
-    }
-
-    const trimmed = next.trim()
-
-    onChange(trimmed || undefined)
+  const style: IconPickerStyle = {
+    ...DEFAULT_ICON_PICKER_STYLE,
+    color: iconColor ?? DEFAULT_TAB_ICON_STYLE.color,
+    size: iconSize ?? DEFAULT_TAB_ICON_STYLE.size,
+    showBackground: false,
+    backgroundColor: DEFAULT_ICON_PICKER_STYLE.backgroundColor,
+    borderRadius: 0
   }
 
   return (
-    <Tooltip title={icon ? `Icon: ${icon} — click to change` : 'Add icon — click to set'} placement='top' arrow>
-      <Box
-        component='button'
-        type='button'
-        onClick={handleClick}
-        sx={{
-          width: 32,
-          height: 32,
-          borderRadius: 1,
-          border: '1px dashed',
-          borderColor: icon ? alpha(theme.palette.primary.main, 0.35) : alpha(theme.palette.divider, 0.5),
-          backgroundColor: icon ? alpha(theme.palette.primary.main, 0.06) : 'transparent',
-          color: icon ? 'primary.main' : 'text.disabled',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          transition: 'all 0.15s',
-          '&:hover': {
-            borderColor: 'primary.main',
-            color: 'primary.main',
-            backgroundColor: alpha(theme.palette.primary.main, 0.08)
-          }
-        }}
-      >
-        {icon ? (
-          <i className={icon} style={{ fontSize: '0.9rem' }} />
-        ) : (
-          <i className='ri-image-add-line' style={{ fontSize: '0.8rem' }} />
-        )}
-      </Box>
-    </Tooltip>
+    <IconPicker
+      variant='compact'
+      allowClear
+      showStyleControls
+      styleMode='simple'
+      value={icon ?? null}
+      style={style}
+      onChange={next => onChange({ icon: next ?? undefined })}
+      onStyleChange={next => onChange({ iconColor: next.color, iconSize: next.size })}
+    />
   )
 }
 
@@ -128,8 +105,8 @@ export function TabsLayoutControls({ props, accentColor, onUpdate }: Props) {
     onUpdate({ tabs: nextTabs })
   }
 
-  const updateTabIcon = (index: number, icon: string | undefined) => {
-    const nextTabs = props.tabs.map((tab, i) => (i === index ? { ...tab, icon } : tab))
+  const updateTabIcon = (index: number, changes: { icon?: string; iconColor?: string; iconSize?: number }) => {
+    const nextTabs = props.tabs.map((tab, i) => (i === index ? { ...tab, ...changes } : tab))
 
     onUpdate({ tabs: nextTabs })
   }
@@ -186,7 +163,12 @@ export function TabsLayoutControls({ props, accentColor, onUpdate }: Props) {
       <PropertySection title='Tabs' collapsible defaultOpen>
         {props.tabs.map((tab, index) => (
           <Box key={tab.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <TabIconButton icon={tab.icon} onChange={icon => updateTabIcon(index, icon)} />
+            <TabIconPicker
+              icon={tab.icon}
+              iconColor={tab.iconColor}
+              iconSize={tab.iconSize}
+              onChange={changes => updateTabIcon(index, changes)}
+            />
             <TextField
               size='small'
               fullWidth

@@ -2,7 +2,11 @@
 import { useTheme } from '@mui/material/styles'
 
 // Third-party Imports
+import { useSession } from 'next-auth/react'
 import PerfectScrollbar from 'react-perfect-scrollbar'
+
+// Util Imports
+import { isManagerRole } from '@/lib/constants/roles'
 
 // Type Imports
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
@@ -39,6 +43,8 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
   // Hooks
   const theme = useTheme()
   const verticalNavOptions = useVerticalNav()
+  const { data: session } = useSession()
+  const canManageLeads = isManagerRole(session?.user?.role)
 
   // Vars
   const { isBreakpointReached, transitionDuration } = verticalNavOptions
@@ -74,6 +80,11 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
         <MenuItem href='/your-space' icon={<i className='ri-layout-masonry-line' />}>
           Your Space
         </MenuItem>
+        {canManageLeads ? (
+          <MenuItem href='/leads' icon={<i className='ri-mail-line' />}>
+            Leads
+          </MenuItem>
+        ) : null}
         <MenuItem href='/about' icon={<i className='ri-information-line' />}>
           About
         </MenuItem>

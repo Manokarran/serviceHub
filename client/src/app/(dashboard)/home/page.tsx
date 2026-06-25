@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { auth } from '@/lib/auth'
+import { isManagerRole } from '@/lib/constants/roles'
 import { getPublicSiteDisplayUrl, getPublicSitePath } from '@/lib/utils/public-site-url'
 
 export default async function HomePage() {
@@ -25,6 +26,7 @@ export default async function HomePage() {
   const tenantSlug = user.tenantSlug ?? ''
   const liveSitePath = tenantSlug ? getPublicSitePath(tenantSlug) : ''
   const liveSiteDisplayUrl = tenantSlug ? getPublicSiteDisplayUrl(tenantSlug) : ''
+  const canManageLeads = isManagerRole(user.role)
 
   return (
     <Grid container spacing={6}>
@@ -79,6 +81,29 @@ export default async function HomePage() {
           </CardContent>
         </Card>
       </Grid>
+      {canManageLeads ? (
+        <Grid size={12}>
+          <Card>
+            <CardContent className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+              <div className='flex flex-col gap-2'>
+                <div className='flex items-center gap-2'>
+                  <i className='ri-mail-line text-primary text-xl' />
+                  <Typography variant='h6'>Contact leads</Typography>
+                </div>
+                <Typography color='text.secondary'>
+                  View and manage messages from your public site contact form — update status, export CSV, and
+                  configure notifications.
+                </Typography>
+              </div>
+              <Link href='/leads' style={{ textDecoration: 'none' }}>
+                <Button variant='contained' component='span' startIcon={<i className='ri-arrow-right-line' />}>
+                  Open Leads
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </Grid>
+      ) : null}
       <Grid size={{ xs: 12, md: 6 }}>
         <Card>
           <CardContent className='flex flex-col gap-3'>

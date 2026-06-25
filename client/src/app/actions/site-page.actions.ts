@@ -131,6 +131,31 @@ export async function saveSitePageDraftAction(
   }
 }
 
+export async function publishAllSitePagesAction(): Promise<PublishResult> {
+  try {
+    const session = await auth()
+
+    if (!session?.user?.tenantId || !session.user.id) {
+      return { success: false, error: 'You must be signed in to publish your site.' }
+    }
+
+    const { publishedAt } = await sitePageService.publishAll(session.user.tenantId, session.user.id)
+    const versions = await sitePageService.listPublishedVersions(session.user.tenantId, 'home')
+
+    return {
+      success: true,
+      publishedAt,
+      versions
+    }
+  } catch (error) {
+    if (error instanceof AppError) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: false, error: 'Failed to publish site. Please try again.' }
+  }
+}
+
 export async function publishSitePageAction(
   pageSlug: string,
   blocks: Block[],
@@ -290,6 +315,41 @@ export async function reorderSitePagesAction(orderedSlugs: string[]): Promise<Si
     }
 
     return { success: false, error: 'Failed to reorder pages.' }
+  }
+}
+
+type DuplicatePageResult = { success: true; page: SitePageSummary } | { success: false; error: string }
+
+export async function duplicateSitePageAction(sourceSlug: string, newTitle: string): Promise<DuplicatePageResult> {
+  try {
+    const session = await auth()
+
+    if (!session?.user?.tenantId) {
+      return { success: false, error: 'You must be signed in to duplicate a page.' }
+    }
+
+    const tenantId = session.user.tenantId
+
+    // Fetch the source page draft
+    const sourcePage = await sitePageService.getPage(tenantId, sourceSlug)
+
+    if (!sourcePage) {
+      return { success: false, error: 'Source page not found.' }
+    }
+
+    // Create new page
+    const newPage = await sitePageService.createPage(tenantId, { title: newTitle })
+
+    // Copy the draft blocks into the new page
+    await sitePageService.saveDraft(tenantId, newPage.slug, toPlainJson(sourcePage.draftBlocks) as Block[], sourcePage.draftSiteStyles ?? undefined)
+
+    return { success: true, page: newPage }
+  } catch (error) {
+    if (error instanceof AppError) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: false, error: 'Failed to duplicate page.' }
   }
 }
 
