@@ -20,6 +20,7 @@ import { CarouselDropZone } from '../dnd/CarouselDropZone'
 import { CarouselEditChip } from '../inline/CarouselEditChip'
 import { useBuilderOptional } from '../../context/BuilderContext'
 import { CarouselControls } from './CarouselControls'
+import { useSiteStyles } from '../SiteStylesScope'
 
 const MAX_WIDTH_MAP = {
   sm: 640,
@@ -146,6 +147,7 @@ function SlideTabs({
 
 function CarouselShell({ block, preview }: Props) {
   const theme = useTheme()
+  const siteStyles = useSiteStyles()
   const builder = useBuilderOptional()
   const props = block.props as CarouselBlockProps
   const editMode = !preview
@@ -388,6 +390,7 @@ function CarouselShell({ block, preview }: Props) {
                     props={props}
                     selectedIndex={selectedSnap}
                     onSelect={setSelectedSnap}
+                    fonts={siteStyles.fonts}
                   />
                 )}
               </Box>
@@ -397,6 +400,7 @@ function CarouselShell({ block, preview }: Props) {
                   props={props}
                   selectedIndex={selectedSnap}
                   onSelect={setSelectedSnap}
+                  fonts={siteStyles.fonts}
                 />
               )}
             </>

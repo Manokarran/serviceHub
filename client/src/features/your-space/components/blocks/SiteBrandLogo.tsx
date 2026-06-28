@@ -7,8 +7,9 @@ import { alpha } from '@mui/material/styles'
 import { ItServiceIcon, isRemixIconClass } from '@/components/IconPicker'
 import { DEFAULT_LOGO_ICON_STYLE, type IconPickerStyle } from '@/components/iconPickerStyle'
 import { getOptimizedImageUrl } from '@/lib/imagekit/urls'
-import type { LogoPosition } from '../../types'
+import type { LogoPosition, TextTypographyOverrides } from '../../types'
 import { normalizeSiteFonts } from '../../utils/siteStylesHelpers'
+import { resolveTextTypographySx } from '../../utils/textTypographyHelpers'
 import { InlineEditableText } from '../inline/InlineEditableText'
 import { useCanvasBlockEdit } from '../inline/CanvasBlockEditContext'
 import { useSiteStyles } from '../SiteStylesScope'
@@ -23,6 +24,7 @@ type Props = {
   logoIconBackgroundColor?: string
   logoIconBorderRadius?: number
   textColor: string
+  typography?: TextTypographyOverrides
 }
 
 function resolveLogoIconStyle(props: Props): IconPickerStyle {
@@ -44,7 +46,8 @@ export function SiteBrandLogo({
   logoIconShowBackground,
   logoIconBackgroundColor,
   logoIconBorderRadius,
-  textColor
+  textColor,
+  typography
 }: Props) {
   const siteStyles = useSiteStyles()
   const editContext = useCanvasBlockEdit()
@@ -64,11 +67,8 @@ export function SiteBrandLogo({
   const showMuiIcon = Boolean(logoIcon) && !optimizedLogo && !isRemixIconClass(logoIcon)
   const fonts = normalizeSiteFonts(siteStyles.fonts)
   const logoTextSx = {
-    fontFamily: fonts.headingFamily,
-    fontWeight: fonts.headingWeight,
-    fontSize: fonts.logoSize,
+    ...resolveTextTypographySx('logo', fonts, typography),
     color: textColor,
-    lineHeight: 1.2,
     display: 'block'
   }
   const tileSize = Math.max(iconStyle.size + 12, 36)

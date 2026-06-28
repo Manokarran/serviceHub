@@ -11,6 +11,7 @@ import type { Block, CarouselBlockProps } from '../../../types'
 import type { PropertyPanelTab } from '../PropertyPanelUi'
 import { PropertyFields, PropertySection } from '../PropertyPanelUi'
 import { MaxWidthControl } from '../MaxWidthControl'
+import { TextTypographyControls } from '../TextTypographyControls'
 import { CarouselLayoutControls } from '../../CarouselLayoutControls'
 
 type Props = {
@@ -41,6 +42,13 @@ export function CarouselBlockProperties({ block, activeTab }: Props) {
           onChange={maxWidth => update({ maxWidth })}
         />
       </PropertySection>
+      <TextTypographyControls
+        role='control'
+        sectionTitle='Control typography'
+        fonts={siteStyles.fonts}
+        typography={props.controlTypography}
+        onChange={controlTypography => update({ controlTypography })}
+      />
       <Box
         sx={{
           display: 'flex',
@@ -56,7 +64,7 @@ export function CarouselBlockProperties({ block, activeTab }: Props) {
       >
         <i className='ri-layout-grid-line' style={{ fontSize: '0.875rem', marginTop: 1, flexShrink: 0 }} />
         <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, fontWeight: 400, color: 'text.secondary', m: 0 }}>
-          Use the slide tabs on the canvas to add content to each slide, or manage slides from the carousel toolbar.
+          Applies to the slide counter when using fraction-style dots. Slide content uses child blocks.
         </Typography>
       </Box>
     </PropertyFields>

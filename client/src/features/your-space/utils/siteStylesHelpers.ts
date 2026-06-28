@@ -122,44 +122,125 @@ export function getSiteButtonSx(
   }
 
   if (config.style === 'solid') {
+    const border = `${config.borderWidth}px solid ${accent}`
+
     return {
       ...base,
       backgroundColor: accent,
       color: '#ffffff',
-      border: `${config.borderWidth}px solid ${accent}`,
+      border,
+      '&&': {
+        backgroundColor: accent,
+        color: '#ffffff',
+        border,
+        boxShadow: 'none'
+      },
       '&:hover': {
         ...SITE_BUTTON_HOVER_SX,
         backgroundColor: accent,
         opacity: 0.92,
         boxShadow: `0 8px 24px ${accent}40`
       },
-      '&:active': SITE_BUTTON_ACTIVE_SX
-    }
-  }
-
-  if (config.style === 'outline') {
-    return {
-      ...base,
-      backgroundColor: 'transparent',
-      color: accent,
-      border: `${Math.max(config.borderWidth, 1)}px solid ${accent}`,
-      '&:hover': {
+      '&&:hover': {
         ...SITE_BUTTON_HOVER_SX,
-        backgroundColor: `${accent}14`,
-        boxShadow: `0 6px 18px ${accent}22`
+        backgroundColor: accent,
+        color: '#ffffff',
+        border,
+        opacity: 0.92,
+        boxShadow: `0 8px 24px ${accent}40`
+      },
+      '&.Mui-disabled': {
+        opacity: 0.45,
+        color: '#ffffff',
+        backgroundColor: accent,
+        border
+      },
+      '&&.Mui-disabled': {
+        opacity: 0.45,
+        color: '#ffffff',
+        backgroundColor: accent,
+        border
       },
       '&:active': SITE_BUTTON_ACTIVE_SX
     }
   }
 
+  if (config.style === 'outline') {
+    const border = `${Math.max(config.borderWidth, 1)}px solid ${accent}`
+
+    return {
+      ...base,
+      backgroundColor: 'transparent',
+      color: accent,
+      border,
+      '&&': {
+        backgroundColor: 'transparent',
+        color: accent,
+        border,
+        boxShadow: 'none'
+      },
+      '&:hover': {
+        ...SITE_BUTTON_HOVER_SX,
+        backgroundColor: `${accent}14`,
+        boxShadow: `0 6px 18px ${accent}22`
+      },
+      '&&:hover': {
+        ...SITE_BUTTON_HOVER_SX,
+        backgroundColor: `${accent}14`,
+        color: accent,
+        border,
+        boxShadow: `0 6px 18px ${accent}22`
+      },
+      '&.Mui-disabled': {
+        opacity: 0.45,
+        color: accent,
+        backgroundColor: 'transparent',
+        border
+      },
+      '&&.Mui-disabled': {
+        opacity: 0.45,
+        color: accent,
+        backgroundColor: 'transparent',
+        border
+      },
+      '&:active': SITE_BUTTON_ACTIVE_SX
+    }
+  }
+
+  const ghostBorder = 'none'
+
   return {
     ...base,
     backgroundColor: 'transparent',
     color: accent,
-    border: 'none',
+    border: ghostBorder,
+    '&&': {
+      backgroundColor: 'transparent',
+      color: accent,
+      border: ghostBorder,
+      boxShadow: 'none'
+    },
     '&:hover': {
       ...SITE_BUTTON_HOVER_SX,
       backgroundColor: `${accent}0f`
+    },
+    '&&:hover': {
+      ...SITE_BUTTON_HOVER_SX,
+      backgroundColor: `${accent}0f`,
+      color: accent,
+      border: ghostBorder
+    },
+    '&.Mui-disabled': {
+      opacity: 0.45,
+      color: accent,
+      backgroundColor: 'transparent',
+      border: ghostBorder
+    },
+    '&&.Mui-disabled': {
+      opacity: 0.45,
+      color: accent,
+      backgroundColor: 'transparent',
+      border: ghostBorder
     },
     '&:active': SITE_BUTTON_ACTIVE_SX
   }
@@ -226,13 +307,18 @@ export function getContactFormSubmitButtonConfig(
   submitColor?: string,
   submitBorderRadius?: number
 ): { variant: 'contained' | 'outlined' | 'text'; sx: SxProps<Theme> } {
-  const usesTheme = !submitVariant || submitVariant === 'theme'
-  const variant = usesTheme ? mapButtonStyleToVariant(siteStyles.buttons.primary.style) : submitVariant
-  const role = usesTheme ? 'primary' : mapBlockVariantToButtonRole(submitVariant)
+  const usesSiteStyles = !submitVariant || submitVariant === 'theme'
+  const variant = usesSiteStyles ? mapButtonStyleToVariant(siteStyles.buttons.primary.style) : submitVariant
+  const role = usesSiteStyles ? 'primary' : mapBlockVariantToButtonRole(submitVariant)
 
   return {
     variant,
-    sx: getSiteButtonSx(role, siteStyles, submitColor, submitBorderRadius)
+    sx: getSiteButtonSx(
+      role,
+      siteStyles,
+      usesSiteStyles ? undefined : submitColor,
+      usesSiteStyles ? undefined : submitBorderRadius
+    )
   }
 }
 

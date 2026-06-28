@@ -11,6 +11,7 @@ import type { Block, TabsBlockProps } from '../../../types'
 import type { PropertyPanelTab } from '../PropertyPanelUi'
 import { PropertyFields, PropertySection } from '../PropertyPanelUi'
 import { MaxWidthControl } from '../MaxWidthControl'
+import { TextTypographyControls } from '../TextTypographyControls'
 import { TabsLayoutControls } from '../../TabsLayoutControls'
 
 type Props = {
@@ -41,6 +42,13 @@ export function TabsBlockProperties({ block, activeTab }: Props) {
           onChange={maxWidth => update({ maxWidth })}
         />
       </PropertySection>
+      <TextTypographyControls
+        role='tab'
+        sectionTitle='Tab label typography'
+        fonts={siteStyles.fonts}
+        typography={props.tabTypography}
+        onChange={tabTypography => update({ tabTypography })}
+      />
       <Box
         sx={{
           display: 'flex',

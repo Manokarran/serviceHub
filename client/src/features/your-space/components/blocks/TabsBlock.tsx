@@ -23,6 +23,7 @@ import { useBuilderOptional } from '../../context/BuilderContext'
 import { siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 import { TabsDropZone } from '../dnd/TabsDropZone'
 import { TabsEditChip } from '../inline/TabsEditChip'
+import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
   block: Block
@@ -66,6 +67,7 @@ function TabNavButton({
   buttonRef?: (node: HTMLButtonElement | null) => void
 }) {
   const theme = useTheme()
+  const siteStyles = useSiteStyles()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(label)
 
@@ -128,7 +130,7 @@ function TabNavButton({
                 }
               : undefined
           }
-          sx={getTabButtonSx(props, isActive, theme)}
+          sx={getTabButtonSx(props, isActive, theme, siteStyles.fonts)}
         >
           {icon && (
             <ServiceIconGraphic

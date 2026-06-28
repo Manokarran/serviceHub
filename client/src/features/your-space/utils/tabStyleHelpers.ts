@@ -8,6 +8,8 @@ import type {
   TabVariant,
   TabsBlockProps
 } from '../types'
+import type { SiteFonts } from '../types/siteStyles'
+import { hasTextTypographyOverrides, resolveTextTypographySx } from './textTypographyHelpers'
 import { siteCanvasBelow } from './siteResponsiveHelpers'
 import { SITE_BUTTON_ACTIVE_SX, SITE_BUTTON_HOVER_SX, SITE_INTERACTIVE_TRANSITION } from './siteInteractiveHelpers'
 
@@ -155,7 +157,8 @@ export function getTabsListSx(props: TabsBlockProps, theme: Theme): SxProps<Them
 export function getTabButtonSx(
   props: TabsBlockProps,
   isActive: boolean,
-  theme: Theme
+  theme: Theme,
+  fonts: SiteFonts
 ): SxProps<Theme> {
   const isVertical = props.orientation === 'vertical'
   const accent = props.indicatorColor
@@ -164,14 +167,13 @@ export function getTabButtonSx(
   const tabBg = props.tabBackgroundColor
   const radius = props.tabBorderRadius ?? 2
   const useSlidingIndicator = props.variant === 'underline'
+  const typographySx = resolveTextTypographySx('tab', fonts, props.tabTypography)
+  const preserveCustomFontSize = hasTextTypographyOverrides(props.tabTypography) && props.tabTypography?.fontSize !== undefined
 
   const base: SxProps<Theme> = {
     border: 'none',
     cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontWeight: 600,
-    fontSize: isVertical ? '0.8125rem' : '0.875rem',
-    lineHeight: 1.4,
+    ...typographySx,
     color: isActive ? activeColor : inactiveColor,
     backgroundColor: 'transparent',
     transition: SITE_INTERACTIVE_TRANSITION,
@@ -189,7 +191,7 @@ export function getTabButtonSx(
     },
     '&:active': isActive ? { transform: 'scale(0.98)' } : SITE_BUTTON_ACTIVE_SX,
     ...siteCanvasBelow({
-      fontSize: '0.8125rem',
+      ...(preserveCustomFontSize ? {} : { fontSize: '0.8125rem' }),
       flexShrink: 0,
       ...(isVertical ? {} : { px: 1.5, py: 1.125 })
     })

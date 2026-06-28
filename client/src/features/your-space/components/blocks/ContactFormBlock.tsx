@@ -14,6 +14,7 @@ import type { ContactFormBlockProps } from '../../types'
 import { usePublicTenantSlug } from '../../hooks/usePublicTenantSlug'
 import { useSitePageNavigation } from '../../hooks/useSitePageNavigation'
 import { getContactFormFieldSx, getContactFormSubmitButtonConfig } from '../../utils/siteStylesHelpers'
+import { mergeFormFieldTypographySx, resolveTextTypographySx } from '../../utils/textTypographyHelpers'
 import { InlineEditableText } from '../inline/InlineEditableText'
 import { useSiteStyles } from '../SiteStylesScope'
 
@@ -26,12 +27,20 @@ export function ContactFormBlock({ blockId, props }: Props) {
   const siteStyles = useSiteStyles()
   const tenantSlug = usePublicTenantSlug()
   const { isCanvasEditing } = useSitePageNavigation()
-  const fieldSx = getContactFormFieldSx(
-    siteStyles,
-    props.fieldStyle,
-    props.fieldBorderRadius,
-    props.fieldBorderWidth
+  const fieldSx = mergeFormFieldTypographySx(
+    getContactFormFieldSx(siteStyles, props.fieldStyle, props.fieldBorderRadius, props.fieldBorderWidth),
+    siteStyles.fonts,
+    siteStyles.forms,
+    props.fieldTypography
   )
+  const titleSx = {
+    ...resolveTextTypographySx('formTitle', siteStyles.fonts, props.titleTypography),
+    color: siteStyles.colors.text
+  }
+  const bodySx = {
+    ...resolveTextTypographySx('formBody', siteStyles.fonts, props.bodyTypography),
+    color: 'text.secondary'
+  }
   const submitButton = getContactFormSubmitButtonConfig(
     siteStyles,
     props.submitVariant,
@@ -53,6 +62,16 @@ export function ContactFormBlock({ blockId, props }: Props) {
   const alignmentSx = {
     textAlign: props.alignment,
     alignItems: props.alignment === 'center' ? 'center' : props.alignment === 'right' ? 'flex-end' : 'flex-start'
+  } as const
+
+  const contentBoxSx = {
+    width: '100%',
+    maxWidth: 560,
+    ...(props.alignment === 'center'
+      ? { mx: 'auto' }
+      : props.alignment === 'right'
+        ? { ml: 'auto' }
+        : undefined)
   } as const
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -113,19 +132,19 @@ export function ContactFormBlock({ blockId, props }: Props) {
 
   return (
     <Box sx={{ px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 2, ...alignmentSx }}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', maxWidth: 560 }}>
-        <Typography variant='h5' component='h2' sx={{ fontWeight: 700, color: siteStyles.colors.text }}>
-          <InlineEditableText value={props.title} field='title' placeholder='Form title' />
+      <Box sx={{ ...contentBoxSx, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Typography variant='h5' component='h2' sx={titleSx}>
+          <InlineEditableText value={props.title} field='title' placeholder='Form title' sx={titleSx} />
         </Typography>
         {props.subtitle ? (
-          <Typography variant='body1' sx={{ color: 'text.secondary' }}>
-            <InlineEditableText value={props.subtitle} field='subtitle' placeholder='Form subtitle' multiline />
+          <Typography variant='body1' sx={bodySx}>
+            <InlineEditableText value={props.subtitle} field='subtitle' placeholder='Form subtitle' multiline sx={bodySx} />
           </Typography>
         ) : null}
       </Box>
 
       {success ? (
-        <Alert severity='success' sx={{ maxWidth: 560, width: '100%' }}>
+        <Alert severity='success' sx={contentBoxSx}>
           {props.successMessage}
         </Alert>
       ) : (
@@ -137,13 +156,12 @@ export function ContactFormBlock({ blockId, props }: Props) {
             display: 'flex',
             flexDirection: 'column',
             gap: 2,
-            width: '100%',
-            maxWidth: 560,
-            ...fieldSx
+            ...contentBoxSx
           }}
         >
           {error ? <Alert severity='error'>{error}</Alert> : null}
 
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, ...fieldSx }}>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
             <TextField
               label='First name'
@@ -205,6 +223,7 @@ export function ContactFormBlock({ blockId, props }: Props) {
               label={props.signupLabel}
             />
           ) : null}
+          </Box>
 
           <Box
             aria-hidden
@@ -226,10 +245,11 @@ export function ContactFormBlock({ blockId, props }: Props) {
             />
           </Box>
 
-          <Box>
+          <Box sx={{ textAlign: props.alignment }}>
             <Button
               type='submit'
               variant={submitButton.variant}
+              color='inherit'
               disableElevation
               disabled={isSubmitting || isCanvasEditing}
               sx={submitButton.sx}

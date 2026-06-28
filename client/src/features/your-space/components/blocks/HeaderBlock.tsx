@@ -5,18 +5,20 @@ import { useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+import type { SxProps, Theme } from '@mui/material/styles'
 import { alpha } from '@mui/material/styles'
 
 import type { HeaderBlockProps } from '../../types'
-import { applyBackgroundAlpha, getBlockBackgroundOpacity } from '../../utils/sectionStyleHelpers'
 import { getFixedBlockShellSx } from '../../utils/mediaBlockHelpers'
 import { normalizeSiteFonts } from '../../utils/siteStylesHelpers'
+import { resolveTextTypographyValues } from '../../utils/textTypographyHelpers'
 import { getSiteNavLinkSx } from '../../utils/siteInteractiveHelpers'
 import { InlineEditableText } from '../inline/InlineEditableText'
 import { useCanvasBlockEdit } from '../inline/CanvasBlockEditContext'
 import { SitePageLink } from '../SitePageLink'
 import { useSiteStyles } from '../SiteStylesScope'
 import { getChromeJustify, getHorizontalOrder, getNavJustify, SiteBrandLogo } from './SiteBrandLogo'
+import { ChromeBlockBackground } from './ChromeBlockBackground'
 import { siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 
 type Props = {
@@ -37,12 +39,10 @@ export function HeaderBlock({ props }: Props) {
 
   const fonts = normalizeSiteFonts(siteStyles.fonts)
   const navLinkSx = {
-    fontFamily: fonts.bodyFamily,
-    fontSize: fonts.navSize,
-    fontWeight: 500,
+    ...resolveTextTypographyValues('nav', fonts, props.navTypography),
     color: 'inherit',
     ...getSiteNavLinkSx()
-  }
+  } as SxProps<Theme>
 
   const updateNavLabel = (index: number, label: string) => {
     editContext?.updateProps({
@@ -90,9 +90,16 @@ export function HeaderBlock({ props }: Props) {
 
   return (
     <Box sx={getFixedBlockShellSx('header', props.fixed)}>
-      <Box
+      <ChromeBlockBackground
         component='header'
+        props={props}
+        fallbackColor='#ffffff'
         sx={{
+          color: props.textColor,
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
+          ...(props.borderRadius ? { borderRadius: `${props.borderRadius}px` } : {})
+        }}
+        contentSx={{
           display: 'flex',
           flexDirection: isVertical ? 'column' : { xs: 'column', sm: 'row' },
           alignItems: isVertical ? 'center' : 'center',
@@ -101,10 +108,6 @@ export function HeaderBlock({ props }: Props) {
           flexWrap: 'wrap',
           px: { xs: 2, sm: 4 },
           py: isVertical ? 3 : 2,
-          backgroundColor: applyBackgroundAlpha(props.backgroundColor, getBlockBackgroundOpacity(props)),
-          color: props.textColor,
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
-          ...(props.borderRadius ? { borderRadius: `${props.borderRadius}px` } : {}),
           ...(!isVertical
             ? siteCanvasBelow({
                 flexDirection: 'column',
@@ -134,6 +137,7 @@ export function HeaderBlock({ props }: Props) {
             logoIconBackgroundColor={props.logoIconBackgroundColor}
             logoIconBorderRadius={props.logoIconBorderRadius}
             textColor={props.textColor}
+            typography={props.logoTypography}
           />
         </Box>
 
@@ -266,7 +270,7 @@ export function HeaderBlock({ props }: Props) {
                             transform: 'translateY(0)',
                             backgroundColor: submenuHover
                           }
-                        }}
+                        } as SxProps<Theme>}
                       >
                         <InlineEditableText
                           value={child.label}
@@ -282,7 +286,7 @@ export function HeaderBlock({ props }: Props) {
             )
           })}
         </Stack>
-      </Box>
+      </ChromeBlockBackground>
     </Box>
   )
 }

@@ -18,17 +18,18 @@ import { PropertyTextField } from '../PropertyTextField'
 import { PropertyColorField } from '../PropertyColorField'
 import { PropertySliderField } from '../PropertySliderField'
 import { AlignmentControl } from '../AlignmentControl'
+import { TextTypographyControls } from '../TextTypographyControls'
 import { useSiteStyles } from '../../SiteStylesScope'
 
 const FIELD_STYLE_OPTIONS: { value: ContactFormFieldStyle; label: string; icon: string }[] = [
-  { value: 'theme', label: 'Theme', icon: 'ri-palette-line' },
+  { value: 'theme', label: 'Site styles', icon: 'ri-palette-line' },
   { value: 'square', label: 'Square', icon: 'ri-square-line' },
   { value: 'rounded', label: 'Rounded', icon: 'ri-rounded-corner' },
   { value: 'pill', label: 'Pill', icon: 'ri-checkbox-blank-circle-line' }
 ]
 
 const SUBMIT_VARIANT_OPTIONS: { value: ContactFormSubmitVariant; label: string; icon: string }[] = [
-  { value: 'theme', label: 'Theme', icon: 'ri-palette-line' },
+  { value: 'theme', label: 'Site styles', icon: 'ri-palette-line' },
   { value: 'contained', label: 'Filled', icon: 'ri-checkbox-blank-fill' },
   { value: 'outlined', label: 'Outlined', icon: 'ri-checkbox-blank-line' },
   { value: 'text', label: 'Text', icon: 'ri-text-snippet' }
@@ -50,7 +51,10 @@ export function ContactFormBlockProperties({ block, activeTab }: Props) {
   const siteFieldRadius = getButtonBorderRadius(resolvedFieldShape) as number
   const siteFieldBorderWidth = siteStyles.forms.fieldBorderWidth
   const siteSubmitRadius = getButtonBorderRadius(siteStyles.buttons.primary.shape) as number
-  const radiusSliderMax = 999
+  const fieldRadiusSliderMax = 32
+  const submitRadiusSliderMax = 48
+  const usesSiteFieldStyle = !props.fieldStyle || props.fieldStyle === 'theme'
+  const usesSiteSubmitStyle = !props.submitVariant || props.submitVariant === 'theme'
 
   if (activeTab === 'design') {
     return (
@@ -115,14 +119,16 @@ export function ContactFormBlockProperties({ block, activeTab }: Props) {
           onChange={fieldStyle => update({ fieldStyle })}
         />
         <PropertyBodyText>
-          Theme uses your site form styles. Multiline fields use a subtler corner radius automatically.
+          {usesSiteFieldStyle
+            ? 'Uses form field styles from Site Styles. Multiline fields use a subtler corner radius automatically.'
+            : 'Custom field shape. Radius and border width below override Site Styles.'}
         </PropertyBodyText>
         <PropertySliderField
           label='Field corner radius'
           value={props.fieldBorderRadius ?? siteFieldRadius}
           min={0}
-          max={radiusSliderMax}
-          step={2}
+          max={fieldRadiusSliderMax}
+          step={1}
           unit='px'
           onChange={fieldBorderRadius => update({ fieldBorderRadius })}
           siteDefault={siteFieldRadius}
@@ -137,6 +143,7 @@ export function ContactFormBlockProperties({ block, activeTab }: Props) {
           max={4}
           step={1}
           unit='px'
+          marks
           onChange={fieldBorderWidth => update({ fieldBorderWidth })}
           siteDefault={siteFieldBorderWidth}
           onUseSiteDefault={
@@ -150,28 +157,69 @@ export function ContactFormBlockProperties({ block, activeTab }: Props) {
         <LayoutOptionGroup
           value={props.submitVariant ?? 'theme'}
           options={SUBMIT_VARIANT_OPTIONS}
-          onChange={submitVariant => update({ submitVariant })}
-        />
-        <PropertyBodyText>Theme uses your site primary button style.</PropertyBodyText>
-        <PropertyColorField
-          label='Button color'
-          value={props.submitColor ?? siteStyles.colors.accent}
-          onChange={submitColor => update({ submitColor })}
-        />
-        <PropertySliderField
-          label='Button corner radius'
-          value={props.submitBorderRadius ?? siteSubmitRadius}
-          min={0}
-          max={radiusSliderMax}
-          step={2}
-          unit='px'
-          onChange={submitBorderRadius => update({ submitBorderRadius })}
-          siteDefault={siteSubmitRadius}
-          onUseSiteDefault={
-            props.submitBorderRadius !== undefined ? () => update({ submitBorderRadius: undefined }) : undefined
+          onChange={submitVariant =>
+            update(
+              submitVariant === 'theme'
+                ? { submitVariant, submitColor: undefined, submitBorderRadius: undefined }
+                : { submitVariant }
+            )
           }
         />
+        <PropertyBodyText>
+          {usesSiteSubmitStyle
+            ? 'Uses your primary button from Site Styles — style, color, shape, and padding.'
+            : 'Custom button style. Color and corner radius below override Site Styles.'}
+        </PropertyBodyText>
+        {!usesSiteSubmitStyle ? (
+          <>
+            <PropertyColorField
+              label='Button color'
+              value={props.submitColor ?? siteStyles.colors.accent}
+              onChange={submitColor => update({ submitColor })}
+              siteDefault={siteStyles.colors.accent}
+              onUseSiteDefault={
+                props.submitColor !== undefined ? () => update({ submitColor: undefined }) : undefined
+              }
+            />
+            <PropertySliderField
+              label='Button corner radius'
+              value={props.submitBorderRadius ?? siteSubmitRadius}
+              min={0}
+              max={submitRadiusSliderMax}
+              step={1}
+              unit='px'
+              onChange={submitBorderRadius => update({ submitBorderRadius })}
+              siteDefault={siteSubmitRadius}
+              onUseSiteDefault={
+                props.submitBorderRadius !== undefined ? () => update({ submitBorderRadius: undefined }) : undefined
+              }
+            />
+          </>
+        ) : null}
       </PropertySection>
+
+      <TextTypographyControls
+        role='formTitle'
+        sectionTitle='Title typography'
+        fonts={siteStyles.fonts}
+        typography={props.titleTypography}
+        onChange={titleTypography => update({ titleTypography })}
+      />
+      <TextTypographyControls
+        role='formBody'
+        sectionTitle='Subtitle typography'
+        fonts={siteStyles.fonts}
+        typography={props.bodyTypography}
+        onChange={bodyTypography => update({ bodyTypography })}
+      />
+      <TextTypographyControls
+        role='formField'
+        sectionTitle='Field typography'
+        fonts={siteStyles.fonts}
+        forms={siteStyles.forms}
+        typography={props.fieldTypography}
+        onChange={fieldTypography => update({ fieldTypography })}
+      />
     </PropertyFields>
   )
 }

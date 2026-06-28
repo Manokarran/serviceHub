@@ -14,9 +14,20 @@ type Props = {
   max: number
   step?: number
   unit?: string
+  marks?: boolean
   onChange: (value: number) => void
   siteDefault?: number
   onUseSiteDefault?: () => void
+}
+
+function buildStepMarks(min: number, max: number, step: number) {
+  const marks: { value: number; label?: string }[] = []
+
+  for (let value = min; value <= max; value += step) {
+    marks.push({ value })
+  }
+
+  return marks
 }
 
 export function PropertySliderField({
@@ -26,12 +37,14 @@ export function PropertySliderField({
   max,
   step = 1,
   unit = 'px',
+  marks = false,
   onChange,
   siteDefault,
   onUseSiteDefault
 }: Props) {
   const theme = useTheme()
   const isOverriding = siteDefault !== undefined && value !== siteDefault
+  const sliderMarks = marks ? buildStepMarks(min, max, step) : undefined
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -74,21 +87,31 @@ export function PropertySliderField({
         min={min}
         max={max}
         step={step}
+        marks={sliderMarks}
+        valueLabelDisplay='auto'
         onChange={(_, v) => onChange(v as number)}
         sx={{
           mt: 0.25,
           color: 'primary.main',
           height: 4,
-          py: 1.125,
+          py: 1.5,
           '& .MuiSlider-thumb': {
-            width: 14,
-            height: 14,
+            width: 16,
+            height: 16,
             boxShadow: `0 0 0 2px ${alpha(theme.palette.background.paper, 1)}, 0 0 0 3px ${alpha(theme.palette.primary.main, 0.5)}`,
             '&:hover, &.Mui-focusVisible': {
               boxShadow: `0 0 0 2px ${alpha(theme.palette.background.paper, 1)}, 0 0 0 4px ${alpha(theme.palette.primary.main, 0.35)}`
             }
           },
-          '& .MuiSlider-rail': { opacity: 0.2 }
+          '& .MuiSlider-rail': { opacity: 0.2 },
+          '& .MuiSlider-mark': {
+            width: 4,
+            height: 4,
+            borderRadius: '50%',
+            backgroundColor: 'currentColor',
+            opacity: 0.35
+          },
+          '& .MuiSlider-markActive': { opacity: 0.65 }
         }}
       />
 

@@ -6,13 +6,16 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 import type { EmblaCarouselType } from 'embla-carousel'
 
-import type { CarouselArrowStyle, CarouselBlockProps, CarouselDotStyle } from '../../types'
+import type { CarouselArrowStyle, CarouselBlockProps, CarouselDotStyle, TextTypographyOverrides } from '../../types'
+import type { SiteFonts } from '../../types/siteStyles'
+import { resolveTextTypographySx } from '../../utils/textTypographyHelpers'
 
 type Props = {
   emblaApi: EmblaCarouselType | undefined
   props: CarouselBlockProps
   selectedIndex: number
   onSelect: (index: number) => void
+  fonts: SiteFonts
 }
 
 function CarouselArrow({
@@ -82,22 +85,24 @@ function CarouselDots({
   selectedIndex,
   style,
   color,
-  onSelect
+  onSelect,
+  typography,
+  fonts
 }: {
   count: number
   selectedIndex: number
   style: CarouselDotStyle
   color: string
   onSelect: (index: number) => void
+  typography?: TextTypographyOverrides
+  fonts: SiteFonts
 }) {
   if (style === 'fraction') {
     return (
       <Typography
         sx={{
-          fontSize: '0.75rem',
-          fontWeight: 600,
+          ...resolveTextTypographySx('control', fonts, typography),
           color: alpha(color, 0.85),
-          letterSpacing: '0.04em',
           flexShrink: 0
         }}
       >
@@ -146,7 +151,7 @@ function CarouselDots({
   )
 }
 
-export function CarouselControls({ emblaApi, props, selectedIndex, onSelect }: Props) {
+export function CarouselControls({ emblaApi, props, selectedIndex, onSelect, fonts }: Props) {
   const showArrows = props.showArrows && props.slides.length > 1
   const showDots = props.showDots && props.slides.length > 1
   const isFloating = props.arrowStyle === 'floating'
@@ -206,6 +211,8 @@ export function CarouselControls({ emblaApi, props, selectedIndex, onSelect }: P
               style={props.dotStyle}
               color={props.dotColor}
               onSelect={handleDotSelect}
+              typography={props.controlTypography}
+              fonts={fonts}
             />
           </Box>
         )}
@@ -238,6 +245,8 @@ export function CarouselControls({ emblaApi, props, selectedIndex, onSelect }: P
               style={props.dotStyle}
               color={props.dotColor}
               onSelect={handleDotSelect}
+              typography={props.controlTypography}
+              fonts={fonts}
             />
           ) : (
             <Box sx={{ flex: 1 }} />
@@ -258,6 +267,8 @@ export function CarouselControls({ emblaApi, props, selectedIndex, onSelect }: P
             style={props.dotStyle}
             color={props.dotColor}
             onSelect={handleDotSelect}
+            typography={props.controlTypography}
+            fonts={fonts}
           />
         </Box>
       )}

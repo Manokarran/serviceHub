@@ -105,7 +105,7 @@ export interface BlockBackgroundProps {
   backgroundPhotoAnimation?: ImageHoverEffect
 }
 
-export interface HeaderBlockProps {
+export interface HeaderBlockProps extends BlockBackgroundProps, SplitVisualConfig {
   logoText: string
   logoUrl: string
   /** MUI icon name when no logo image is set (IconPicker). */
@@ -118,14 +118,16 @@ export interface HeaderBlockProps {
   logoPosition: LogoPosition
   navLinks: NavLinkItem[]
   layout: HeaderLayout
+  /** Solid fallback when `background` is unset */
   backgroundColor: string
-  backgroundOpacity?: number
   textColor: string
   fixed: boolean
   borderRadius?: number
+  logoTypography?: TextTypographyOverrides
+  navTypography?: TextTypographyOverrides
 }
 
-export interface FooterBlockProps {
+export interface FooterBlockProps extends BlockBackgroundProps, SplitVisualConfig {
   logoText: string
   logoUrl: string
   /** MUI icon name when no logo image is set (IconPicker). */
@@ -139,11 +141,14 @@ export interface FooterBlockProps {
   copyrightText: string
   navLinks: NavLinkItem[]
   layout: HeaderLayout
+  /** Solid fallback when `background` is unset */
   backgroundColor: string
-  backgroundOpacity?: number
   textColor: string
   fixed: boolean
   borderRadius?: number
+  logoTypography?: TextTypographyOverrides
+  navTypography?: TextTypographyOverrides
+  copyrightTypography?: TextTypographyOverrides
 }
 
 export interface HeroBlockProps {
@@ -235,6 +240,7 @@ export interface TabsBlockProps {
   contentBorderWidth: number
   contentBorderColor: string
   tabBorderRadius: number
+  tabTypography?: TextTypographyOverrides
 }
 
 export interface CarouselBlockProps {
@@ -258,6 +264,7 @@ export interface CarouselBlockProps {
   slideMinHeight: number
   arrowColor: string
   dotColor: string
+  controlTypography?: TextTypographyOverrides
 }
 
 export interface SectionBlockProps extends BlockBackgroundProps, SplitVisualConfig {
@@ -290,17 +297,37 @@ export interface SectionBlockProps extends BlockBackgroundProps, SplitVisualConf
   secondaryChildren: Block[]
 }
 
+export type TextTypographyFontSource = 'heading' | 'body' | 'custom'
+
+export type TextTypographyTransform = 'none' | 'uppercase' | 'lowercase' | 'capitalize'
+
+export type TextTypographyDecoration = 'none' | 'underline' | 'line-through'
+
+export interface TextTypographyOverrides {
+  fontSource?: TextTypographyFontSource
+  fontFamily?: string
+  fontSize?: number
+  fontWeight?: number
+  fontStyle?: 'normal' | 'italic'
+  lineHeight?: number
+  letterSpacing?: number
+  textTransform?: TextTypographyTransform
+  textDecoration?: TextTypographyDecoration
+}
+
 export interface HeadingBlockProps {
   text: string
   level: 1 | 2 | 3
   alignment: TextAlign
   color: string
+  typography?: TextTypographyOverrides
 }
 
 export interface TextBlockProps {
   text: string
   alignment: TextAlign
   color: string
+  typography?: TextTypographyOverrides
 }
 
 export interface ButtonBlockProps {
@@ -410,6 +437,9 @@ export interface ContactFormBlockProps {
   submitVariant?: ContactFormSubmitVariant
   submitColor?: string
   submitBorderRadius?: number
+  titleTypography?: TextTypographyOverrides
+  bodyTypography?: TextTypographyOverrides
+  fieldTypography?: TextTypographyOverrides
 }
 
 export type BlockPropsMap = {

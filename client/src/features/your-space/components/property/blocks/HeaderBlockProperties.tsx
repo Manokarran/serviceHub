@@ -7,7 +7,9 @@ import { PropertyFields, PropertySection } from '../PropertyPanelUi'
 import { PropertyColorField } from '../PropertyColorField'
 import { PropertySliderField } from '../PropertySliderField'
 import { PropertyToggleRow } from '../PropertyToggleRow'
-import { BackgroundOpacityField } from '../BackgroundOpacityField'
+import { TextTypographyControls } from '../TextTypographyControls'
+import { useSiteStyles } from '../../SiteStylesScope'
+import { ChromeBlockStyleControls } from '../../ChromeBlockStyleControls'
 import { ChromeBlockBrandingFields, ChromeBlockStructureFields } from './ChromeBlockShared'
 
 type Props = {
@@ -17,6 +19,7 @@ type Props = {
 
 export function HeaderBlockProperties({ block, activeTab }: Props) {
   const { updateBlock } = useBuilder()
+  const siteStyles = useSiteStyles()
   const props = block.props as HeaderBlockProps
   const update = (changes: Partial<HeaderBlockProps>) => updateBlock(block.id, changes)
 
@@ -59,17 +62,12 @@ export function HeaderBlockProperties({ block, activeTab }: Props) {
 
   return (
     <PropertyFields>
-      <PropertySection title='Background' collapsible defaultOpen>
-        <PropertyColorField
-          label='Background color'
-          value={props.backgroundColor}
-          onChange={backgroundColor => update({ backgroundColor })}
-        />
-        <BackgroundOpacityField
-          value={props.backgroundOpacity ?? 0}
-          onChange={backgroundOpacity => update({ backgroundOpacity })}
-        />
-      </PropertySection>
+      <ChromeBlockStyleControls
+        props={props}
+        accentColor={siteStyles.colors.accent}
+        chromeType='header'
+        onUpdate={update}
+      />
       <PropertySection title='Text' collapsible defaultOpen>
         <PropertyColorField
           label='Text color'
@@ -77,6 +75,20 @@ export function HeaderBlockProperties({ block, activeTab }: Props) {
           onChange={textColor => update({ textColor })}
         />
       </PropertySection>
+      <TextTypographyControls
+        role='logo'
+        sectionTitle='Logo typography'
+        fonts={siteStyles.fonts}
+        typography={props.logoTypography}
+        onChange={logoTypography => update({ logoTypography })}
+      />
+      <TextTypographyControls
+        role='nav'
+        sectionTitle='Navigation typography'
+        fonts={siteStyles.fonts}
+        typography={props.navTypography}
+        onChange={navTypography => update({ navTypography })}
+      />
       <PropertySection title='Shape' collapsible defaultOpen>
         <PropertySliderField
           label='Corner radius'

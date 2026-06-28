@@ -4,7 +4,7 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 
 import type { HeadingBlockProps } from '../../types'
-import { getHeadingFontSize } from '../../utils/siteStylesHelpers'
+import { resolveTextTypographySx } from '../../utils/textTypographyHelpers'
 import { InlineEditableText } from '../inline/InlineEditableText'
 import { useSiteStyles } from '../SiteStylesScope'
 
@@ -18,10 +18,7 @@ export function HeadingBlock({ props }: Props) {
   const siteStyles = useSiteStyles()
   const variant = VARIANT_MAP[props.level]
   const textSx = {
-    fontFamily: siteStyles.fonts.headingFamily,
-    fontWeight: siteStyles.fonts.headingWeight,
-    letterSpacing: siteStyles.fonts.headingLetterSpacing,
-    fontSize: getHeadingFontSize(props.level, siteStyles.fonts),
+    ...resolveTextTypographySx('heading', siteStyles.fonts, props.typography, { headingLevel: props.level }),
     color: props.color,
     display: 'block'
   }

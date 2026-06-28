@@ -1,5 +1,6 @@
 import type {
   Block,
+  BlockBackgroundProps,
   CarouselBlockProps,
   FooterBlockProps,
   HeaderBlockProps,
@@ -9,6 +10,7 @@ import type {
   SectionBlockProps,
   ShapeBlockProps,
   IconBlockProps,
+  SplitVisualConfig,
   TabsBlockProps,
   NavLinkItem,
   VideoBlockProps
@@ -60,6 +62,43 @@ export function normalizeNavLinks(links: unknown): NavLinkItem[] {
     .filter((link): link is NavLinkItem => link !== null)
 }
 
+function normalizeChromeBackgroundProps(
+  props: BlockBackgroundProps & SplitVisualConfig & { backgroundColor: string },
+  defaults: { backgroundColor: string; backgroundOpacity: number }
+): Pick<
+  BlockBackgroundProps & SplitVisualConfig,
+  | 'background'
+  | 'backgroundType'
+  | 'backgroundPhotoOpacity'
+  | 'backgroundOpacity'
+  | 'splitVisualAnimation'
+  | 'splitVisualColorStart'
+  | 'splitVisualColorEnd'
+> {
+  let backgroundType = props.backgroundType ?? 'color'
+  let background = normalizeStoredMediaUrl(
+    props.background ?? props.backgroundColor ?? defaults.backgroundColor,
+    backgroundType
+  )
+
+  if (
+    (backgroundType === 'photo' || backgroundType === 'video') &&
+    !isValidMediaUrl(parseMediaUrl(background) ?? background)
+  ) {
+    backgroundType = 'color'
+  }
+
+  return {
+    background,
+    backgroundType,
+    backgroundPhotoOpacity: props.backgroundPhotoOpacity ?? 100,
+    backgroundOpacity: props.backgroundOpacity ?? defaults.backgroundOpacity,
+    splitVisualAnimation: props.splitVisualAnimation ?? 'static',
+    splitVisualColorStart: props.splitVisualColorStart ?? '',
+    splitVisualColorEnd: props.splitVisualColorEnd ?? ''
+  }
+}
+
 export function normalizeBlock(block: Block): Block {
   if (block.type === 'header') {
     const props = block.props as HeaderBlockProps
@@ -78,8 +117,11 @@ export function normalizeBlock(block: Block): Block {
         layout: props.layout ?? 'horizontal',
         fixed: props.fixed ?? false,
         borderRadius: props.borderRadius ?? 0,
-        backgroundOpacity: props.backgroundOpacity ?? 0,
-        navLinks: normalizeNavLinks(props.navLinks)
+        navLinks: normalizeNavLinks(props.navLinks),
+        ...normalizeChromeBackgroundProps(props, {
+          backgroundColor: props.backgroundColor ?? '#ffffff',
+          backgroundOpacity: 0
+        })
       }
     }
   }
@@ -102,8 +144,11 @@ export function normalizeBlock(block: Block): Block {
         layout: props.layout ?? 'horizontal',
         fixed: props.fixed ?? false,
         borderRadius: props.borderRadius ?? 0,
-        backgroundOpacity: props.backgroundOpacity ?? 100,
-        navLinks: normalizeNavLinks(props.navLinks)
+        navLinks: normalizeNavLinks(props.navLinks),
+        ...normalizeChromeBackgroundProps(props, {
+          backgroundColor: props.backgroundColor ?? '#1a1a2e',
+          backgroundOpacity: 100
+        })
       }
     }
   }

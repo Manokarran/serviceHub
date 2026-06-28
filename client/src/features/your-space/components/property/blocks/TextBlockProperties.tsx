@@ -7,6 +7,8 @@ import { PropertyFields } from '../PropertyPanelUi'
 import { PropertyTextField } from '../PropertyTextField'
 import { PropertyColorField } from '../PropertyColorField'
 import { AlignmentControl } from '../AlignmentControl'
+import { TextTypographyControls } from '../TextTypographyControls'
+import { useSiteStyles } from '../../SiteStylesScope'
 
 type Props = {
   block: Block<'text'>
@@ -15,6 +17,7 @@ type Props = {
 
 export function TextBlockProperties({ block, activeTab }: Props) {
   const { updateBlock } = useBuilder()
+  const siteStyles = useSiteStyles()
   const props = block.props as TextBlockProps
   const update = (changes: Partial<TextBlockProps>) => updateBlock(block.id, changes)
 
@@ -47,6 +50,12 @@ export function TextBlockProperties({ block, activeTab }: Props) {
         label='Text color'
         value={props.color}
         onChange={color => update({ color })}
+      />
+      <TextTypographyControls
+        role='body'
+        fonts={siteStyles.fonts}
+        typography={props.typography}
+        onChange={typography => update({ typography })}
       />
     </PropertyFields>
   )

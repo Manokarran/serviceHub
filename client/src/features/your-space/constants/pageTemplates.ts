@@ -70,7 +70,10 @@ const CONTACT_PAGE_BLOCKS: Block[] = [
             successMessage: 'Thank you! Your message has been sent.',
             signupLabel: 'I am interested in signing up',
             showSignupOption: true,
-            alignment: 'left'
+            alignment: 'center',
+            fieldBorderRadius: 2,
+            fieldBorderWidth: 1,
+            submitVariant: 'theme'
           }
         }
       ],

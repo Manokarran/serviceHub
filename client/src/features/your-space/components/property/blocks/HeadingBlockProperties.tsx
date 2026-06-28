@@ -14,6 +14,8 @@ import { PropertyFields } from '../PropertyPanelUi'
 import { PropertyTextField } from '../PropertyTextField'
 import { PropertyColorField } from '../PropertyColorField'
 import { AlignmentControl } from '../AlignmentControl'
+import { TextTypographyControls } from '../TextTypographyControls'
+import { useSiteStyles } from '../../SiteStylesScope'
 
 const LEVEL_OPTIONS: { value: 1 | 2 | 3; label: string; sublabel: string }[] = [
   { value: 1, label: 'H1', sublabel: 'Large' },
@@ -89,6 +91,7 @@ type Props = {
 
 export function HeadingBlockProperties({ block, activeTab }: Props) {
   const { updateBlock } = useBuilder()
+  const siteStyles = useSiteStyles()
   const props = block.props as HeadingBlockProps
   const update = (changes: Partial<HeadingBlockProps>) => updateBlock(block.id, changes)
 
@@ -120,6 +123,13 @@ export function HeadingBlockProperties({ block, activeTab }: Props) {
         label='Text color'
         value={props.color}
         onChange={color => update({ color })}
+      />
+      <TextTypographyControls
+        role='heading'
+        fonts={siteStyles.fonts}
+        typography={props.typography}
+        headingLevel={props.level}
+        onChange={typography => update({ typography })}
       />
     </PropertyFields>
   )

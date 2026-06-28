@@ -1,7 +1,9 @@
 import type { NextConfig } from 'next'
 
+const basePath = process.env.BASEPATH?.replace(/\/$/, '') ?? ''
+
 const nextConfig: NextConfig = {
-  basePath: process.env.BASEPATH,
+  ...(basePath ? { basePath } : {}),
   redirects: async () => {
     return [
       {
