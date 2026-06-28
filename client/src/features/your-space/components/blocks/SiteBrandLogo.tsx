@@ -6,7 +6,7 @@ import { alpha } from '@mui/material/styles'
 
 import { ItServiceIcon, isRemixIconClass } from '@/components/IconPicker'
 import { DEFAULT_LOGO_ICON_STYLE, type IconPickerStyle } from '@/components/iconPickerStyle'
-import { getOptimizedImageUrl } from '@/lib/imagekit/urls'
+import { getDisplayImageUrl } from '@/lib/imagekit/urls'
 import type { LogoPosition, TextTypographyOverrides } from '../../types'
 import { normalizeSiteFonts } from '../../utils/siteStylesHelpers'
 import { resolveTextTypographySx } from '../../utils/textTypographyHelpers'
@@ -51,7 +51,7 @@ export function SiteBrandLogo({
 }: Props) {
   const siteStyles = useSiteStyles()
   const editContext = useCanvasBlockEdit()
-  const optimizedLogo = logoUrl ? getOptimizedImageUrl(logoUrl, { width: 320, height: 120, quality: 85 }) : ''
+  const optimizedLogo = logoUrl ? getDisplayImageUrl(logoUrl, 160, { quality: 92 }) : ''
   const showText = Boolean(logoText) || editContext !== null
   const iconStyle = resolveLogoIconStyle({
     logoText,

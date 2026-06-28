@@ -342,6 +342,9 @@ export function mergeFormFieldTypographySx(
   }
 
   const typography = resolveTextTypographyValues('formField', fonts, overrides, { forms })
+  const baseRecord = baseSx as Record<string, unknown>
+  const baseOutlined = (baseRecord['& .MuiOutlinedInput-root'] ?? {}) as Record<string, unknown>
+  const baseOutlinedInput = (baseOutlined['& .MuiOutlinedInput-input'] ?? {}) as Record<string, unknown>
 
   return {
     ...baseSx,
@@ -351,11 +354,13 @@ export function mergeFormFieldTypographySx(
     letterSpacing: typography.letterSpacing,
     textTransform: typography.textTransform,
     '& .MuiOutlinedInput-root': {
+      ...baseOutlined,
       fontFamily: typography.fontFamily,
       fontSize: typography.fontSize,
       fontWeight: typography.fontWeight,
       letterSpacing: typography.letterSpacing,
       '& .MuiOutlinedInput-input': {
+        ...baseOutlinedInput,
         fontFamily: typography.fontFamily,
         fontSize: typography.fontSize,
         fontWeight: typography.fontWeight,

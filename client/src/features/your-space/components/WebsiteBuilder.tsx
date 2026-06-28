@@ -1,5 +1,7 @@
 'use client'
 
+import { Suspense } from 'react'
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
@@ -35,6 +37,7 @@ import { PropertyPanel } from './PropertyPanel'
 import type { PropertyPanelTab } from '../components/property/PropertyPanelUi'
 import { BuilderShellProvider } from '../context/BuilderShellContext'
 import { useBuilderFullscreen } from '../hooks/useBuilderFullscreen'
+import { BuilderTemplateLauncher } from '@/features/site-templates/components/BuilderTemplateLauncher'
 
 type WebsiteBuilderInnerProps = {
   tenantName: string
@@ -262,9 +265,11 @@ type WebsiteBuilderProps = {
   initialDraftSiteStyles: SiteStyles | null
   initialPublishedSiteStyles: SiteStyles | null
   initialVersions: PublishedVersionSummary[]
+  isSiteStarted: boolean
+  extraPageCount: number
 }
 
-export function WebsiteBuilder({
+function WebsiteBuilderContent({
   tenantSlug,
   tenantName,
   initialPageSlug,
@@ -276,23 +281,39 @@ export function WebsiteBuilder({
   initialPublishedAt,
   initialDraftSiteStyles,
   initialPublishedSiteStyles,
-  initialVersions
+  initialVersions,
+  isSiteStarted,
+  extraPageCount
 }: WebsiteBuilderProps) {
   return (
-    <BuilderProvider
+    <BuilderTemplateLauncher
       tenantSlug={tenantSlug}
-      initialPageSlug={initialPageSlug}
-      initialPages={initialPages}
-      initialPageTitle={initialPageTitle}
-      initialDraftBlocks={initialDraftBlocks}
-      initialPublishedBlocks={initialPublishedBlocks}
-      initialDraftSiteStyles={initialDraftSiteStyles}
-      initialPublishedSiteStyles={initialPublishedSiteStyles}
-      initialSavedAt={initialSavedAt}
-      initialPublishedAt={initialPublishedAt}
-      initialVersions={initialVersions}
+      isSiteStarted={isSiteStarted}
+      extraPageCount={extraPageCount}
     >
-      <WebsiteBuilderInner tenantName={tenantName} />
-    </BuilderProvider>
+      <BuilderProvider
+        tenantSlug={tenantSlug}
+        initialPageSlug={initialPageSlug}
+        initialPages={initialPages}
+        initialPageTitle={initialPageTitle}
+        initialDraftBlocks={initialDraftBlocks}
+        initialPublishedBlocks={initialPublishedBlocks}
+        initialDraftSiteStyles={initialDraftSiteStyles}
+        initialPublishedSiteStyles={initialPublishedSiteStyles}
+        initialSavedAt={initialSavedAt}
+        initialPublishedAt={initialPublishedAt}
+        initialVersions={initialVersions}
+      >
+        <WebsiteBuilderInner tenantName={tenantName} />
+      </BuilderProvider>
+    </BuilderTemplateLauncher>
+  )
+}
+
+export function WebsiteBuilder(props: WebsiteBuilderProps) {
+  return (
+    <Suspense fallback={null}>
+      <WebsiteBuilderContent {...props} />
+    </Suspense>
   )
 }

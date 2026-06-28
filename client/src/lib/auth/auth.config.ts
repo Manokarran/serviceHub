@@ -2,17 +2,19 @@ import type { NextAuthConfig } from 'next-auth'
 
 import type { UserRole } from '@/lib/constants/roles'
 import type { TenantPlan } from '@/lib/constants/tenant'
+import { isSuperAdminEmail } from '@/lib/auth/super-admin'
 
 /**
  * Edge-compatible auth config used by middleware.
  * Reads the same `.env` keys as the rest of the app.
  */
 export const authConfig = {
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   trustHost: true,
   debug: process.env.NODE_ENV === 'development',
   pages: {
-    signIn: '/login'
+    signIn: '/login',
+    error: '/login'
   },
   session: {
     strategy: 'jwt',
@@ -29,6 +31,8 @@ export const authConfig = {
         session.user.tenantName = token.tenantName as string | undefined
         session.user.tenantSlug = token.tenantSlug as string | undefined
         session.user.tenantPlan = token.tenantPlan as TenantPlan | undefined
+        session.user.isSuperAdmin =
+          Boolean(token.isSuperAdmin) || isSuperAdminEmail(session.user.email)
       }
 
       return session
@@ -37,11 +41,13 @@ export const authConfig = {
       const isLoggedIn = Boolean(auth?.user)
       const isRegistered = Boolean(auth?.user?.registrationComplete)
       const pathname = nextUrl.pathname
+      const isSuperAdminRoute = pathname.startsWith('/super-admin')
       const isProtectedRoute =
         pathname.startsWith('/home') ||
         pathname.startsWith('/your-space') ||
         pathname.startsWith('/leads') ||
-        pathname.startsWith('/about')
+        pathname.startsWith('/about') ||
+        isSuperAdminRoute
       const isRegisterRoute = pathname.startsWith('/register')
       const isLoginRoute = pathname.startsWith('/login')
 
@@ -52,6 +58,10 @@ export const authConfig = {
 
         if (!isRegistered) {
           return Response.redirect(new URL('/register', nextUrl))
+        }
+
+        if (isSuperAdminRoute && !isSuperAdminEmail(auth?.user?.email)) {
+          return Response.redirect(new URL('/home', nextUrl))
         }
 
         return true

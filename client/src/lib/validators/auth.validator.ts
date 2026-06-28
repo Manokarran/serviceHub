@@ -8,7 +8,8 @@ const slugSchema = z
 
 export const completeRegistrationSchema = z.object({
   companyName: z.string().trim().min(2, 'Company name is required').max(120),
-  slug: slugSchema
+  slug: slugSchema,
+  templateId: z.string().trim().optional()
 })
 
 export type CompleteRegistrationInput = z.infer<typeof completeRegistrationSchema>

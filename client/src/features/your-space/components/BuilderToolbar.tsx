@@ -25,6 +25,7 @@ import { useBuilder } from '../context/BuilderContext'
 import { getPublicPagePath } from '@/lib/utils/public-site-url'
 import { LiveSiteButton } from './LiveSiteButton'
 import { VersionHistoryDialog } from './VersionHistoryDialog'
+import { useSiteWorkspace } from '@/features/site-templates/context/SiteWorkspaceContext'
 
 type Props = {
   tenantName: string
@@ -272,6 +273,7 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
     currentPageTitle,
     tenantSlug
   } = useBuilder()
+  const { isSiteStarted, openTemplatePicker, openStartFreshDialog } = useSiteWorkspace()
 
   const pagePath = getPublicPagePath(tenantSlug, currentPageSlug)
   const siteUrl = typeof window !== 'undefined' ? `${window.location.origin}${pagePath}` : pagePath
@@ -530,8 +532,43 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
           <ListItemIcon>
             <i className='ri-history-line' />
           </ListItemIcon>
-          <ListItemText>Version history</ListItemText>
+          <ListItemText
+            primary='Restore published version'
+            secondary='Current page only'
+          />
         </MenuItem>
+        {isSiteStarted ? (
+          <>
+            <MenuItem
+              onClick={() => {
+                handleMenuClose()
+                openTemplatePicker('replace')
+              }}
+            >
+              <ListItemIcon>
+                <i className='ri-exchange-line' />
+              </ListItemIcon>
+              <ListItemText
+                primary='Replace site with template…'
+                secondary='Overwrites draft pages'
+              />
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                handleMenuClose()
+                openStartFreshDialog()
+              }}
+            >
+              <ListItemIcon>
+                <i className='ri-refresh-line' />
+              </ListItemIcon>
+              <ListItemText
+                primary='Start fresh…'
+                secondary='Reset draft site to blank or starter'
+              />
+            </MenuItem>
+          </>
+        ) : null}
         <MenuItem
           onClick={() => {
             handleMenuClose()
@@ -542,7 +579,10 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
           <ListItemIcon>
             <i className='ri-layout-line' />
           </ListItemIcon>
-          <ListItemText>Reset to empty layout</ListItemText>
+          <ListItemText
+            primary='Clear current page'
+            secondary='Draft only, this page'
+          />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -551,9 +591,12 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
           }}
         >
           <ListItemIcon>
-            <i className='ri-refresh-line' />
+            <i className='ri-layout-masonry-line' />
           </ListItemIcon>
-          <ListItemText>Reset to starter template</ListItemText>
+          <ListItemText
+            primary='Reset current page to starter'
+            secondary='Draft only, this page'
+          />
         </MenuItem>
       </Menu>
 

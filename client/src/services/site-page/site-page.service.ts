@@ -8,6 +8,7 @@ import { createPageSchema, saveSitePageSchema, updatePageMetaSchema } from '@/li
 import type { PublishedVersionSummary, SitePageSummary, ISitePageBlock } from '@/models/site-page'
 import { sitePageRepository, sitePageVersionRepository } from '@/repositories/site-page.repository'
 import { tenantRepository } from '@/repositories/tenant.repository'
+import { siteWorkspaceService } from '@/services/site-workspace'
 
 function parsePagePayload(blocks: Block[], siteStyles?: SiteStyles) {
   const parsed = saveSitePageSchema.safeParse({ blocks, siteStyles })
@@ -187,6 +188,8 @@ export class SitePageService {
       throw new AppError('Failed to publish page', 500, 'PUBLISH_FAILED')
     }
 
+    await siteWorkspaceService.markSiteStarted(tenantId)
+
     return page
   }
 
@@ -253,7 +256,11 @@ export class SitePageService {
     }
   }
 
-  async createPage(tenantId: string, input: { title: string; slug?: string; draftBlocks?: ISitePageBlock[] }) {
+  async createPage(
+    tenantId: string,
+    input: { title: string; slug?: string; draftBlocks?: ISitePageBlock[] },
+    options?: { markSiteStarted?: boolean }
+  ) {
     assertTenantId(tenantId)
 
     const parsed = createPageSchema.safeParse(input)
@@ -285,6 +292,12 @@ export class SitePageService {
       draftBlocks
     )
 
+    const existingCount = existingPages.length
+
+    if (options?.markSiteStarted !== false && existingCount > 0) {
+      await siteWorkspaceService.markSiteStarted(tenantId)
+    }
+
     return mapPageToSummary(page)
   }
 
@@ -303,7 +316,7 @@ export class SitePageService {
       title: 'Contact',
       slug: 'contact',
       draftBlocks: createContactPageBlocks() as unknown as ISitePageBlock[]
-    })
+    }, { markSiteStarted: false })
   }
 
   async updatePageMeta(

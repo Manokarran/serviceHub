@@ -506,8 +506,9 @@ export const PALETTE_ITEMS: PaletteItem[] = [
       signupLabel: 'I am interested in signing up',
       showSignupOption: true,
       alignment: 'center',
-      fieldBorderRadius: 2,
-      fieldBorderWidth: 1,
+      backgroundColor: '#ffffff',
+      backgroundOpacity: 0,
+      transparentFieldBackground: true,
       submitVariant: 'theme'
     }
   },

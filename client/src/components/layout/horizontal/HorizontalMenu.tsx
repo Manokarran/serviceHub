@@ -9,6 +9,7 @@ import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Me
 
 // Component Imports
 import HorizontalNav, { Menu, MenuItem } from '@menu/horizontal-menu'
+import { MenuSection } from '@menu/vertical-menu'
 import VerticalNavContent from './VerticalNavContent'
 
 // Hook Imports
@@ -57,6 +58,7 @@ const HorizontalMenu = () => {
   const { settings } = useSettings()
   const { data: session } = useSession()
   const canManageLeads = isManagerRole(session?.user?.role)
+  const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
 
   // Vars
   const { skin } = settings
@@ -104,6 +106,13 @@ const HorizontalMenu = () => {
         <MenuItem href='/about' icon={<i className='ri-information-line' />}>
           About
         </MenuItem>
+        {isSuperAdmin ? (
+          <MenuSection label='Super Admin'>
+            <MenuItem href='/super-admin' icon={<i className='ri-shield-star-line' />}>
+              Dashboard
+            </MenuItem>
+          </MenuSection>
+        ) : null}
       </Menu>
 
       {/* <Menu

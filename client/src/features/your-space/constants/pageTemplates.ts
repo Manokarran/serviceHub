@@ -71,8 +71,9 @@ const CONTACT_PAGE_BLOCKS: Block[] = [
             signupLabel: 'I am interested in signing up',
             showSignupOption: true,
             alignment: 'center',
-            fieldBorderRadius: 2,
-            fieldBorderWidth: 1,
+            backgroundColor: '#ffffff',
+            backgroundOpacity: 0,
+            transparentFieldBackground: true,
             submitVariant: 'theme'
           }
         }

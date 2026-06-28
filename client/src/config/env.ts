@@ -16,6 +16,20 @@ function optional(value: string | undefined, fallback: string): string {
   return trimmed && trimmed.length > 0 ? trimmed : fallback
 }
 
+/** Strip wrapping quotes — needed when ImageKit keys end with "=" */
+function stripEnvQuotes(value: string): string {
+  const trimmed = value.trim()
+
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1)
+  }
+
+  return trimmed
+}
+
 export const serverEnv = {
   appUrl: optional(process.env.NEXT_PUBLIC_APP_URL, 'http://localhost:3000'),
   basePath: optional(process.env.BASEPATH, ''),
@@ -25,8 +39,8 @@ export const serverEnv = {
   nextAuthUrl: optional(process.env.NEXTAUTH_URL, optional(process.env.NEXT_PUBLIC_APP_URL, 'http://localhost:3000')),
   googleClientId: required('GOOGLE_CLIENT_ID', process.env.GOOGLE_CLIENT_ID),
   googleClientSecret: required('GOOGLE_CLIENT_SECRET', process.env.GOOGLE_CLIENT_SECRET),
-  imagekitPrivateKey: optional(process.env.IMAGEKIT_PRIVATE_KEY, ''),
-  imagekitPublicKey: optional(process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY, ''),
+  imagekitPrivateKey: stripEnvQuotes(optional(process.env.IMAGEKIT_PRIVATE_KEY, '')),
+  imagekitPublicKey: stripEnvQuotes(optional(process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY, '')),
   imagekitUrlEndpoint: optional(process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT, ''),
   emailFromName: optional(process.env.EMAIL_FROM_NAME, 'ServiceHub'),
   emailFromAddress: optional(process.env.EMAIL_FROM_ADDRESS, ''),

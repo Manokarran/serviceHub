@@ -13,6 +13,7 @@ declare module 'next-auth' {
       tenantName?: string
       tenantSlug?: string
       tenantPlan?: TenantPlan
+      isSuperAdmin?: boolean
     } & DefaultSession['user']
   }
 }
@@ -26,5 +27,6 @@ declare module 'next-auth/jwt' {
     tenantName?: string
     tenantSlug?: string
     tenantPlan?: TenantPlan
+    isSuperAdmin?: boolean
   }
 }

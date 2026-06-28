@@ -72,7 +72,9 @@ export async function uploadToImageKit(params: {
   if (!response.ok) {
     if (response.status === 403) {
       throw new ImageKitUploadError(
-        'ImageKit rejected your private API key. In the ImageKit dashboard, open Developer → API keys, copy the full private key into IMAGEKIT_PRIVATE_KEY (wrap it in quotes if it ends with =), then restart the dev server.',
+        data.message
+          ? `ImageKit authentication failed: ${data.message} Copy the full private key from ImageKit → Developer → API keys into IMAGEKIT_PRIVATE_KEY (wrap in quotes if it ends with =), then restart the dev server.`
+          : 'ImageKit rejected your private API key. In the ImageKit dashboard, open Developer → API keys, copy the full private key into IMAGEKIT_PRIVATE_KEY (wrap it in quotes if it ends with =), then restart the dev server.',
         403
       )
     }

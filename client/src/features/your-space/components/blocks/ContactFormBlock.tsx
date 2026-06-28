@@ -14,6 +14,7 @@ import type { ContactFormBlockProps } from '../../types'
 import { usePublicTenantSlug } from '../../hooks/usePublicTenantSlug'
 import { useSitePageNavigation } from '../../hooks/useSitePageNavigation'
 import { getContactFormFieldSx, getContactFormSubmitButtonConfig } from '../../utils/siteStylesHelpers'
+import { applyBackgroundAlpha } from '../../utils/sectionStyleHelpers'
 import { mergeFormFieldTypographySx, resolveTextTypographySx } from '../../utils/textTypographyHelpers'
 import { InlineEditableText } from '../inline/InlineEditableText'
 import { useSiteStyles } from '../SiteStylesScope'
@@ -28,7 +29,13 @@ export function ContactFormBlock({ blockId, props }: Props) {
   const tenantSlug = usePublicTenantSlug()
   const { isCanvasEditing } = useSitePageNavigation()
   const fieldSx = mergeFormFieldTypographySx(
-    getContactFormFieldSx(siteStyles, props.fieldStyle, props.fieldBorderRadius, props.fieldBorderWidth),
+    getContactFormFieldSx(
+      siteStyles,
+      props.fieldStyle,
+      props.fieldBorderRadius,
+      props.fieldBorderWidth,
+      props.transparentFieldBackground
+    ),
     siteStyles.fonts,
     siteStyles.forms,
     props.fieldTypography
@@ -63,6 +70,16 @@ export function ContactFormBlock({ blockId, props }: Props) {
     textAlign: props.alignment,
     alignItems: props.alignment === 'center' ? 'center' : props.alignment === 'right' ? 'flex-end' : 'flex-start'
   } as const
+
+  const formBackgroundOpacity = props.backgroundOpacity ?? 0
+  const formBackgroundColor = props.backgroundColor ?? '#ffffff'
+  const panelSx =
+    formBackgroundOpacity > 0
+      ? {
+          backgroundColor: applyBackgroundAlpha(formBackgroundColor, formBackgroundOpacity),
+          borderRadius: 2
+        }
+      : undefined
 
   const contentBoxSx = {
     width: '100%',
@@ -131,7 +148,7 @@ export function ContactFormBlock({ blockId, props }: Props) {
   }
 
   return (
-    <Box sx={{ px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 2, ...alignmentSx }}>
+    <Box sx={{ px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 2, ...alignmentSx, ...panelSx }}>
       <Box sx={{ ...contentBoxSx, display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Typography variant='h5' component='h2' sx={titleSx}>
           <InlineEditableText value={props.title} field='title' placeholder='Form title' sx={titleSx} />

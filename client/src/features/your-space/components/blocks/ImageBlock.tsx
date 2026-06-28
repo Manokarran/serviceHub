@@ -6,11 +6,12 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
-import { getOptimizedImageUrl } from '@/lib/imagekit/urls'
+import { getDisplayImageUrl } from '@/lib/imagekit/urls'
 import type { ImageBlockProps } from '../../types'
 import {
   getContinuousAnimationSx,
   getEntranceAnimationSx,
+  getMediaAspectRatio,
   getMediaFrameSx,
   getMediaOpacityFraction
 } from '../../utils/mediaBlockHelpers'
@@ -20,14 +21,18 @@ type Props = {
   props: ImageBlockProps
 }
 
+const IMAGE_DISPLAY_MAX_WIDTH = 720
+
 export function ImageBlock({ props }: Props) {
   const theme = useTheme()
   const siteStyles = useSiteStyles()
   const hoverEffect = props.hoverEffect ?? siteStyles.misc.imageHoverEffect
+  const aspectRatio = getMediaAspectRatio(siteStyles.misc)
+  const hasFixedAspect = Boolean(aspectRatio)
   const frameSx = getMediaFrameSx(siteStyles.misc, hoverEffect, props.borderRadius)
   const opacity = getMediaOpacityFraction(props.opacity)
   const cornerRadius = props.borderRadius ?? siteStyles.misc.imageCornerRadius
-  const optimizedSrc = props.src ? getOptimizedImageUrl(props.src) : ''
+  const optimizedSrc = props.src ? getDisplayImageUrl(props.src, IMAGE_DISPLAY_MAX_WIDTH) : ''
 
   const entranceAnimation = props.entranceAnimation ?? 'none'
   const continuousAnimation = props.continuousAnimation ?? 'none'
@@ -69,11 +74,18 @@ export function ImageBlock({ props }: Props) {
 
   const imageFrameSx = {
     width: '100%',
-    maxWidth: 720,
+    maxWidth: IMAGE_DISPLAY_MAX_WIDTH,
     ...(frameOpacity !== undefined ? { opacity: frameOpacity } : {}),
     ...(frameSx as object),
     ...(continuousSx as object)
   }
+
+  const imageSx = {
+    width: '100%',
+    height: hasFixedAspect ? '100%' : 'auto',
+    objectFit: hasFixedAspect ? 'cover' : 'contain',
+    display: 'block'
+  } as const
 
   return (
     <Box
@@ -98,7 +110,7 @@ export function ImageBlock({ props }: Props) {
             className='media-block-image'
             src={optimizedSrc}
             alt={props.alt || 'Image'}
-            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            sx={imageSx}
           />
         </Box>
       ) : (

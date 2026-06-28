@@ -29,12 +29,27 @@ import { useSettings } from '@core/hooks/useSettings'
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   Configuration:
-    'Google sign-in is misconfigured. Verify GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_URL, and NEXTAUTH_SECRET, then restart the dev server.',
-  AccessDenied: 'Sign-in was denied. Your Google account could not be linked.',
+    'Google sign-in is misconfigured. Verify GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_URL, and NEXTAUTH_SECRET on Vercel.',
+  AccessDenied:
+    'Sign-in was denied. If your Google OAuth app is still in Testing mode, add your email as a test user or publish the app in Google Cloud Console. Otherwise verify GOOGLE_CLIENT_ID/SECRET and the production redirect URI on Vercel.',
+  DatabaseError:
+    'Could not save your account. Check that MONGODB_URI is set on Vercel and MongoDB Atlas allows connections from anywhere (0.0.0.0/0).',
+  UserInactive: 'Your account is inactive. Contact support to restore access.',
+  TenantInactive: 'Your organization account is suspended.',
   OAuthCallbackError:
-    'Google callback failed. In Google Cloud Console, add http://localhost:3000/api/auth/callback/google as an authorized redirect URI.',
+    'Google callback failed. Add your production URL to Google Cloud Console authorized redirect URIs.',
   OAuthSignin: 'Could not start Google sign-in. Check your Google OAuth credentials.',
   Verification: 'The sign-in link is no longer valid.'
+}
+
+function resolveAuthErrorMessage(error?: string): string | null {
+  if (!error) {
+    return null
+  }
+
+  const code = error.split('/')[0]
+
+  return AUTH_ERROR_MESSAGES[code] ?? 'Sign-in failed. Please try again.'
 }
 
 type LoginProps = {
@@ -43,9 +58,7 @@ type LoginProps = {
 }
 
 const LoginV2 = ({ mode, error: initialError }: LoginProps) => {
-  const [error, setError] = useState<string | null>(
-    initialError ? (AUTH_ERROR_MESSAGES[initialError] ?? 'Sign-in failed. Please try again.') : null
-  )
+  const [error, setError] = useState<string | null>(resolveAuthErrorMessage(initialError))
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const darkImg = '/images/pages/auth-v2-mask-dark.png'

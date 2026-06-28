@@ -14,6 +14,7 @@ import {
   PropertyFields,
   PropertySection
 } from '../PropertyPanelUi'
+import { BackgroundOpacityField } from '../BackgroundOpacityField'
 import { PropertyTextField } from '../PropertyTextField'
 import { PropertyColorField } from '../PropertyColorField'
 import { PropertySliderField } from '../PropertySliderField'
@@ -109,15 +110,57 @@ export function ContactFormBlockProperties({ block, activeTab }: Props) {
     )
   }
 
+  const formBackgroundColor = props.backgroundColor ?? '#ffffff'
+  const formBackgroundOpacity = props.backgroundOpacity ?? 0
+
   return (
     <PropertyFields>
+      <PropertySection title='Form background' collapsible defaultOpen>
+        <PropertyColorField
+          label='Background color'
+          value={formBackgroundColor}
+          onChange={backgroundColor => update({ backgroundColor })}
+          siteDefault='#ffffff'
+        />
+        <BackgroundOpacityField
+          label='Background opacity'
+          value={formBackgroundOpacity}
+          onChange={backgroundOpacity => update({ backgroundOpacity })}
+        />
+        <PropertyBodyText>
+          {formBackgroundOpacity === 0
+            ? 'Transparent — the section or page background shows through.'
+            : 'Adjust opacity to blend the form panel with the page background.'}
+        </PropertyBodyText>
+      </PropertySection>
+
       <PropertySection title='Form fields' collapsible defaultOpen>
         <PropertyFieldLabel>Field shape</PropertyFieldLabel>
         <LayoutOptionGroup
           value={props.fieldStyle ?? 'theme'}
           options={FIELD_STYLE_OPTIONS}
-          onChange={fieldStyle => update({ fieldStyle })}
+          onChange={fieldStyle =>
+            update(
+              fieldStyle === 'theme'
+                ? { fieldStyle, fieldBorderRadius: undefined, fieldBorderWidth: undefined }
+                : { fieldStyle, fieldBorderRadius: undefined }
+            )
+          }
         />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={props.transparentFieldBackground !== false}
+              onChange={event => update({ transparentFieldBackground: event.target.checked })}
+            />
+          }
+          label='Transparent field backgrounds'
+        />
+        <PropertyBodyText>
+          {props.transparentFieldBackground !== false
+            ? 'Input fields show only their border — the section background shows through.'
+            : 'Input fields use the fill color from Site Styles → Forms.'}
+        </PropertyBodyText>
         <PropertyBodyText>
           {usesSiteFieldStyle
             ? 'Uses form field styles from Site Styles. Multiline fields use a subtler corner radius automatically.'

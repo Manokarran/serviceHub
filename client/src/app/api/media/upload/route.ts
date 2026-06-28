@@ -10,14 +10,33 @@ import { MAX_VIDEO_BYTES } from '@/lib/media/validate-video'
 export const runtime = 'nodejs'
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024
+const MAX_STORED_WIDTH = 2560
+const MAX_STORED_HEIGHT = 2560
+const STORAGE_WEBP_QUALITY = 88
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/webm', 'video/quicktime'])
 
-async function optimizeImageBuffer(buffer: Buffer): Promise<{ buffer: Buffer; fileName: string }> {
+async function optimizeImageBuffer(
+  buffer: Buffer,
+  contentType: string
+): Promise<{ buffer: Buffer; fileName: string }> {
+  const metadata = await sharp(buffer).metadata()
+  const width = metadata.width ?? 0
+  const height = metadata.height ?? 0
+  const withinSizeLimits = width <= MAX_STORED_WIDTH && height <= MAX_STORED_HEIGHT
+
+  // Client already compressed to WebP — avoid a second lossy encode pass.
+  if (contentType === 'image/webp' && withinSizeLimits) {
+    return {
+      buffer,
+      fileName: `background-${Date.now()}.webp`
+    }
+  }
+
   const optimized = await sharp(buffer)
     .rotate()
-    .resize(1920, 1080, { fit: 'inside', withoutEnlargement: true })
-    .webp({ quality: 82, effort: 4 })
+    .resize(MAX_STORED_WIDTH, MAX_STORED_HEIGHT, { fit: 'inside', withoutEnlargement: true })
+    .webp({ quality: STORAGE_WEBP_QUALITY, effort: 4 })
     .toBuffer()
 
   return {
@@ -63,7 +82,7 @@ export async function POST(request: Request) {
       }
 
       const inputBuffer = Buffer.from(await file.arrayBuffer())
-      const { buffer, fileName } = await optimizeImageBuffer(inputBuffer)
+      const { buffer, fileName } = await optimizeImageBuffer(inputBuffer, file.type)
 
       const upload = await uploadToImageKit({
         buffer,

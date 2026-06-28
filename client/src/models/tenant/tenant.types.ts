@@ -6,6 +6,10 @@ export interface ITenantSettings {
   primaryColor?: string
   logoUrl?: string
   customDomain?: string
+  /** When the organization moved past template onboarding. */
+  siteStartedAt?: Date
+  /** Last applied website template (bootstrap or replace). */
+  appliedTemplateId?: string
   /** Overrides owner email for contact form notifications. */
   contactNotificationEmail?: string
   contactAutoReplyEnabled?: boolean

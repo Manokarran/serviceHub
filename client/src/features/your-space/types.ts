@@ -431,6 +431,12 @@ export interface ContactFormBlockProps {
   signupLabel: string
   showSignupOption: boolean
   alignment: TextAlign
+  /** Solid form panel background color */
+  backgroundColor?: string
+  /** Form panel opacity (0 = transparent, 100 = solid) */
+  backgroundOpacity?: number
+  /** When true (default), input fields use a transparent fill instead of Site Styles */
+  transparentFieldBackground?: boolean
   fieldStyle?: ContactFormFieldStyle
   fieldBorderRadius?: number
   fieldBorderWidth?: number

@@ -63,6 +63,7 @@ export type FormFieldSxOptions = {
   fieldShape?: ButtonShape
   fieldBorderRadius?: number
   fieldBorderWidth?: number
+  fieldBackground?: string
 }
 
 export function getFontFamily(source: 'heading' | 'body', fonts: SiteFonts): string {
@@ -255,17 +256,33 @@ export function getFormFieldSx(forms: SiteForms, fonts: SiteFonts, options?: For
       ? singleLineRadius
       : resolveMultilineFieldRadius(fieldShape, singleLineRadius)
   const fieldBorderWidth = options?.fieldBorderWidth ?? normalizedForms.fieldBorderWidth
+  const fieldBackground = options?.fieldBackground ?? normalizedForms.fieldBackground
+  const isTransparentField = fieldBackground === 'transparent'
 
   return {
     fontFamily: getFontFamily(normalizedForms.labelFontSource, normalizeSiteFonts(fonts)),
     fontSize: normalizedForms.fieldFontSize,
     '& .MuiOutlinedInput-root': {
       borderRadius: singleLineRadius,
-      backgroundColor: normalizedForms.fieldBackground,
+      backgroundColor: fieldBackground,
       fontSize: normalizedForms.fieldFontSize,
+      ...(isTransparentField
+        ? {
+            '&:hover': { backgroundColor: 'transparent' },
+            '&.Mui-focused': { backgroundColor: 'transparent' },
+            '&.Mui-disabled': { backgroundColor: 'transparent' },
+            '& .MuiOutlinedInput-input:-webkit-autofill': {
+              WebkitBoxShadow: '0 0 0 100px transparent inset',
+              WebkitTextFillColor: 'inherit',
+              caretColor: 'inherit',
+              transition: 'background-color 9999s ease-out 0s'
+            }
+          }
+        : {}),
       '& fieldset': {
         borderWidth: fieldBorderWidth,
-        borderColor: normalizedForms.fieldBorderColor
+        borderColor: normalizedForms.fieldBorderColor,
+        borderRadius: singleLineRadius
       },
       '&:hover fieldset': {
         borderWidth: fieldBorderWidth
@@ -290,14 +307,17 @@ export function getContactFormFieldSx(
   siteStyles: SiteStyles,
   fieldStyle?: 'theme' | ButtonShape,
   fieldBorderRadius?: number,
-  fieldBorderWidth?: number
+  fieldBorderWidth?: number,
+  transparentFieldBackground?: boolean
 ): SxProps<Theme> {
   const fieldShape = fieldStyle && fieldStyle !== 'theme' ? fieldStyle : siteStyles.forms.fieldShape
+  const useTransparentFields = transparentFieldBackground !== false
 
   return getFormFieldSx(siteStyles.forms, siteStyles.fonts, {
     fieldShape,
     fieldBorderRadius,
-    fieldBorderWidth
+    fieldBorderWidth,
+    ...(useTransparentFields ? { fieldBackground: 'transparent' } : {})
   })
 }
 

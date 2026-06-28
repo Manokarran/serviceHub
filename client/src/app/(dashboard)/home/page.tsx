@@ -10,6 +10,10 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { isManagerRole } from '@/lib/constants/roles'
 import { getPublicSiteDisplayUrl, getPublicSitePath } from '@/lib/utils/public-site-url'
+import { HomeBuilderCta } from '@/features/site-templates/components/HomeBuilderCta'
+import { HomeSiteManageCard } from '@/features/site-templates/components/HomeSiteManageCard'
+import { HomeTemplatePicker } from '@/features/site-templates/components/HomeTemplatePicker'
+import { siteWorkspaceService } from '@/services/site-workspace'
 
 export default async function HomePage() {
   const session = await auth()
@@ -27,6 +31,16 @@ export default async function HomePage() {
   const liveSitePath = tenantSlug ? getPublicSitePath(tenantSlug) : ''
   const liveSiteDisplayUrl = tenantSlug ? getPublicSiteDisplayUrl(tenantSlug) : ''
   const canManageLeads = isManagerRole(user.role)
+
+  let isSiteStarted = false
+  let hasPublishedSite = false
+
+  if (user.tenantId) {
+    const workspaceStatus = await siteWorkspaceService.getStatus(user.tenantId)
+
+    isSiteStarted = workspaceStatus.isSiteStarted
+    hasPublishedSite = workspaceStatus.hasPublishedSite
+  }
 
   return (
     <Grid container spacing={6}>
@@ -47,14 +61,16 @@ export default async function HomePage() {
                 <Typography variant='h6'>Your Space</Typography>
               </div>
               <Typography color='text.secondary'>
-                Build your company website with drag-and-drop — headers, hero sections, typography, and more.
+                {isSiteStarted
+                  ? 'Continue editing your company website — drafts are private until you publish.'
+                  : 'Build your company website with drag-and-drop — pick a template or start from scratch, then customize every section.'}
               </Typography>
-              {liveSitePath && (
+              {liveSitePath ? (
                 <Link
                   href={liveSitePath}
                   target='_blank'
                   style={{ textDecoration: 'none', color: 'inherit' }}
-                  className='flex items-center gap-2 mt-1'
+                  className='flex items-center gap-2'
                 >
                   <i className='ri-global-line text-success' />
                   <Typography variant='body2' color='primary.main' sx={{ fontWeight: 600 }}>
@@ -62,25 +78,20 @@ export default async function HomePage() {
                   </Typography>
                   <i className='ri-external-link-line text-sm opacity-60' />
                 </Link>
-              )}
+              ) : null}
             </div>
-            <div className='flex flex-col sm:flex-row gap-2'>
-              {liveSitePath && (
-                <Link href={liveSitePath} target='_blank' style={{ textDecoration: 'none' }}>
-                  <Button variant='outlined' component='span' startIcon={<i className='ri-external-link-line' />}>
-                    View Live Site
-                  </Button>
-                </Link>
-              )}
-              <Link href='/your-space' style={{ textDecoration: 'none' }}>
-                <Button variant='contained' component='span' startIcon={<i className='ri-arrow-right-line' />}>
-                  Open Builder
-                </Button>
-              </Link>
-            </div>
+            <HomeBuilderCta liveSitePath={liveSitePath} isSiteStarted={isSiteStarted} />
           </CardContent>
         </Card>
       </Grid>
+      <Grid size={12}>
+        <HomeTemplatePicker isSiteStarted={isSiteStarted} />
+      </Grid>
+      {isSiteStarted ? (
+        <Grid size={12}>
+          <HomeSiteManageCard hasPublishedSite={hasPublishedSite} />
+        </Grid>
+      ) : null}
       {canManageLeads ? (
         <Grid size={12}>
           <Card>

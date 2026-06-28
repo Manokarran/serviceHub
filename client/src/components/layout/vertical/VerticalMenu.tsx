@@ -12,7 +12,7 @@ import { isManagerRole } from '@/lib/constants/roles'
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
 
 // Component Imports
-import { Menu, MenuItem } from '@menu/vertical-menu'
+import { Menu, MenuItem, MenuSection } from '@menu/vertical-menu'
 
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
@@ -45,6 +45,7 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
   const verticalNavOptions = useVerticalNav()
   const { data: session } = useSession()
   const canManageLeads = isManagerRole(session?.user?.role)
+  const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
 
   // Vars
   const { isBreakpointReached, transitionDuration } = verticalNavOptions
@@ -88,6 +89,13 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
         <MenuItem href='/about' icon={<i className='ri-information-line' />}>
           About
         </MenuItem>
+        {isSuperAdmin ? (
+          <MenuSection label='Super Admin'>
+            <MenuItem href='/super-admin' icon={<i className='ri-shield-star-line' />}>
+              Dashboard
+            </MenuItem>
+          </MenuSection>
+        ) : null}
       </Menu>
       {/* <Menu
         popoutMenuOffset={{ mainAxis: 10 }}

@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // Third-party Imports
 import { useSession } from 'next-auth/react'
@@ -13,6 +13,10 @@ import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import Alert from '@mui/material/Alert'
 import Avatar from '@mui/material/Avatar'
+import Stepper from '@mui/material/Stepper'
+import Step from '@mui/material/Step'
+import StepLabel from '@mui/material/StepLabel'
+import Box from '@mui/material/Box'
 
 // Type Imports
 import type { Mode } from '@core/types'
@@ -31,15 +35,24 @@ import { useSettings } from '@core/hooks/useSettings'
 
 // Action Imports
 import { completeRegistrationAction } from '@/app/actions/auth.actions'
+import { listPublishedSiteTemplatesAction } from '@/app/actions/site-template.actions'
+import { TemplateGallery } from '@/features/site-templates/components/TemplateGallery'
+import type { SiteTemplateSummary } from '@/models/site-template'
 
 // Util Imports
 import { sanitizeSlugInput, slugify } from '@/lib/utils/slug'
 
+const STEPS = ['Organization', 'Choose template']
+
 const Register = ({ mode }: { mode: Mode }) => {
   const { data: session, update } = useSession()
+  const [step, setStep] = useState(0)
   const [companyName, setCompanyName] = useState('')
   const [slug, setSlug] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [templates, setTemplates] = useState<SiteTemplateSummary[]>([])
+  const [templatesLoading, setTemplatesLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -61,6 +74,16 @@ const Register = ({ mode }: { mode: Mode }) => {
     borderedDarkIllustration
   )
 
+  useEffect(() => {
+    void listPublishedSiteTemplatesAction().then(result => {
+      if (result.success) {
+        setTemplates(result.templates)
+      }
+
+      setTemplatesLoading(false)
+    })
+  }, [])
+
   const handleCompanyNameChange = (value: string) => {
     setCompanyName(value)
 
@@ -70,8 +93,6 @@ const Register = ({ mode }: { mode: Mode }) => {
   }
 
   const redirectToHome = async (registration?: { tenantSlug: string; tenantName: string }) => {
-    // update() must receive data — calling update() with no args only GETs the session
-    // and does not trigger the JWT refresh needed after registration.
     await update({
       registrationComplete: true,
       tenantSlug: registration?.tenantSlug,
@@ -81,13 +102,35 @@ const Register = ({ mode }: { mode: Mode }) => {
     window.location.assign('/home')
   }
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleOrganizationNext = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setError(null)
+
+    if (!companyName.trim() || !slugify(slug)) {
+      setError('Enter a company name and workspace slug.')
+
+      return
+    }
+
+    if (templates.length > 0) {
+      setStep(1)
+
+      return
+    }
+
+    void submitRegistration()
+  }
+
+  const submitRegistration = async () => {
     setError(null)
     setIsSubmitting(true)
 
     try {
-      const result = await completeRegistrationAction({ companyName, slug: slugify(slug) })
+      const result = await completeRegistrationAction({
+        companyName,
+        slug: slugify(slug),
+        templateId: selectedTemplateId ?? undefined
+      })
 
       if (!result.success) {
         if (result.error === 'Registration is already complete.') {
@@ -130,11 +173,11 @@ const Register = ({ mode }: { mode: Mode }) => {
           maskImg={{ src: authBackground }}
         />
       </div>
-      <div className='flex justify-center items-center bs-full bg-backgroundPaper !min-is-full p-6 md:!min-is-[unset] md:p-12 md:is-[520px]'>
+      <div className='flex justify-center items-center bs-full bg-backgroundPaper !min-is-full p-6 md:!min-is-[unset] md:p-12 md:is-[640px] lg:is-[760px]'>
         <Link href='/' className='absolute block-start-5 sm:block-start-[38px] inline-start-6 sm:inline-start-[38px]'>
           <Logo />
         </Link>
-        <div className='flex flex-col gap-5 is-full sm:is-auto md:is-full sm:max-is-[440px] md:max-is-[unset]'>
+        <div className='flex flex-col gap-5 is-full sm:is-auto md:is-full sm:max-is-[560px] md:max-is-[unset]'>
           <div>
             <Typography variant='h4'>Complete your registration</Typography>
             <Typography className='mbs-1'>
@@ -152,32 +195,76 @@ const Register = ({ mode }: { mode: Mode }) => {
             </div>
           </div>
 
-          <form noValidate autoComplete='off' onSubmit={handleSubmit} className='flex flex-col gap-5'>
-            {error ? <Alert severity='error'>{error}</Alert> : null}
-            <TextField
-              autoFocus
-              fullWidth
-              label='Company name'
-              value={companyName}
-              onChange={event => handleCompanyNameChange(event.target.value)}
-              required
-            />
-            <TextField
-              fullWidth
-              label='Workspace slug'
-              value={slug}
-              onChange={event => {
-                setSlugTouched(true)
-                setSlug(sanitizeSlugInput(event.target.value))
-              }}
-              onBlur={() => setSlug(slugify(slug))}
-              helperText='Used in your workspace URL. Lowercase letters, numbers, and hyphens only.'
-              required
-            />
-            <Button fullWidth variant='contained' type='submit' disabled={isSubmitting}>
-              {isSubmitting ? 'Creating organization...' : 'Complete registration'}
-            </Button>
-          </form>
+          {templates.length > 0 ? (
+            <Stepper activeStep={step} alternativeLabel>
+              {STEPS.map(label => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          ) : null}
+
+          {error ? <Alert severity='error'>{error}</Alert> : null}
+
+          {step === 0 ? (
+            <form noValidate autoComplete='off' onSubmit={handleOrganizationNext} className='flex flex-col gap-5'>
+              <TextField
+                autoFocus
+                fullWidth
+                label='Company name'
+                value={companyName}
+                onChange={event => handleCompanyNameChange(event.target.value)}
+                required
+              />
+              <TextField
+                fullWidth
+                label='Workspace slug'
+                value={slug}
+                onChange={event => {
+                  setSlugTouched(true)
+                  setSlug(sanitizeSlugInput(event.target.value))
+                }}
+                onBlur={() => setSlug(slugify(slug))}
+                helperText='Used in your workspace URL. Lowercase letters, numbers, and hyphens only.'
+                required
+              />
+              <Button fullWidth variant='contained' type='submit' disabled={isSubmitting || templatesLoading}>
+                {templates.length > 0 ? 'Continue' : isSubmitting ? 'Creating organization...' : 'Complete registration'}
+              </Button>
+            </form>
+          ) : (
+            <Box className='flex flex-col gap-5'>
+              <Typography color='text.secondary'>
+                Pick a ready-made website to start from, or begin with a blank layout.
+              </Typography>
+              <TemplateGallery
+                templates={templates}
+                selectedId={selectedTemplateId}
+                onSelect={setSelectedTemplateId}
+                allowBlank
+                variant='featured'
+                showCategoryFilter
+              />
+              <Box className='flex gap-3'>
+                <Button variant='outlined' onClick={() => setStep(0)} disabled={isSubmitting}>
+                  Back
+                </Button>
+                <Button
+                  fullWidth
+                  variant='contained'
+                  disabled={isSubmitting}
+                  onClick={() => void submitRegistration()}
+                >
+                  {isSubmitting
+                    ? 'Creating organization...'
+                    : selectedTemplateId
+                      ? 'Create with template'
+                      : 'Create organization'}
+                </Button>
+              </Box>
+            </Box>
+          )}
         </div>
       </div>
     </div>

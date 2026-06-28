@@ -3,6 +3,7 @@ import { completeRegistrationSchema, type CompleteRegistrationInput } from '@/li
 import { slugify } from '@/lib/utils/slug'
 import { tenantRepository, userRepository } from '@/repositories'
 import { sitePageService } from '@/services/site-page'
+import { siteTemplateService } from '@/services/site-template'
 
 export class TenantService {
   async completeRegistration(userId: string, input: CompleteRegistrationInput) {
@@ -24,6 +25,7 @@ export class TenantService {
 
     const { companyName } = parsed.data
     const slug = parsed.data.slug || slugify(companyName)
+    const templateId = parsed.data.templateId
 
     if (!slug) {
       throw new AppError('Enter a valid workspace slug', 400, 'INVALID_SLUG')
@@ -51,6 +53,14 @@ export class TenantService {
         await sitePageService.ensureContactPage(tenant._id.toString())
       } catch (error) {
         console.error('[TenantService] Failed to create default contact page', error)
+      }
+
+      if (templateId) {
+        try {
+          await siteTemplateService.applyTemplateToTenant(templateId, tenant._id.toString())
+        } catch (error) {
+          console.error('[TenantService] Failed to apply site template', error)
+        }
       }
 
       return { tenantId: tenant._id.toString(), slug: tenant.slug }

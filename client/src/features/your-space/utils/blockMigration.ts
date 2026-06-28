@@ -10,6 +10,7 @@ import type {
   SectionBlockProps,
   ShapeBlockProps,
   IconBlockProps,
+  ContactFormBlockProps,
   SplitVisualConfig,
   TabsBlockProps,
   NavLinkItem,
@@ -375,6 +376,32 @@ export function normalizeBlock(block: Block): Block {
         arrowColor: props.arrowColor ?? '#1a1a2e',
         dotColor: props.dotColor ?? '#6366f1'
       }
+    }
+  }
+
+  if (block.type === 'contactForm') {
+    const props = block.props as ContactFormBlockProps
+    const nextProps = { ...props }
+
+    if (nextProps.fieldBorderRadius === 2) {
+      delete nextProps.fieldBorderRadius
+    }
+
+    if (nextProps.backgroundOpacity === undefined) {
+      nextProps.backgroundOpacity = 0
+    }
+
+    if (!nextProps.backgroundColor) {
+      nextProps.backgroundColor = '#ffffff'
+    }
+
+    if (nextProps.transparentFieldBackground === undefined) {
+      nextProps.transparentFieldBackground = true
+    }
+
+    return {
+      ...block,
+      props: nextProps
     }
   }
 

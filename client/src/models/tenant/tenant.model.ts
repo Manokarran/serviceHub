@@ -37,6 +37,8 @@ const tenantSchema = new Schema<ITenantDocument>(
       primaryColor: { type: String, trim: true },
       logoUrl: { type: String, trim: true },
       customDomain: { type: String, trim: true, lowercase: true },
+      siteStartedAt: { type: Date },
+      appliedTemplateId: { type: String, trim: true },
       contactNotificationEmail: { type: String, trim: true, lowercase: true, maxlength: 254 },
       contactAutoReplyEnabled: { type: Boolean, default: false },
       contactAutoReplySubject: { type: String, trim: true, maxlength: 200 },

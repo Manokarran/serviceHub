@@ -43,12 +43,14 @@ export function MediaUploadZone({ onUploaded, onError }: Props) {
 
     try {
       let payload: File | Blob = file
+      let uploadFileName = file.name
       let mediaType: 'image' | 'video'
 
       if (file.type.startsWith('image/')) {
         setProgressLabel('Compressing image…')
         const compressed = await compressImageFile(file)
         payload = compressed.blob
+        uploadFileName = compressed.fileName
         mediaType = 'image'
       } else if (file.type.startsWith('video/')) {
         const validationError = await validateVideoFile(file)
@@ -68,7 +70,7 @@ export function MediaUploadZone({ onUploaded, onError }: Props) {
       }
 
       const formData = new FormData()
-      formData.append('file', payload, file.name)
+      formData.append('file', payload, uploadFileName)
       formData.append('mediaType', mediaType)
 
       setProgressLabel(mediaType === 'image' ? 'Uploading image…' : 'Uploading video…')
@@ -150,7 +152,7 @@ export function MediaUploadZone({ onUploaded, onError }: Props) {
           {uploading ? progressLabel : 'Upload image or video'}
         </Typography>
         <Typography sx={{ ...BUILDER_TYPOGRAPHY.subtle, color: 'text.secondary', lineHeight: 1.5 }}>
-          Images are compressed to WebP (max 1920×1080). Videos up to {maxVideoMb} MB, 1080p, 60s.
+          Images are compressed to WebP (max 2560px). Videos up to {maxVideoMb} MB, 1080p, 60s.
         </Typography>
       </Box>
 

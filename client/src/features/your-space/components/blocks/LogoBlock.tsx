@@ -4,7 +4,7 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
-import { getOptimizedImageUrl } from '@/lib/imagekit/urls'
+import { getDisplayImageUrl } from '@/lib/imagekit/urls'
 import type { LogoBlockProps } from '../../types'
 import { SitePageLink } from '../SitePageLink'
 import { getSiteLogoLinkSx } from '../../utils/siteInteractiveHelpers'
@@ -17,7 +17,7 @@ type Props = {
 export function LogoBlock({ props }: Props) {
   const theme = useTheme()
   const siteStyles = useSiteStyles()
-  const optimizedSrc = props.src ? getOptimizedImageUrl(props.src, { width: 640, height: 320, quality: 85 }) : ''
+  const optimizedSrc = props.src ? getDisplayImageUrl(props.src, 640, { quality: 92 }) : ''
 
   const logoImage = optimizedSrc ? (
     <Box

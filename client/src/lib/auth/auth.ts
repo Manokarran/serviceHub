@@ -2,9 +2,14 @@ import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 
 import { serverEnv } from '@/config/env'
+import { AppError } from '@/lib/errors'
 import { authService } from '@/services/auth'
 
 import { authConfig } from './auth.config'
+import { ensureAuthEnv } from './ensure-auth-env'
+import { isSuperAdminEmail } from './super-admin'
+
+ensureAuthEnv()
 
 function applyUserProfile(
   token: Record<string, unknown>,
@@ -34,30 +39,53 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async signIn({ account, profile }) {
+    async signIn({ account, profile, user }) {
       if (account?.provider !== 'google') {
-        return false
+        console.error('[Auth] Unexpected sign-in provider:', account?.provider)
+        return '/login?error=AccessDenied'
       }
 
       const googleProfile = profile as { email?: string | null; name?: string | null; picture?: string | null }
+      const email = googleProfile.email ?? user?.email
 
-      if (!googleProfile.email) {
+      if (!email) {
         console.error('[Auth] Google profile is missing an email address')
-        return false
+        return '/login?error=AccessDenied'
+      }
+
+      if (!account.providerAccountId) {
+        console.error('[Auth] Google account is missing providerAccountId')
+        return '/login?error=AccessDenied'
       }
 
       try {
         await authService.syncGoogleUser({
           googleId: account.providerAccountId,
-          email: googleProfile.email,
-          name: googleProfile.name ?? 'User',
-          image: googleProfile.picture
+          email,
+          name: googleProfile.name ?? user?.name ?? 'User',
+          image: googleProfile.picture ?? user?.image
         })
 
         return true
       } catch (error) {
         console.error('[Auth] Failed to sync Google user:', error)
-        return false
+
+        const appError = error instanceof AppError ? error : null
+
+        if (appError) {
+          switch (appError.code) {
+            case 'USER_INACTIVE':
+              return '/login?error=UserInactive'
+            case 'TENANT_INACTIVE':
+              return '/login?error=TenantInactive'
+            case 'GOOGLE_SYNC_FAILED':
+              return '/login?error=DatabaseError'
+            default:
+              return '/login?error=DatabaseError'
+          }
+        }
+
+        return '/login?error=DatabaseError'
       }
     },
     async jwt({ token, account, trigger, session }) {
@@ -95,6 +123,10 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         }
       } catch (error) {
         console.error('[Auth] Failed to enrich JWT session:', error)
+      }
+
+      if (typeof token.email === 'string') {
+        token.isSuperAdmin = isSuperAdminEmail(token.email)
       }
 
       return token

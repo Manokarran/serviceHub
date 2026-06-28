@@ -5,6 +5,7 @@ import type { SiteStyles } from '@/features/your-space/types/siteStyles'
 import { WebsiteBuilder } from '@/features/your-space/components/WebsiteBuilder'
 import { auth } from '@/lib/auth'
 import { sitePageService } from '@/services/site-page'
+import { siteWorkspaceService } from '@/services/site-workspace'
 
 type PageProps = {
   searchParams: Promise<{ p?: string }>
@@ -60,6 +61,16 @@ export default async function YourSpacePage({ searchParams }: PageProps) {
   const tenantSlug = user.tenantSlug ?? 'default'
   const activeSlug = initialPages.some(page => page.slug === initialPageSlug) ? initialPageSlug : 'home'
 
+  let isSiteStarted = false
+  let extraPageCount = 0
+
+  if (user.tenantId) {
+    const workspaceStatus = await siteWorkspaceService.getStatus(user.tenantId)
+
+    isSiteStarted = workspaceStatus.isSiteStarted
+    extraPageCount = initialPages.filter(page => page.slug !== 'home').length
+  }
+
   return (
     <WebsiteBuilder
       tenantSlug={tenantSlug}
@@ -74,6 +85,8 @@ export default async function YourSpacePage({ searchParams }: PageProps) {
       initialDraftSiteStyles={initialDraftSiteStyles}
       initialPublishedSiteStyles={initialPublishedSiteStyles}
       initialVersions={initialVersions}
+      isSiteStarted={isSiteStarted}
+      extraPageCount={extraPageCount}
     />
   )
 }
