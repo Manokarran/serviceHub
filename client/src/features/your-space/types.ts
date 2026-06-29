@@ -88,7 +88,7 @@ export type { SiteStyles, SiteStylesView } from './types/siteStyles'
 
 export type BuilderViewport = 'desktop' | 'tablet' | 'mobile'
 
-export type BuilderSidebarPanel = 'blocks' | 'design'
+export type BuilderSidebarPanel = 'pages' | 'blocks' | 'design'
 
 export type PaletteCategory = 'layout' | 'carousel' | 'tabs' | 'sections' | 'media' | 'typography' | 'forms'
 

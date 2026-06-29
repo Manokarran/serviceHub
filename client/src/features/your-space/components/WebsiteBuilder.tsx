@@ -30,6 +30,7 @@ import type { ActiveDragItem, Block, BlockType } from '../types'
 import { resolveDropTarget } from '../utils/blockTreeUtils'
 import { builderCollisionDetection } from '../utils/builderCollisionDetection'
 import { BuilderCanvas } from './BuilderCanvas'
+import { BuilderDockPanel } from './BuilderDockPanel'
 import { BuilderMobileDrawers } from './BuilderMobileDrawers'
 import { BuilderSidebar } from './BuilderSidebar'
 import { BuilderToolbar } from './BuilderToolbar'
@@ -55,10 +56,15 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   const [pagesOpen, setPagesOpen] = useState(false)
   const [propertiesOpen, setPropertiesOpen] = useState(false)
   const [stylesOpen, setStylesOpen] = useState(false)
-  const [sidebarPanelOpen, setSidebarPanelOpen] = useState(true)
-  const [propertyPanelOpen, setPropertyPanelOpen] = useState(true)
+  // Left panel: which panel is open (null = collapsed — icon rail only)
+  const [leftPanel, setLeftPanel] = useState<'pages' | 'blocks' | 'design' | null>(null)
+  const [propertyPanelOpen, setPropertyPanelOpen] = useState(false)
   const [propertyPanelFocusTab, setPropertyPanelFocusTab] = useState<PropertyPanelTab | null>(null)
   const lastOpenedBlockId = useRef<string | null>(null)
+
+  const handleLeftPanelToggle = useCallback((panel: 'pages' | 'blocks' | 'design') => {
+    setLeftPanel(prev => (prev === panel ? null : panel))
+  }, [])
 
   const openPropertyPanel = useCallback((tab?: PropertyPanelTab) => {
     setPropertyPanelOpen(true)
@@ -99,8 +105,8 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
       setPagesOpen(false)
       setPropertiesOpen(false)
       setStylesOpen(false)
-      setSidebarPanelOpen(true)
-      setPropertyPanelOpen(true)
+      setLeftPanel(null)
+      setPropertyPanelOpen(false)
     }
   }, [isEditMode])
 
@@ -185,16 +191,20 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
           isFullscreen={isFullscreen}
           onToggleFullscreen={() => void toggleFullscreen(builderRootRef.current)}
         />
-        <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0 }}>
-          {isEditMode && (
-            <BuilderSidebar
-              contentPanelOpen={sidebarPanelOpen}
-              onContentPanelClose={() => setSidebarPanelOpen(false)}
-              onContentPanelOpen={() => setSidebarPanelOpen(true)}
-            />
+        <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+          {isEditMode && !isMobileLayout && (
+            <BuilderSidebar activePanel={leftPanel} onToggle={handleLeftPanelToggle} />
           )}
-          <BuilderCanvas isMobileLayout={isMobileLayout} />
-          {isEditMode && (
+
+          {isEditMode && !isMobileLayout && leftPanel !== null && (
+            <BuilderDockPanel panel={leftPanel} onClose={() => setLeftPanel(null)} />
+          )}
+
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+            <BuilderCanvas isMobileLayout={isMobileLayout} />
+          </Box>
+
+          {isEditMode && !isMobileLayout && (
             <PropertyPanel
               open={propertyPanelOpen}
               onClose={() => setPropertyPanelOpen(false)}

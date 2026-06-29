@@ -9,8 +9,8 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import { PALETTE_ITEMS } from '../constants'
-import { BUILDER_PROPERTY_PANEL_SX, BUILDER_PROPERTY_PANEL_WIDTH } from '../constants/builderLayout'
-import { builderFormOutlineSx, builderSidePanelSx } from '../constants/builderChrome'
+import { BUILDER_PROPERTY_PANEL_SX, FLOATING_PROPERTY_PANEL_WIDTH } from '../constants/builderLayout'
+import { builderEdgeSx, builderFormOutlineSx, builderSidePanelSx } from '../constants/builderChrome'
 import { useBuilder } from '../context/BuilderContext'
 import {
   PropertyBodyText,
@@ -211,6 +211,7 @@ export function PropertyPanel({ open, onClose, onOpen, focusTab, onFocusTabConsu
           alignItems: 'center',
           justifyContent: 'flex-start',
           pt: 1.5,
+          height: '100%',
           ...builderSidePanelSx(theme, 'left')
         }}
       >
@@ -231,12 +232,14 @@ export function PropertyPanel({ open, onClose, onOpen, focusTab, onFocusTabConsu
   return (
     <Box
       sx={{
-        width: BUILDER_PROPERTY_PANEL_WIDTH,
+        width: FLOATING_PROPERTY_PANEL_WIDTH,
         flexShrink: 0,
         display: { xs: 'none', lg: 'flex' },
         flexDirection: 'column',
         overflow: 'hidden',
-        ...builderSidePanelSx(theme, 'left')
+        height: '100%',
+        ...builderSidePanelSx(theme, 'left'),
+        ...builderEdgeSx(theme, 'left')
       }}
     >
       {mode === 'preview' ? (

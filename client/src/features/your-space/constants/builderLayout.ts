@@ -11,6 +11,7 @@ export const VIEWPORT_WIDTHS: Record<BuilderViewport, number | null> = {
   mobile: 390
 }
 
+export const BUILDER_ICON_RAIL_WIDTH = 48
 export const BUILDER_PAGE_NAV_WIDTH = 168
 export const BUILDER_CONTENT_PANEL_WIDTH = 272
 /** @deprecated Use BUILDER_PAGE_NAV_WIDTH + BUILDER_CONTENT_PANEL_WIDTH */
@@ -31,9 +32,13 @@ export const BUILDER_Z_INDEX = {
 } as const
 
 export const BUILDER_CONTENT_TABS = [
+  { id: 'pages' as const, icon: 'ri-pages-line', label: 'Pages' },
   { id: 'blocks' as const, icon: 'ri-layout-grid-line', label: 'Blocks' },
   { id: 'design' as const, icon: 'ri-palette-line', label: 'Site styles' }
 ]
+
+export const FLOATING_PANEL_WIDTH = 240
+export const FLOATING_PROPERTY_PANEL_WIDTH = 280
 
 /** Typography tokens for builder chrome — thin, sharp UI labels */
 export const BUILDER_TYPOGRAPHY = {
