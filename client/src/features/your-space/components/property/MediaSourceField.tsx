@@ -16,7 +16,7 @@ import { CompactButton, PropertyFieldLabel } from './PropertyPanelUi'
 type Props = {
   label?: string
   value: string
-  onChange: (url: string) => void
+  onChange: (url: string, dimensions?: { width: number; height: number }) => void
   acceptVideo?: boolean
   clearLabel?: string
   urlPlaceholder?: string
@@ -58,7 +58,10 @@ export function MediaSourceField({
           }
 
           setUploadError(null)
-          onChange(result.url)
+          onChange(
+            result.url,
+            result.width && result.height ? { width: result.width, height: result.height } : undefined
+          )
         }}
         onError={message => setUploadError(message)}
       />
@@ -77,12 +80,16 @@ export function MediaSourceField({
       {previewUrl && (
         <Box
           sx={{
-            aspectRatio: '16 / 9',
+            maxWidth: '100%',
             borderRadius: 1,
             border: '1px solid',
             borderColor: alpha(theme.palette.primary.main, 0.25),
             overflow: 'hidden',
-            backgroundColor: alpha(theme.palette.text.primary, 0.03)
+            backgroundColor: alpha(theme.palette.text.primary, 0.03),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            ...(embedPreviewUrl || isDirectVideo ? { aspectRatio: '16 / 9' } : {})
           }}
         >
           {embedPreviewUrl ? (
@@ -108,7 +115,14 @@ export function MediaSourceField({
               component='img'
               src={previewUrl}
               alt='Preview'
-              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              sx={{
+                width: 'auto',
+                height: 'auto',
+                maxWidth: '100%',
+                maxHeight: 220,
+                objectFit: 'scale-down',
+                display: 'block'
+              }}
             />
           )}
         </Box>

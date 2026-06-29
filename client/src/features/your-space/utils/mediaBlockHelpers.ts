@@ -10,6 +10,8 @@ const ASPECT_RATIO_MAP: Record<ImageAspectRatio, string | undefined> = {
   '1/1': '1 / 1'
 }
 
+export const IMAGE_DISPLAY_MAX_WIDTH = 720
+
 export function getMediaAspectRatio(misc: SiteMisc): string | undefined {
   return ASPECT_RATIO_MAP[misc.imageAspectRatio]
 }
@@ -54,15 +56,56 @@ export function getMediaFrameSx(
   cornerRadius?: number
 ): SxProps<Theme> {
   const aspectRatio = getMediaAspectRatio(misc)
+  const hasFixedAspect = Boolean(aspectRatio)
   const animation = hoverEffect ?? misc.imageHoverEffect
   const radius = cornerRadius ?? misc.imageCornerRadius
 
   return {
     borderRadius: `${radius}px`,
     overflow: 'hidden',
+    width: hasFixedAspect ? '100%' : 'fit-content',
+    maxWidth: '100%',
     ...(aspectRatio ? { aspectRatio } : {}),
     ...getMediaHoverSx(animation)
   }
+}
+
+/** Frame + image layout for image blocks — intrinsic size when aspect ratio is auto. */
+export function getImageFrameSx(
+  misc: SiteMisc,
+  hoverEffect?: ImageHoverEffect,
+  cornerRadius?: number,
+  naturalWidth?: number
+): SxProps<Theme> {
+  const aspectRatio = getMediaAspectRatio(misc)
+  const hasFixedAspect = Boolean(aspectRatio)
+  const cappedNaturalWidth =
+    naturalWidth && naturalWidth > 0
+      ? Math.min(naturalWidth, IMAGE_DISPLAY_MAX_WIDTH)
+      : IMAGE_DISPLAY_MAX_WIDTH
+
+  return {
+    ...getMediaFrameSx(misc, hoverEffect, cornerRadius),
+    maxWidth: hasFixedAspect ? IMAGE_DISPLAY_MAX_WIDTH : cappedNaturalWidth
+  }
+}
+
+export function getImageElementSx(hasFixedAspect: boolean): SxProps<Theme> {
+  return {
+    width: hasFixedAspect ? '100%' : 'auto',
+    maxWidth: '100%',
+    height: hasFixedAspect ? '100%' : 'auto',
+    objectFit: hasFixedAspect ? 'cover' : 'scale-down',
+    display: 'block'
+  }
+}
+
+export function getImageDeliveryWidth(naturalWidth?: number): number {
+  if (naturalWidth && naturalWidth > 0) {
+    return Math.min(naturalWidth, IMAGE_DISPLAY_MAX_WIDTH)
+  }
+
+  return IMAGE_DISPLAY_MAX_WIDTH
 }
 
 const SPRING = 'cubic-bezier(0.16, 1, 0.3, 1)'

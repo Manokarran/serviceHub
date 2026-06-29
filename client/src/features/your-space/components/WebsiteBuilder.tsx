@@ -16,13 +16,11 @@ import {
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
 import type { SiteStyles } from '../types/siteStyles'
-import { getPaletteItem } from '../constants'
-import { BUILDER_FONT_SMOOTHING, BUILDER_TYPOGRAPHY } from '../constants/builderLayout'
+import { BUILDER_FONT_SMOOTHING } from '../constants/builderLayout'
 import { builderShellSx } from '../constants/builderChrome'
 import { BuilderProvider, useBuilder } from '../context/BuilderContext'
 import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-page'
@@ -30,6 +28,7 @@ import type { ActiveDragItem, Block, BlockType } from '../types'
 import { resolveDropTarget } from '../utils/blockTreeUtils'
 import { builderCollisionDetection } from '../utils/builderCollisionDetection'
 import { BuilderCanvas } from './BuilderCanvas'
+import { BuilderDragOverlay } from './dnd/BuilderDragOverlay'
 import { BuilderDockPanel } from './BuilderDockPanel'
 import { BuilderMobileDrawers } from './BuilderMobileDrawers'
 import { BuilderSidebar } from './BuilderSidebar'
@@ -159,11 +158,6 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
     [addBlock, blocks, isMobileLayout, moveBlock]
   )
 
-  const dragOverlayLabel = activeDrag
-    ? getPaletteItem(activeDrag.paletteId, activeDrag.type)?.label ??
-      (activeDrag.blockId ? 'Moving block' : activeDrag.type)
-    : null
-
   return (
     <BuilderShellProvider openPropertyPanel={openPropertyPanel}>
       <DndContext
@@ -235,27 +229,7 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
         )}
       </Box>
       <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
-        {activeDrag && dragOverlayLabel ? (
-          <Box
-            sx={{
-              px: 2,
-              py: 1,
-              borderRadius: 1,
-              backgroundColor: 'primary.main',
-              color: 'primary.contrastText',
-              boxShadow: 4,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              cursor: 'grabbing'
-            }}
-          >
-            <i className='ri-drag-drop-line' />
-            <Typography variant='body2' sx={BUILDER_TYPOGRAPHY.label}>
-              {dragOverlayLabel}
-            </Typography>
-          </Box>
-        ) : null}
+        <BuilderDragOverlay activeDrag={activeDrag} blocks={blocks} />
       </DragOverlay>
     </DndContext>
     </BuilderShellProvider>

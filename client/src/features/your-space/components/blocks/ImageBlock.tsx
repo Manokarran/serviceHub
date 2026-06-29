@@ -11,8 +11,10 @@ import type { ImageBlockProps } from '../../types'
 import {
   getContinuousAnimationSx,
   getEntranceAnimationSx,
+  getImageDeliveryWidth,
+  getImageElementSx,
+  getImageFrameSx,
   getMediaAspectRatio,
-  getMediaFrameSx,
   getMediaOpacityFraction
 } from '../../utils/mediaBlockHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
@@ -21,23 +23,21 @@ type Props = {
   props: ImageBlockProps
 }
 
-const IMAGE_DISPLAY_MAX_WIDTH = 720
-
 export function ImageBlock({ props }: Props) {
   const theme = useTheme()
   const siteStyles = useSiteStyles()
   const hoverEffect = props.hoverEffect ?? siteStyles.misc.imageHoverEffect
   const aspectRatio = getMediaAspectRatio(siteStyles.misc)
   const hasFixedAspect = Boolean(aspectRatio)
-  const frameSx = getMediaFrameSx(siteStyles.misc, hoverEffect, props.borderRadius)
+  const frameSx = getImageFrameSx(siteStyles.misc, hoverEffect, props.borderRadius, props.naturalWidth)
   const opacity = getMediaOpacityFraction(props.opacity)
   const cornerRadius = props.borderRadius ?? siteStyles.misc.imageCornerRadius
-  const optimizedSrc = props.src ? getDisplayImageUrl(props.src, IMAGE_DISPLAY_MAX_WIDTH) : ''
+  const deliveryWidth = getImageDeliveryWidth(props.naturalWidth)
+  const optimizedSrc = props.src ? getDisplayImageUrl(props.src, deliveryWidth) : ''
 
   const entranceAnimation = props.entranceAnimation ?? 'none'
   const continuousAnimation = props.continuousAnimation ?? 'none'
 
-  // Track whether the block has scrolled into the viewport for the entrance animation.
   const containerRef = useRef<HTMLDivElement>(null)
   const [hasEntered, setHasEntered] = useState(entranceAnimation === 'none')
 
@@ -47,7 +47,6 @@ export function ImageBlock({ props }: Props) {
       return
     }
 
-    // Reset so the animation replays when the user changes the entrance type in the builder
     setHasEntered(false)
 
     const el = containerRef.current
@@ -68,24 +67,15 @@ export function ImageBlock({ props }: Props) {
 
   const entranceSx = getEntranceAnimationSx(entranceAnimation, hasEntered)
   const continuousSx = getContinuousAnimationSx(continuousAnimation, opacity)
-
-  // Breathe animation controls opacity via CSS custom properties — skip static opacity
   const frameOpacity = continuousAnimation === 'breathe' ? undefined : opacity
 
   const imageFrameSx = {
-    width: '100%',
-    maxWidth: IMAGE_DISPLAY_MAX_WIDTH,
     ...(frameOpacity !== undefined ? { opacity: frameOpacity } : {}),
     ...(frameSx as object),
     ...(continuousSx as object)
   }
 
-  const imageSx = {
-    width: '100%',
-    height: hasFixedAspect ? '100%' : 'auto',
-    objectFit: hasFixedAspect ? 'cover' : 'contain',
-    display: 'block'
-  } as const
+  const imageSx = getImageElementSx(hasFixedAspect)
 
   return (
     <Box
@@ -110,6 +100,8 @@ export function ImageBlock({ props }: Props) {
             className='media-block-image'
             src={optimizedSrc}
             alt={props.alt || 'Image'}
+            width={props.naturalWidth}
+            height={props.naturalHeight}
             sx={imageSx}
           />
         </Box>

@@ -15,6 +15,8 @@ import { MAX_VIDEO_BYTES, validateVideoFile } from '@/lib/media/validate-video'
 type UploadResult = {
   url: string
   mediaType: 'image' | 'video'
+  width?: number
+  height?: number
 }
 
 type Props = {
@@ -45,6 +47,8 @@ export function MediaUploadZone({ onUploaded, onError }: Props) {
       let payload: File | Blob = file
       let uploadFileName = file.name
       let mediaType: 'image' | 'video'
+      let imageWidth: number | undefined
+      let imageHeight: number | undefined
 
       if (file.type.startsWith('image/')) {
         setProgressLabel('Compressing image…')
@@ -52,6 +56,8 @@ export function MediaUploadZone({ onUploaded, onError }: Props) {
         payload = compressed.blob
         uploadFileName = compressed.fileName
         mediaType = 'image'
+        imageWidth = compressed.width
+        imageHeight = compressed.height
       } else if (file.type.startsWith('video/')) {
         const validationError = await validateVideoFile(file)
 
@@ -86,7 +92,12 @@ export function MediaUploadZone({ onUploaded, onError }: Props) {
         throw new Error(data.error ?? 'Upload failed.')
       }
 
-      onUploaded({ url: data.url, mediaType: data.mediaType })
+      onUploaded({
+        url: data.url,
+        mediaType: data.mediaType,
+        width: imageWidth,
+        height: imageHeight
+      })
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Upload failed.')
     } finally {

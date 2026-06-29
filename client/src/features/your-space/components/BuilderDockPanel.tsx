@@ -4,10 +4,10 @@ import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import { useTheme } from '@mui/material/styles'
+import { useTheme, type SxProps, type Theme } from '@mui/material/styles'
 
 import { FLOATING_PANEL_WIDTH, BUILDER_TYPOGRAPHY, builderPanelHeaderSx } from '../constants/builderLayout'
-import { builderEdgeSx, builderSidePanelSx } from '../constants/builderChrome'
+import { builderSidePanelSx } from '../constants/builderChrome'
 import type { BuilderSidebarPanel } from '../types'
 import { ComponentPaletteContent } from './ComponentPalette'
 import { PagesPanel } from './pages/PagesPanel'
@@ -27,20 +27,18 @@ type Props = {
 export function BuilderDockPanel({ panel, onClose }: Props) {
   const theme = useTheme()
   const meta = PANEL_META[panel]
+  const panelSx: SxProps<Theme> = {
+    width: FLOATING_PANEL_WIDTH,
+    flexShrink: 0,
+    display: { xs: 'none', lg: 'flex' },
+    flexDirection: 'column',
+    overflow: 'hidden',
+    height: '100%',
+    ...builderSidePanelSx(theme, 'right')
+  }
 
   return (
-    <Box
-      sx={{
-        width: FLOATING_PANEL_WIDTH,
-        flexShrink: 0,
-        display: { xs: 'none', lg: 'flex' },
-        flexDirection: 'column',
-        overflow: 'hidden',
-        height: '100%',
-        ...builderSidePanelSx(theme, 'right'),
-        ...builderEdgeSx(theme, 'right')
-      }}
-    >
+    <Box sx={panelSx}>
       <Box sx={{ ...builderPanelHeaderSx(theme), px: 1.5, py: 1.25 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>

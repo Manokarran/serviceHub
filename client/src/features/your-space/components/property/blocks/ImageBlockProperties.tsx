@@ -65,7 +65,14 @@ export function ImageBlockProperties({ block, activeTab }: Props) {
         <MediaSourceField
           label='Image'
           value={props.src}
-          onChange={src => update({ src })}
+          onChange={(src, dimensions) =>
+            update({
+              src,
+              ...(dimensions
+                ? { naturalWidth: dimensions.width, naturalHeight: dimensions.height }
+                : {})
+            })
+          }
         />
         <PropertyTextField
           label='Alt text'

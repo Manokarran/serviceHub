@@ -14,6 +14,7 @@ import {
   isMediaBackground,
   isSimpleColor
 } from '../../utils/sectionStyleHelpers'
+import { builderContainerChromeSx } from '../../utils/builderContainerChrome'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { BlockInsertDropZone } from './BlockInsertDropZone'
 import { SortableBlockList } from './SortableBlockList'
@@ -56,30 +57,21 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
     <Box
       ref={setNodeRef}
       sx={{
-        minHeight: isEmpty ? 120 : 48,
+        minHeight: isEmpty ? 120 : 56,
         height: isEmpty ? '100%' : undefined,
         flex: isEmpty ? 1 : undefined,
-        borderRadius: sectionProps.borderRadius ? Math.max(0, sectionProps.borderRadius - 4) : 1,
-        border: showBuilderChrome ? '1px dashed' : '1px solid transparent',
-        borderColor:
-          isDragging && isOver
-            ? alpha(theme.palette.primary.main, 0.45)
-            : showBuilderChrome
-              ? alpha(theme.palette.primary.main, 0.14)
-              : 'transparent',
+        ...(showBuilderChrome
+          ? builderContainerChromeSx(theme, { isOver, isDragging })
+          : { border: '1px solid transparent', borderRadius: '1px' }),
         ...(columnBg
           ? isSimpleColor(columnBg)
             ? { backgroundColor: applyBackgroundAlpha(columnBg, backgroundOpacity) }
             : {}
           : hasMediaBackground || isTransparentSection
             ? { backgroundColor: 'transparent' }
-            : showBuilderChrome
+            : showBuilderChrome && !(isDragging && isOver)
               ? { backgroundColor: alpha(theme.palette.text.primary, 0.02) }
               : { backgroundColor: 'transparent' }),
-        transition: 'border-color 0.15s, background-color 0.15s',
-        ...(isDragging && isOver
-          ? { backgroundColor: alpha(theme.palette.primary.main, 0.06) }
-          : {}),
         p: isEmpty ? 2 : 0.75
       }}
     >

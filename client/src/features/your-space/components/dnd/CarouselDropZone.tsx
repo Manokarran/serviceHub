@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import type { Block } from '../../types'
+import { builderContainerChromeSx } from '../../utils/builderContainerChrome'
 import { insertDropId, carouselDropId } from '../../utils/blockTreeUtils'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { BlockInsertDropZone } from './BlockInsertDropZone'
@@ -41,14 +42,11 @@ export function CarouselDropZone({ carouselId, slideId, children, editMode, empt
     <Box
       ref={setNodeRef}
       sx={{
-        minHeight: isEmpty ? 120 : 48,
+        minHeight: isEmpty ? 120 : 56,
         height: isEmpty ? '100%' : undefined,
         flex: isEmpty ? 1 : undefined,
-        borderRadius: 1,
-        border: '1px dashed',
-        borderColor: isDragging && isOver ? alpha(theme.palette.primary.main, 0.45) : alpha(theme.palette.primary.main, 0.14),
-        backgroundColor: isDragging && isOver ? alpha(theme.palette.primary.main, 0.06) : alpha(theme.palette.text.primary, 0.02),
-        transition: 'border-color 0.15s, background-color 0.15s',
+        ...builderContainerChromeSx(theme, { isOver, isDragging }),
+        ...(!(isDragging && isOver) ? { backgroundColor: alpha(theme.palette.text.primary, 0.02) } : {}),
         p: isEmpty ? 2 : 0.75
       }}
     >

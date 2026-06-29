@@ -5,6 +5,7 @@ import { useRef, type RefObject } from 'react'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
+import { useTheme } from '@mui/material/styles'
 import { CSS } from '@dnd-kit/utilities'
 import { useSortable } from '@dnd-kit/sortable'
 
@@ -12,6 +13,7 @@ import { useBuilder } from '../../context/BuilderContext'
 import { useBuilderShell } from '../../context/BuilderShellContext'
 import { BUILDER_Z_INDEX } from '../../constants/builderLayout'
 import type { Block } from '../../types'
+import { builderContainerOutlineSx, isContainerBlockType } from '../../utils/builderContainerChrome'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { CanvasBlockEditProvider, useCanvasBlockEdit } from '../inline/CanvasBlockEditContext'
 import { BlockInlineToolbar } from '../inline/BlockInlineToolbar'
@@ -77,12 +79,14 @@ export function SortableCanvasItem({
   preview = false,
   preferToolbarBelow = false
 }: Props) {
+  const theme = useTheme()
   const { selectedBlockId, mode, selectBlock, deleteBlock, updateBlock } = useBuilder()
   const shell = useBuilderShell()
   const blockRef = useRef<HTMLElement | null>(null)
   const isSelected = selectedBlockId === block.id
   const isEditMode = mode === 'edit'
   const isPreviewCanvas = preview || mode === 'preview'
+  const isContainerBlock = isContainerBlockType(block.type)
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
@@ -119,7 +123,8 @@ export function SortableCanvasItem({
         position: 'relative',
         overflow: 'visible',
         backgroundColor: 'transparent',
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0 : 1,
+        visibility: isDragging ? 'hidden' : 'visible',
         zIndex: isSelected
           ? BUILDER_Z_INDEX.canvasBlockSelected
           : isDragging
@@ -128,6 +133,7 @@ export function SortableCanvasItem({
         outline: isEditMode && isSelected ? '2px solid' : '2px solid transparent',
         outlineColor: isEditMode && isSelected ? 'primary.main' : 'transparent',
         outlineOffset: -2,
+        ...(isEditMode && isContainerBlock ? builderContainerOutlineSx(theme, isSelected) : {}),
         ...(isEditMode && !isSelected
           ? {
               '&:hover': {

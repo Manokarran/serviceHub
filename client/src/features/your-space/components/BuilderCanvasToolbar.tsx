@@ -110,7 +110,7 @@ function CanvasAddressBar({
 export function BuilderCanvasToolbar() {
   const theme = useTheme()
   const isNarrow = useMediaQuery(theme.breakpoints.down('md'))
-  const { mode, setMode, viewport, setViewport, tenantSlug, currentPageSlug, currentPageTitle, isPageSwitching } =
+  const { mode, setMode, viewport, setViewport, showGrid, setShowGrid, tenantSlug, currentPageSlug, currentPageTitle, isPageSwitching } =
     useBuilder()
 
   const pagePath = getPublicPagePath(tenantSlug, currentPageSlug)
@@ -171,8 +171,49 @@ export function BuilderCanvasToolbar() {
         />
       </Box>
 
-      {/* Edit / Preview */}
-      <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+      {/* Grid + Edit / Preview */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+        {mode === 'edit' && (
+          <Tooltip title={showGrid ? 'Hide placement grid' : 'Show placement grid'}>
+          <Box sx={{ ...builderControlTrackSx(theme), p: '2px', borderRadius: 1.25 }}>
+            <ToggleButton
+              value='grid'
+              selected={showGrid}
+              onChange={() => setShowGrid(!showGrid)}
+              size='small'
+              aria-label={showGrid ? 'Hide placement grid' : 'Show placement grid'}
+              sx={{
+                border: 'none',
+                minWidth: 0,
+                px: isNarrow ? 0.75 : 1,
+                py: 0.375,
+                borderRadius: '5px !important',
+                textTransform: 'none',
+                ...BUILDER_TYPOGRAPHY.label,
+                fontSize: '0.6875rem',
+                color: showGrid ? 'text.primary' : 'text.secondary',
+                backgroundColor: showGrid ? 'background.paper' : 'transparent',
+                boxShadow: showGrid
+                  ? `0 1px 3px ${alpha(theme.palette.common.black, 0.08)}, 0 0 0 1px ${alpha(theme.palette.common.black, 0.05)}`
+                  : 'none',
+                '&:hover': {
+                  backgroundColor: showGrid ? 'background.paper' : alpha(theme.palette.primary.main, 0.06)
+                }
+              }}
+            >
+              <Box component='span' sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
+                <i className='ri-grid-line' style={{ fontSize: '0.875rem' }} />
+                {!isNarrow && (
+                  <Typography component='span' sx={{ ...BUILDER_TYPOGRAPHY.label, fontSize: '0.6875rem' }}>
+                    Grid
+                  </Typography>
+                )}
+              </Box>
+            </ToggleButton>
+          </Box>
+        </Tooltip>
+        )}
+
         <ToggleButtonGroup
           exclusive
           size='small'

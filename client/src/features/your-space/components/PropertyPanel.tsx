@@ -6,11 +6,11 @@ import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import { alpha, useTheme } from '@mui/material/styles'
+import { alpha, useTheme, type SxProps, type Theme } from '@mui/material/styles'
 
 import { PALETTE_ITEMS } from '../constants'
 import { BUILDER_PROPERTY_PANEL_SX, FLOATING_PROPERTY_PANEL_WIDTH } from '../constants/builderLayout'
-import { builderEdgeSx, builderFormOutlineSx, builderSidePanelSx } from '../constants/builderChrome'
+import { builderFormOutlineSx, builderSidePanelSx } from '../constants/builderChrome'
 import { useBuilder } from '../context/BuilderContext'
 import {
   PropertyBodyText,
@@ -200,21 +200,31 @@ export function PropertyPanel({ open, onClose, onOpen, focusTab, onFocusTabConsu
   const theme = useTheme()
   const { mode } = useBuilder()
 
+  const collapsedPanelSx: SxProps<Theme> = {
+    width: 40,
+    flexShrink: 0,
+    display: { xs: 'none', lg: 'flex' },
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    pt: 1.5,
+    height: '100%',
+    ...builderSidePanelSx(theme, 'left')
+  }
+
+  const openPanelSx: SxProps<Theme> = {
+    width: FLOATING_PROPERTY_PANEL_WIDTH,
+    flexShrink: 0,
+    display: { xs: 'none', lg: 'flex' },
+    flexDirection: 'column',
+    overflow: 'hidden',
+    height: '100%',
+    ...builderSidePanelSx(theme, 'left')
+  }
+
   if (!open) {
     return (
-      <Box
-        sx={{
-          width: 40,
-          flexShrink: 0,
-          display: { xs: 'none', lg: 'flex' },
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'flex-start',
-          pt: 1.5,
-          height: '100%',
-          ...builderSidePanelSx(theme, 'left')
-        }}
-      >
+      <Box sx={collapsedPanelSx}>
         <Tooltip title='Block properties' placement='left'>
           <IconButton
             size='small'
@@ -230,18 +240,7 @@ export function PropertyPanel({ open, onClose, onOpen, focusTab, onFocusTabConsu
   }
 
   return (
-    <Box
-      sx={{
-        width: FLOATING_PROPERTY_PANEL_WIDTH,
-        flexShrink: 0,
-        display: { xs: 'none', lg: 'flex' },
-        flexDirection: 'column',
-        overflow: 'hidden',
-        height: '100%',
-        ...builderSidePanelSx(theme, 'left'),
-        ...builderEdgeSx(theme, 'left')
-      }}
-    >
+    <Box sx={openPanelSx}>
       {mode === 'preview' ? (
         <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
           <PropertyBodyText>Switch to Edit mode to customize blocks</PropertyBodyText>

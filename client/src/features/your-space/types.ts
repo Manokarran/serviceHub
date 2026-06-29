@@ -343,6 +343,10 @@ export interface ImageBlockProps {
   src: string
   alt: string
   alignment: TextAlign
+  /** Stored intrinsic width — keeps canvas/published size close to the uploaded original. */
+  naturalWidth?: number
+  /** Stored intrinsic height — paired with naturalWidth for delivery sizing. */
+  naturalHeight?: number
   hoverEffect?: ImageHoverEffect
   borderRadius?: number
   /** Image opacity (0–100). Lower values make the image more transparent. */

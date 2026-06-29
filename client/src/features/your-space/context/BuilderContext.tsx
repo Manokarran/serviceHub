@@ -33,6 +33,7 @@ import {
   type BlockLocation
 } from '../utils/blockTreeUtils'
 import { mergeSiteStyles } from '../utils/siteStylesHelpers'
+import { BUILDER_GRID_MODE_KEY, readBuilderGridMode } from '../utils/builderContainerChrome'
 import { siteStylesEqual } from '../utils/siteStylesEqual'
 
 type BuilderState = {
@@ -43,6 +44,7 @@ type BuilderState = {
   selectedBlockId: string | null
   mode: BuilderMode
   viewport: BuilderViewport
+  showGrid: boolean
   sidebarPanel: BuilderSidebarPanel
   currentPageSlug: string
   pages: SitePageSummary[]
@@ -81,6 +83,7 @@ type BuilderAction =
   | { type: 'SELECT_BLOCK'; id: string | null }
   | { type: 'SET_MODE'; mode: BuilderMode }
   | { type: 'SET_VIEWPORT'; viewport: BuilderViewport }
+  | { type: 'SET_SHOW_GRID'; showGrid: boolean }
   | { type: 'SET_SIDEBAR_PANEL'; panel: BuilderSidebarPanel }
   | { type: 'UPDATE_SITE_STYLES'; siteStyles: SiteStyles }
   | { type: 'APPLY_THEME'; themeId: string }
@@ -167,6 +170,8 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
       return { ...state, mode: action.mode, selectedBlockId: action.mode === 'preview' ? null : state.selectedBlockId }
     case 'SET_VIEWPORT':
       return { ...state, viewport: action.viewport }
+    case 'SET_SHOW_GRID':
+      return { ...state, showGrid: action.showGrid }
     case 'SET_SIDEBAR_PANEL':
       return { ...state, sidebarPanel: action.panel }
     case 'UPDATE_SITE_STYLES':
@@ -274,6 +279,7 @@ type BuilderContextValue = BuilderState & {
   selectBlock: (id: string | null) => void
   setMode: (mode: BuilderMode) => void
   setViewport: (viewport: BuilderViewport) => void
+  setShowGrid: (showGrid: boolean) => void
   setSidebarPanel: (panel: BuilderSidebarPanel) => void
   updateSiteStyles: (partial: Partial<SiteStyles>) => void
   applyThemePreset: (themeId: string) => void
@@ -362,6 +368,7 @@ export function BuilderProvider({
     selectedBlockId: null,
     mode: 'edit',
     viewport: 'desktop',
+    showGrid: readBuilderGridMode(),
     sidebarPanel: 'blocks',
     currentPageSlug: initialPageSlug,
     currentPageTitle: initialPageTitle,
@@ -633,6 +640,14 @@ export function BuilderProvider({
     dispatch({ type: 'SET_VIEWPORT', viewport })
   }, [])
 
+  const setShowGrid = useCallback((showGrid: boolean) => {
+    dispatch({ type: 'SET_SHOW_GRID', showGrid })
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(BUILDER_GRID_MODE_KEY, String(showGrid))
+    }
+  }, [])
+
   const setSidebarPanel = useCallback((panel: BuilderSidebarPanel) => {
     dispatch({ type: 'SET_SIDEBAR_PANEL', panel })
   }, [])
@@ -862,6 +877,7 @@ export function BuilderProvider({
       selectBlock,
       setMode,
       setViewport,
+      setShowGrid,
       setSidebarPanel,
       updateSiteStyles,
       applyThemePreset,
@@ -894,6 +910,7 @@ export function BuilderProvider({
       selectBlock,
       setMode,
       setViewport,
+      setShowGrid,
       setSidebarPanel,
       updateSiteStyles,
       applyThemePreset,

@@ -467,8 +467,13 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
         <MediaSourceField
           label='Image'
           value={props.src}
-          onChange={src => {
-            update({ src })
+          onChange={(src, dimensions) => {
+            update({
+              src,
+              ...(dimensions
+                ? { naturalWidth: dimensions.width, naturalHeight: dimensions.height }
+                : {})
+            })
             setMediaAnchor(null)
           }}
         />

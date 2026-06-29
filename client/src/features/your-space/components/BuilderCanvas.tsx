@@ -13,6 +13,7 @@ import {
 } from '../constants/builderChrome'
 import { useBuilder } from '../context/BuilderContext'
 import { insertDropId } from '../utils/blockTreeUtils'
+import { builderCanvasGridOverlaySx } from '../utils/builderContainerChrome'
 import { getCanvasCornerRadius } from '../utils/siteStylesHelpers'
 import { siteCanvasContainerSx } from '../utils/siteResponsiveHelpers'
 import { SitePageTransition } from './SitePageTransition'
@@ -28,7 +29,7 @@ type Props = {
 
 export function BuilderCanvas({ isMobileLayout = false }: Props) {
   const theme = useTheme()
-  const { blocks, mode, viewport, selectBlock, siteStyles, currentPageSlug } = useBuilder()
+  const { blocks, mode, viewport, selectBlock, siteStyles, currentPageSlug, showGrid } = useBuilder()
   const isEditMode = mode === 'edit'
   const { active } = useDndContext()
   const isDragging = Boolean(active)
@@ -125,6 +126,7 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
               ...siteCanvasContainerSx()
             }}
           >
+            {isEditMode && showGrid && <Box aria-hidden sx={builderCanvasGridOverlaySx(theme)} />}
             {blocks.length > 0 && <SitePageBackgroundLayer />}
             <Box sx={{ position: 'relative', zIndex: 1, ...(isEditMode && blocks.length > 0 && { pt: 5 }) }}>
           {blocks.length === 0 ? (
