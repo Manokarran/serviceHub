@@ -8,16 +8,27 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import { MediaUploadZone } from '@/components/builder/MediaUploadZone'
+import { UnsplashPhotoPicker } from '@/components/builder/UnsplashPhotoPicker'
 import { getImageKitThumbnailUrl } from '@/lib/imagekit/urls'
+import { getUnsplashPhotoAlt } from '@/lib/unsplash/client'
+import type { UnsplashPhoto } from '@/lib/unsplash/types'
 import { BUILDER_TYPOGRAPHY } from '../../constants/builderLayout'
 import { buildVideoEmbedUrl, parseVideoUrl } from '../../utils/videoUrlHelpers'
 import { CompactButton, PropertyFieldLabel } from './PropertyPanelUi'
 
+type MediaChangeMeta = {
+  width: number
+  height: number
+  alt?: string
+}
+
 type Props = {
   label?: string
   value: string
-  onChange: (url: string, dimensions?: { width: number; height: number }) => void
+  onChange: (url: string, meta?: MediaChangeMeta) => void
   acceptVideo?: boolean
+  enableUnsplash?: boolean
+  unsplashDefaultQuery?: string
   clearLabel?: string
   urlPlaceholder?: string
 }
@@ -27,6 +38,8 @@ export function MediaSourceField({
   value,
   onChange,
   acceptVideo = false,
+  enableUnsplash = false,
+  unsplashDefaultQuery = 'professional photography',
   clearLabel = 'Remove',
   urlPlaceholder = 'https://…'
 }: Props) {
@@ -45,6 +58,15 @@ export function MediaSourceField({
         ? value
         : getImageKitThumbnailUrl(value, 320)
     : null
+
+  const handleUnsplashSelect = (photo: UnsplashPhoto) => {
+    setUploadError(null)
+    onChange(photo.urls.regular, {
+      width: photo.width,
+      height: photo.height,
+      alt: getUnsplashPhotoAlt(photo)
+    })
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -68,6 +90,13 @@ export function MediaSourceField({
       {uploadError && (
         <Typography sx={{ ...BUILDER_TYPOGRAPHY.subtle, color: 'error.main' }}>{uploadError}</Typography>
       )}
+      {enableUnsplash && !acceptVideo ? (
+        <UnsplashPhotoPicker
+          value={value}
+          defaultQuery={unsplashDefaultQuery}
+          onSelect={handleUnsplashSelect}
+        />
+      ) : null}
       <TextField
         label='URL'
         size='small'

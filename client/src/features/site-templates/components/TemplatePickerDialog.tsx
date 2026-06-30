@@ -16,8 +16,10 @@ import { useRouter } from 'next/navigation'
 import { applySiteTemplateAction } from '@/app/actions/site-template.actions'
 import type { SiteTemplateSummary } from '@/models/site-template'
 
+import { useSiteWorkspace } from '../context/SiteWorkspaceContext'
 import { DestructiveConfirmDialog } from './DestructiveConfirmDialog'
 import { TemplateGallery } from './TemplateGallery'
+import { TemplateLivePreview } from './TemplateLivePreview'
 
 type Props = {
   open: boolean
@@ -46,6 +48,7 @@ export function TemplatePickerDialog({
 }: Props) {
   const theme = useTheme()
   const router = useRouter()
+  const { openAiWizard } = useSiteWorkspace()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -175,6 +178,61 @@ export function TemplatePickerDialog({
         </Box>
 
         <DialogContent sx={{ px: { xs: 3, sm: 4 }, py: 3 }}>
+          {templates.length ? (
+            <Box
+              className='mbe-4'
+              sx={{
+                p: { xs: 2.5, sm: 3 },
+                borderRadius: 2,
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'stretch', sm: 'center' },
+                gap: 2,
+                background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.16)} 0%, ${alpha(theme.palette.primary.main, 0.06)} 100%)`,
+                border: `1px solid ${alpha(theme.palette.secondary.main, 0.28)}`
+              }}
+            >
+              <Box className='flex items-start gap-3' sx={{ flex: 1 }}>
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: alpha(theme.palette.secondary.main, 0.18),
+                    color: 'secondary.main',
+                    flexShrink: 0
+                  }}
+                >
+                  <i className='ri-magic-line' style={{ fontSize: '1.35rem' }} />
+                </Box>
+                <div>
+                  <Typography variant='subtitle1' className='font-semibold mbe-1'>
+                    Start with AI
+                  </Typography>
+                  <Typography variant='body2' color='text.secondary'>
+                    Answer a few questions — we auto-pick the best layout, write your copy, and style your site.
+                  </Typography>
+                </div>
+              </Box>
+              <Button
+                variant='contained'
+                color='secondary'
+                size='large'
+                startIcon={<i className='ri-sparkling-line' />}
+                onClick={() => {
+                  onClose()
+                  openAiWizard()
+                }}
+                disabled={applying || loading}
+                sx={{ flexShrink: 0, alignSelf: { xs: 'stretch', sm: 'center' } }}
+              >
+                Start with AI
+              </Button>
+            </Box>
+          ) : null}
           {isReplaceMode ? (
             <Alert severity='info' variant='outlined' className='mbe-4'>
               Applying a template updates your <strong>draft</strong> workspace. Visitors still see your current live
@@ -186,6 +244,28 @@ export function TemplatePickerDialog({
             <Alert severity='error' className='mbe-4'>
               {error}
             </Alert>
+          ) : null}
+
+          {selectedTemplate?.homePreview?.blocks.length ? (
+            <Box className='mbe-4'>
+              <Typography variant='subtitle2' color='text.secondary' className='mbe-2 font-medium'>
+                Live preview — {selectedTemplate.name}
+              </Typography>
+              <Box
+                sx={{
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  border: `1px solid ${theme.palette.divider}`,
+                  boxShadow: theme.shadows[2]
+                }}
+              >
+                <TemplateLivePreview
+                  blocks={selectedTemplate.homePreview.blocks}
+                  siteStyles={selectedTemplate.homePreview.siteStyles}
+                  height={340}
+                />
+              </Box>
+            </Box>
           ) : null}
 
           {loading ? (

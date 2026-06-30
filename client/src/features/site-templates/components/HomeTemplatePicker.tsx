@@ -102,11 +102,18 @@ export function HomeTemplatePicker({ isSiteStarted }: Props) {
                 scratch.
               </Typography>
             </div>
-            <Link href='/your-space?setup=1' style={{ textDecoration: 'none' }}>
-              <Button variant='outlined' component='span' startIcon={<i className='ri-layout-grid-line' />}>
-                Open setup in builder
-              </Button>
-            </Link>
+            <Box className='flex flex-wrap gap-2'>
+              <Link href='/your-space?setup=1' style={{ textDecoration: 'none' }}>
+                <Button variant='outlined' component='span' startIcon={<i className='ri-layout-grid-line' />}>
+                  Browse templates
+                </Button>
+              </Link>
+              <Link href='/your-space?aiSetup=1' style={{ textDecoration: 'none' }}>
+                <Button variant='contained' color='secondary' component='span' startIcon={<i className='ri-magic-line' />}>
+                  Start with AI
+                </Button>
+              </Link>
+            </Box>
           </Box>
 
           {error ? <Alert severity='error'>{error}</Alert> : null}

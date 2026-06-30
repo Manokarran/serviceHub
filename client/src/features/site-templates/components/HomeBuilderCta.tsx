@@ -24,9 +24,16 @@ export function HomeBuilderCta({ liveSitePath, isSiteStarted }: Props) {
           </Button>
         </Link>
       ) : null}
+      {!loading && hasTemplates ? (
+        <Link href='/your-space?aiSetup=1' style={{ textDecoration: 'none' }}>
+          <Button variant='contained' color='secondary' component='span' startIcon={<i className='ri-magic-line' />}>
+            Start with AI
+          </Button>
+        </Link>
+      ) : null}
       <Link href={builderHref} style={{ textDecoration: 'none' }}>
         <Button variant='contained' component='span' startIcon={<i className='ri-arrow-right-line' />}>
-          {isSiteStarted ? 'Open builder' : hasTemplates ? 'Create your website' : 'Open builder'}
+          {isSiteStarted ? 'Open builder' : hasTemplates ? 'Browse templates' : 'Open builder'}
         </Button>
       </Link>
     </div>

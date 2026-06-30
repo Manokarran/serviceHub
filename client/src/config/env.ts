@@ -48,7 +48,9 @@ export const serverEnv = {
   smtpPort: Number(optional(process.env.SMTP_PORT, '587')),
   smtpSecure: optional(process.env.SMTP_SECURE, 'false') === 'true',
   smtpUser: optional(process.env.SMTP_USER, ''),
-  smtpPass: optional(process.env.SMTP_PASS, '')
+  smtpPass: optional(process.env.SMTP_PASS, ''),
+  openAiApiKey: optional(process.env.OPENAI_API_KEY, ''),
+  openAiModel: optional(process.env.OPENAI_MODEL, 'gpt-4.1-nano')
 } as const
 
 export const publicEnv = {

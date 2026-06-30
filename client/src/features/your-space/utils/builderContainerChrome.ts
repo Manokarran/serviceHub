@@ -69,6 +69,7 @@ export function builderCanvasGridOverlaySx(theme: Theme): SxProps<Theme> {
 }
 
 export const BUILDER_GRID_MODE_KEY = 'servicehub-builder-show-grid'
+export const BUILDER_AUTOSAVE_KEY = 'servicehub-builder-autosave'
 
 export function readBuilderGridMode(): boolean {
   if (typeof window === 'undefined') {
@@ -76,4 +77,12 @@ export function readBuilderGridMode(): boolean {
   }
 
   return localStorage.getItem(BUILDER_GRID_MODE_KEY) === 'true'
+}
+
+export function readBuilderAutosave(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return localStorage.getItem(BUILDER_AUTOSAVE_KEY) === 'true'
 }

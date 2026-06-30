@@ -467,12 +467,17 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
         <MediaSourceField
           label='Image'
           value={props.src}
-          onChange={(src, dimensions) => {
+          enableUnsplash
+          unsplashDefaultQuery='professional photography'
+          onChange={(src, meta) => {
             update({
               src,
-              ...(dimensions
-                ? { naturalWidth: dimensions.width, naturalHeight: dimensions.height }
-                : {})
+              ...(meta
+                ? { naturalWidth: meta.width, naturalHeight: meta.height }
+                : {}),
+              ...(meta?.alt && !props.alt ? { alt: meta.alt } : {}),
+              crop: null,
+              adjustments: null
             })
             setMediaAnchor(null)
           }}

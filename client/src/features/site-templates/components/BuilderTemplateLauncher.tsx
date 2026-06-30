@@ -10,6 +10,7 @@ import { SiteWorkspaceProvider, useSiteWorkspace } from '../context/SiteWorkspac
 import { usePublishedTemplates } from '../hooks/usePublishedTemplates'
 import { hasSeenTemplateSetup, markTemplateSetupSeen } from '../utils/template-setup-storage'
 import { SiteResetDialog } from './SiteResetDialog'
+import { AiSiteWizardDialog } from './ai-wizard/AiSiteWizardDialog'
 import { TemplatePickerDialog } from './TemplatePickerDialog'
 
 type LauncherProps = {
@@ -35,11 +36,15 @@ function BuilderTemplateLauncherInner({
     closeTemplatePicker,
     isStartFreshOpen,
     openStartFreshDialog,
-    closeStartFreshDialog
+    closeStartFreshDialog,
+    isAiWizardOpen,
+    openAiWizard,
+    closeAiWizard
   } = useSiteWorkspace()
   const autoPromptHandled = useRef(false)
 
   const setupRequested = searchParams.get('setup') === '1'
+  const aiSetupRequested = searchParams.get('aiSetup') === '1'
   const replaceRequested = searchParams.get('replaceTemplate') === '1'
   const startFreshRequested = searchParams.get('startFresh') === '1'
 
@@ -50,6 +55,13 @@ function BuilderTemplateLauncherInner({
 
     if (replaceRequested && hasTemplates) {
       openTemplatePicker('replace')
+      autoPromptHandled.current = true
+
+      return
+    }
+
+    if (aiSetupRequested && hasTemplates) {
+      openAiWizard()
       autoPromptHandled.current = true
 
       return
@@ -80,14 +92,16 @@ function BuilderTemplateLauncherInner({
     loading,
     openStartFreshDialog,
     openTemplatePicker,
+    openAiWizard,
     replaceRequested,
+    aiSetupRequested,
     setupRequested,
     startFreshRequested,
     tenantSlug
   ])
 
   const clearQueryFlags = () => {
-    if (!setupRequested && !replaceRequested && !startFreshRequested) {
+    if (!setupRequested && !replaceRequested && !startFreshRequested && !aiSetupRequested) {
       return
     }
 
@@ -118,6 +132,19 @@ function BuilderTemplateLauncherInner({
     router.refresh()
   }
 
+  const handleAiWizardClose = () => {
+    markTemplateSetupSeen(tenantSlug)
+    clearQueryFlags()
+    closeAiWizard()
+  }
+
+  const handleAiCreated = () => {
+    markTemplateSetupSeen(tenantSlug)
+    clearQueryFlags()
+    closeAiWizard()
+    router.refresh()
+  }
+
   return (
     <>
       {children}
@@ -143,6 +170,12 @@ function BuilderTemplateLauncherInner({
           closeStartFreshDialog()
         }}
         extraPageCount={extraPageCount}
+      />
+      <AiSiteWizardDialog
+        open={isAiWizardOpen}
+        templates={templates}
+        onClose={handleAiWizardClose}
+        onCreated={handleAiCreated}
       />
     </>
   )

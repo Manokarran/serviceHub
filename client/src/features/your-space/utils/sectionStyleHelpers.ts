@@ -228,13 +228,33 @@ export function getStaticBackgroundModeUpdate(): Pick<SplitVisualConfig, 'splitV
 }
 
 export function getAnimatedBackgroundModeUpdate(
-  config: SplitVisualConfig
-): Pick<SplitVisualConfig, 'splitVisualAnimation'> {
-  if (isAnimatedBackgroundMode(config)) {
+  config: BlockBackgroundProps & SplitVisualConfig & { backgroundColor?: string }
+): Partial<BlockBackgroundProps & SplitVisualConfig & { backgroundColor?: string }> {
+  if (isEffectiveAnimatedBackgroundMode(config)) {
     return {}
   }
 
-  return { splitVisualAnimation: DEFAULT_HERO_SPLIT_VISUAL_ANIMATION }
+  const backgroundType = getBlockBackgroundType(config)
+  const usesStaticVisualFill =
+    isMediaBackground(config) ||
+    (isVisualBackgroundType(backgroundType) && backgroundType !== 'color')
+
+  const updates: Partial<BlockBackgroundProps & SplitVisualConfig & { backgroundColor?: string }> = {
+    splitVisualAnimation:
+      config.splitVisualAnimation && config.splitVisualAnimation !== 'static'
+        ? config.splitVisualAnimation
+        : DEFAULT_HERO_SPLIT_VISUAL_ANIMATION
+  }
+
+  if (usesStaticVisualFill) {
+    const fallback = config.backgroundColor ?? '#ffffff'
+    const current = config.background ?? fallback
+
+    updates.backgroundType = 'color'
+    updates.background = isSimpleColor(current) ? current : fallback
+  }
+
+  return updates
 }
 
 export function applyBackgroundAlpha(color: string, opacityPercent: number): string {

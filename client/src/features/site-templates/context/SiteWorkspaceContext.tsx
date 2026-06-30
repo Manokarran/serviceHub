@@ -14,6 +14,9 @@ type SiteWorkspaceContextValue = {
   openStartFreshDialog: () => void
   closeStartFreshDialog: () => void
   isStartFreshOpen: boolean
+  openAiWizard: () => void
+  closeAiWizard: () => void
+  isAiWizardOpen: boolean
 }
 
 const SiteWorkspaceContext = createContext<SiteWorkspaceContextValue | null>(null)
@@ -28,6 +31,7 @@ export function SiteWorkspaceProvider({ isSiteStarted, extraPageCount, children 
   const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false)
   const [templatePickerMode, setTemplatePickerMode] = useState<TemplatePickerMode>('onboarding')
   const [isStartFreshOpen, setIsStartFreshOpen] = useState(false)
+  const [isAiWizardOpen, setIsAiWizardOpen] = useState(false)
 
   const openTemplatePicker = useCallback(
     (mode: TemplatePickerMode = isSiteStarted ? 'replace' : 'onboarding') => {
@@ -49,6 +53,14 @@ export function SiteWorkspaceProvider({ isSiteStarted, extraPageCount, children 
     setIsStartFreshOpen(false)
   }, [])
 
+  const openAiWizard = useCallback(() => {
+    setIsAiWizardOpen(true)
+  }, [])
+
+  const closeAiWizard = useCallback(() => {
+    setIsAiWizardOpen(false)
+  }, [])
+
   const value = useMemo(
     () => ({
       isSiteStarted,
@@ -59,15 +71,21 @@ export function SiteWorkspaceProvider({ isSiteStarted, extraPageCount, children 
       templatePickerMode,
       openStartFreshDialog,
       closeStartFreshDialog,
-      isStartFreshOpen
+      isStartFreshOpen,
+      openAiWizard,
+      closeAiWizard,
+      isAiWizardOpen
     }),
     [
+      closeAiWizard,
       closeStartFreshDialog,
       closeTemplatePicker,
       extraPageCount,
+      isAiWizardOpen,
       isSiteStarted,
       isStartFreshOpen,
       isTemplatePickerOpen,
+      openAiWizard,
       openStartFreshDialog,
       openTemplatePicker,
       templatePickerMode

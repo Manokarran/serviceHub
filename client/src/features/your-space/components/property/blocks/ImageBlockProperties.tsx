@@ -1,5 +1,9 @@
 'use client'
 
+import { useState } from 'react'
+
+import Button from '@mui/material/Button'
+
 import { useBuilder } from '../../../context/BuilderContext'
 import { useSiteStyles } from '../../SiteStylesScope'
 import type {
@@ -21,6 +25,7 @@ import { PropertySliderField } from '../PropertySliderField'
 import { AlignmentControl } from '../AlignmentControl'
 import { MediaSourceField } from '../MediaSourceField'
 import { BackgroundOpacityField } from '../BackgroundOpacityField'
+import { ImageEditorDialog } from '../ImageEditorDialog'
 
 type LayoutOption<T extends string> = { value: T; label: string; icon: string }
 
@@ -56,24 +61,41 @@ type Props = {
 export function ImageBlockProperties({ block, activeTab }: Props) {
   const { updateBlock } = useBuilder()
   const siteStyles = useSiteStyles()
+  const [editorOpen, setEditorOpen] = useState(false)
   const props = block.props as ImageBlockProps
   const update = (changes: Partial<ImageBlockProps>) => updateBlock(block.id, changes)
 
   if (activeTab === 'design') {
     return (
-      <PropertyFields>
-        <MediaSourceField
-          label='Image'
-          value={props.src}
-          onChange={(src, dimensions) =>
-            update({
-              src,
-              ...(dimensions
-                ? { naturalWidth: dimensions.width, naturalHeight: dimensions.height }
-                : {})
-            })
-          }
-        />
+      <>
+        <PropertyFields>
+          <MediaSourceField
+            label='Image'
+            value={props.src}
+            enableUnsplash
+            unsplashDefaultQuery='professional photography'
+            onChange={(src, meta) =>
+              update({
+                src,
+                ...(meta
+                  ? { naturalWidth: meta.width, naturalHeight: meta.height }
+                  : {}),
+                ...(meta?.alt && !props.alt ? { alt: meta.alt } : {}),
+                crop: null,
+                adjustments: null
+              })
+            }
+          />
+          {props.src ? (
+            <Button
+              variant='outlined'
+              startIcon={<i className='ri-crop-line' />}
+              onClick={() => setEditorOpen(true)}
+              fullWidth
+            >
+              Edit image — crop & enhance
+            </Button>
+          ) : null}
         <PropertyTextField
           label='Alt text'
           value={props.alt}
@@ -82,6 +104,25 @@ export function ImageBlockProperties({ block, activeTab }: Props) {
           helperText='Used by screen readers and search engines'
         />
       </PropertyFields>
+        <ImageEditorDialog
+          open={editorOpen}
+          src={props.src}
+          naturalWidth={props.naturalWidth}
+          naturalHeight={props.naturalHeight}
+          crop={props.crop}
+          adjustments={props.adjustments}
+          onClose={() => setEditorOpen(false)}
+          onApply={result =>
+            update({
+              crop: result.crop,
+              adjustments: result.adjustments,
+              ...(result.src ? { src: result.src } : {}),
+              ...(result.naturalWidth ? { naturalWidth: result.naturalWidth } : {}),
+              ...(result.naturalHeight ? { naturalHeight: result.naturalHeight } : {})
+            })
+          }
+        />
+      </>
     )
   }
 

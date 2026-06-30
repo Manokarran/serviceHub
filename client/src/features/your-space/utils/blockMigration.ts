@@ -207,7 +207,9 @@ export function normalizeBlock(block: Block): Block {
         src: props.src ?? '',
         alt: props.alt ?? 'Image',
         alignment: props.alignment ?? 'center',
-        opacity: props.opacity ?? 100
+        opacity: props.opacity ?? 100,
+        crop: props.crop ?? null,
+        adjustments: props.adjustments ?? null
       }
     }
   }

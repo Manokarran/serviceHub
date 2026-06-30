@@ -33,7 +33,12 @@ import {
   type BlockLocation
 } from '../utils/blockTreeUtils'
 import { mergeSiteStyles } from '../utils/siteStylesHelpers'
-import { BUILDER_GRID_MODE_KEY, readBuilderGridMode } from '../utils/builderContainerChrome'
+import {
+  BUILDER_AUTOSAVE_KEY,
+  BUILDER_GRID_MODE_KEY,
+  readBuilderAutosave,
+  readBuilderGridMode
+} from '../utils/builderContainerChrome'
 import { siteStylesEqual } from '../utils/siteStylesEqual'
 
 type BuilderState = {
@@ -45,6 +50,7 @@ type BuilderState = {
   mode: BuilderMode
   viewport: BuilderViewport
   showGrid: boolean
+  autosaveEnabled: boolean
   sidebarPanel: BuilderSidebarPanel
   currentPageSlug: string
   pages: SitePageSummary[]
@@ -84,6 +90,7 @@ type BuilderAction =
   | { type: 'SET_MODE'; mode: BuilderMode }
   | { type: 'SET_VIEWPORT'; viewport: BuilderViewport }
   | { type: 'SET_SHOW_GRID'; showGrid: boolean }
+  | { type: 'SET_AUTOSAVE'; autosaveEnabled: boolean }
   | { type: 'SET_SIDEBAR_PANEL'; panel: BuilderSidebarPanel }
   | { type: 'UPDATE_SITE_STYLES'; siteStyles: SiteStyles }
   | { type: 'APPLY_THEME'; themeId: string }
@@ -172,6 +179,8 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
       return { ...state, viewport: action.viewport }
     case 'SET_SHOW_GRID':
       return { ...state, showGrid: action.showGrid }
+    case 'SET_AUTOSAVE':
+      return { ...state, autosaveEnabled: action.autosaveEnabled }
     case 'SET_SIDEBAR_PANEL':
       return { ...state, sidebarPanel: action.panel }
     case 'UPDATE_SITE_STYLES':
@@ -280,6 +289,7 @@ type BuilderContextValue = BuilderState & {
   setMode: (mode: BuilderMode) => void
   setViewport: (viewport: BuilderViewport) => void
   setShowGrid: (showGrid: boolean) => void
+  setAutosaveEnabled: (enabled: boolean) => void
   setSidebarPanel: (panel: BuilderSidebarPanel) => void
   updateSiteStyles: (partial: Partial<SiteStyles>) => void
   applyThemePreset: (themeId: string) => void
@@ -369,6 +379,7 @@ export function BuilderProvider({
     mode: 'edit',
     viewport: 'desktop',
     showGrid: readBuilderGridMode(),
+    autosaveEnabled: readBuilderAutosave(),
     sidebarPanel: 'blocks',
     currentPageSlug: initialPageSlug,
     currentPageTitle: initialPageTitle,
@@ -648,6 +659,14 @@ export function BuilderProvider({
     }
   }, [])
 
+  const setAutosaveEnabled = useCallback((autosaveEnabled: boolean) => {
+    dispatch({ type: 'SET_AUTOSAVE', autosaveEnabled })
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(BUILDER_AUTOSAVE_KEY, String(autosaveEnabled))
+    }
+  }, [])
+
   const setSidebarPanel = useCallback((panel: BuilderSidebarPanel) => {
     dispatch({ type: 'SET_SIDEBAR_PANEL', panel })
   }, [])
@@ -850,7 +869,14 @@ export function BuilderProvider({
   }, [])
 
   useEffect(() => {
-    if (!state.isDirty || state.isLoading || state.isPageSwitching) {
+    if (
+      !state.autosaveEnabled ||
+      !state.isDirty ||
+      state.isLoading ||
+      state.isPageSwitching ||
+      state.isSaving ||
+      state.isPublishing
+    ) {
       return
     }
 
@@ -859,7 +885,18 @@ export function BuilderProvider({
     }, 1500)
 
     return () => clearTimeout(timer)
-  }, [state.blocks, state.siteStyles, state.isDirty, state.isLoading, state.isPageSwitching, state.currentPageSlug, persistDraft])
+  }, [
+    state.autosaveEnabled,
+    state.blocks,
+    state.siteStyles,
+    state.isDirty,
+    state.isLoading,
+    state.isPageSwitching,
+    state.isSaving,
+    state.isPublishing,
+    state.currentPageSlug,
+    persistDraft
+  ])
 
   const value = useMemo<BuilderContextValue>(
     () => ({
@@ -878,6 +915,7 @@ export function BuilderProvider({
       setMode,
       setViewport,
       setShowGrid,
+      setAutosaveEnabled,
       setSidebarPanel,
       updateSiteStyles,
       applyThemePreset,
@@ -911,6 +949,7 @@ export function BuilderProvider({
       setMode,
       setViewport,
       setShowGrid,
+      setAutosaveEnabled,
       setSidebarPanel,
       updateSiteStyles,
       applyThemePreset,

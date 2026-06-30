@@ -8,6 +8,7 @@ import Collapse from '@mui/material/Collapse'
 import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
+import Switch from '@mui/material/Switch'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
 import Tooltip from '@mui/material/Tooltip'
@@ -26,6 +27,7 @@ import { getPublicPagePath } from '@/lib/utils/public-site-url'
 import { LiveSiteButton } from './LiveSiteButton'
 import { VersionHistoryDialog } from './VersionHistoryDialog'
 import { useSiteWorkspace } from '@/features/site-templates/context/SiteWorkspaceContext'
+import { usePublishedTemplates } from '@/features/site-templates/hooks/usePublishedTemplates'
 
 type Props = {
   tenantName: string
@@ -263,6 +265,8 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
     hasUnpublishedChanges,
     savePage,
     publishPage,
+    autosaveEnabled,
+    setAutosaveEnabled,
     restoreVersionToDraft,
     setVersions,
     resetToStarter,
@@ -273,7 +277,8 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
     currentPageTitle,
     tenantSlug
   } = useBuilder()
-  const { isSiteStarted, openTemplatePicker, openStartFreshDialog } = useSiteWorkspace()
+  const { isSiteStarted, openTemplatePicker, openStartFreshDialog, openAiWizard } = useSiteWorkspace()
+  const { hasTemplates } = usePublishedTemplates()
 
   const pagePath = getPublicPagePath(tenantSlug, currentPageSlug)
   const siteUrl = typeof window !== 'undefined' ? `${window.location.origin}${pagePath}` : pagePath
@@ -513,6 +518,24 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
           </MenuItem>
         )}
         <MenuItem
+          onClick={e => {
+            e.preventDefault()
+            setAutosaveEnabled(!autosaveEnabled)
+          }}
+        >
+          <ListItemIcon>
+            <i className='ri-save-3-line' />
+          </ListItemIcon>
+          <ListItemText primary='Autosave' secondary='Save draft automatically' />
+          <Switch
+            edge='end'
+            size='small'
+            checked={autosaveEnabled}
+            onClick={e => e.stopPropagation()}
+            onChange={e => setAutosaveEnabled(e.target.checked)}
+          />
+        </MenuItem>
+        <MenuItem
           onClick={() => {
             handleMenuClose()
             onToggleFullscreen()
@@ -537,6 +560,22 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
             secondary='Current page only'
           />
         </MenuItem>
+        {hasTemplates ? (
+          <MenuItem
+            onClick={() => {
+              handleMenuClose()
+              openAiWizard()
+            }}
+          >
+            <ListItemIcon>
+              <i className='ri-magic-line' />
+            </ListItemIcon>
+            <ListItemText
+              primary='Start with AI…'
+              secondary='Guided setup with auto-written copy'
+            />
+          </MenuItem>
+        ) : null}
         {isSiteStarted ? (
           <>
             <MenuItem

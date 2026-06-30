@@ -19,6 +19,7 @@ import type {
   ISiteTemplateDocument,
   ISiteTemplatePageSnapshot,
   SiteTemplateDetail,
+  SiteTemplateHomePreview,
   SiteTemplateSummary
 } from '@/models/site-template'
 import type { ISitePageBlock } from '@/models/site-page'
@@ -27,6 +28,20 @@ import { siteTemplateRepository } from '@/repositories/site-template.repository'
 import { tenantRepository } from '@/repositories/tenant.repository'
 import { sitePageService } from '@/services/site-page'
 import { siteWorkspaceService } from '@/services/site-workspace'
+
+function extractHomePreview(doc: ISiteTemplateDocument): SiteTemplateHomePreview | null {
+  const homePage =
+    doc.pages?.find(page => isHomePageSlug(page.slug)) ?? doc.pages?.[0]
+
+  if (!homePage?.blocks?.length) {
+    return null
+  }
+
+  return {
+    blocks: toPlainJson(homePage.blocks) as Block[],
+    siteStyles: homePage.siteStyles ? (toPlainJson(homePage.siteStyles) as SiteStyles) : null
+  }
+}
 
 function mapTemplateSummary(doc: ISiteTemplateDocument): SiteTemplateSummary {
   return {
@@ -43,7 +58,8 @@ function mapTemplateSummary(doc: ISiteTemplateDocument): SiteTemplateSummary {
     pageCount: doc.pages?.length ?? 0,
     usageCount: doc.usageCount ?? 0,
     publishedAt: doc.publishedAt?.toISOString() ?? null,
-    updatedAt: doc.updatedAt.toISOString()
+    updatedAt: doc.updatedAt.toISOString(),
+    homePreview: extractHomePreview(doc)
   }
 }
 

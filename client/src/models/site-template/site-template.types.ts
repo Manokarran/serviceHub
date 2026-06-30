@@ -38,6 +38,11 @@ export type ISiteTemplateDocument = {
   updatedAt: Date
 }
 
+export type SiteTemplateHomePreview = {
+  blocks: Block[]
+  siteStyles?: SiteStyles | null
+}
+
 export type SiteTemplateSummary = {
   id: string
   name: string
@@ -53,6 +58,7 @@ export type SiteTemplateSummary = {
   usageCount: number
   publishedAt: string | null
   updatedAt: string
+  homePreview: SiteTemplateHomePreview | null
 }
 
 export type SiteTemplateDetail = SiteTemplateSummary & {

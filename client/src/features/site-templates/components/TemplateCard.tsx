@@ -13,6 +13,8 @@ import { SITE_TEMPLATE_CATEGORY_LABELS } from '@/lib/constants/site-template'
 import { getTemplateThumbnailDisplayUrl } from '@/lib/site-template/resolve-thumbnail'
 import type { SiteTemplateSummary } from '@/models/site-template'
 
+import { TemplateLivePreview } from './TemplateLivePreview'
+
 type Props = {
   template: SiteTemplateSummary
   selected?: boolean
@@ -33,6 +35,22 @@ export function TemplateCard({
   const theme = useTheme()
   const thumbnail = getTemplateThumbnailDisplayUrl(template, variant === 'featured' ? 640 : 480)
   const previewHeight = variant === 'featured' ? 220 : 180
+  const hasLivePreview = Boolean(template.homePreview?.blocks.length)
+
+  const preview = hasLivePreview ? (
+    <TemplateLivePreview
+      blocks={template.homePreview!.blocks}
+      siteStyles={template.homePreview!.siteStyles}
+      height={previewHeight}
+    />
+  ) : (
+    <Box
+      component='img'
+      src={thumbnail}
+      alt={template.name}
+      sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  )
 
   const content = (
     <>
@@ -44,12 +62,7 @@ export function TemplateCard({
           bgcolor: alpha(theme.palette.primary.main, 0.06)
         }}
       >
-        <Box
-          component='img'
-          src={thumbnail}
-          alt={template.name}
-          sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
+        {preview}
         {selected ? (
           <Box
             sx={{

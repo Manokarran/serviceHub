@@ -4,5 +4,6 @@ export type {
   ISiteTemplatePageSnapshot,
   ISiteTemplateTenantSettings,
   SiteTemplateDetail,
+  SiteTemplateHomePreview,
   SiteTemplateSummary
 } from './site-template.types'

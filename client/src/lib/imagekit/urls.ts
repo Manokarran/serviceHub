@@ -1,4 +1,6 @@
 import { IMAGEKIT_URL_ENDPOINT, isImageKitUrl } from './config'
+import type { ImageAdjustments, ImageCropSettings } from '@/features/your-space/types'
+import { isDefaultImageCrop, normalizeImageAdjustments, normalizeImageCrop } from '@/lib/media/image-edit'
 
 type ImageTransformOptions = {
   width?: number
@@ -59,6 +61,70 @@ export function getDisplayImageUrl(
     height: deliveryWidth,
     quality: options.quality ?? DEFAULT_DISPLAY_QUALITY
   })
+}
+
+type ImageEditOptions = {
+  crop?: ImageCropSettings | null
+  adjustments?: ImageAdjustments | null
+  naturalWidth?: number
+  naturalHeight?: number
+}
+
+function buildEditTransformSegments(
+  edit: ImageEditOptions,
+  deliveryWidth: number
+): string[] {
+  const segments: string[] = []
+  const crop = normalizeImageCrop(edit.crop)
+  const adjustments = normalizeImageAdjustments(edit.adjustments)
+  const sourceWidth = edit.naturalWidth ?? deliveryWidth
+  const sourceHeight = edit.naturalHeight ?? deliveryWidth
+
+  if (!isDefaultImageCrop(crop)) {
+    segments.push(
+      `x-${Math.round(crop.x * sourceWidth)}`,
+      `y-${Math.round(crop.y * sourceHeight)}`,
+      `w-${Math.max(1, Math.round(crop.width * sourceWidth))}`,
+      `h-${Math.max(1, Math.round(crop.height * sourceHeight))}`,
+      'cm-extract'
+    )
+  }
+
+  if (adjustments.brightness !== 100) {
+    segments.push(`e-brightness-${Math.round(adjustments.brightness - 100)}`)
+  }
+
+  if (adjustments.contrast !== 100) {
+    segments.push(`e-contrast-${Math.round(adjustments.contrast - 100)}`)
+  }
+
+  if (adjustments.saturation !== 100) {
+    segments.push(`e-saturation-${Math.round(adjustments.saturation - 100)}`)
+  }
+
+  if (adjustments.sharpness > 0) {
+    segments.push(`e-sharpen-${Math.min(10, Math.max(1, Math.round(adjustments.sharpness / 10)))}`)
+  }
+
+  return segments
+}
+
+/** Delivery URL with optional crop and color adjustments applied. */
+export function getEditedImageUrl(
+  url: string,
+  displayWidth: number,
+  edit: ImageEditOptions = {}
+): string {
+  if (!url || !isImageKitUrl(url)) {
+    return url
+  }
+
+  const deliveryWidth = Math.min(Math.round(displayWidth * 2), DEFAULT_MAX_DELIVERY_WIDTH)
+  const editSegments = buildEditTransformSegments(edit, deliveryWidth)
+  const base = `w-${deliveryWidth},h-${deliveryWidth},c-at_max,q-${DEFAULT_DISPLAY_QUALITY},f-auto,lo-true,cm-exif`
+  const transform = editSegments.length ? `${editSegments.join(',')},${base}` : base
+
+  return appendTransform(url, transform)
 }
 
 /** Delivery URL — 1080p max, H.264, reduced quality for bandwidth/storage savings. */

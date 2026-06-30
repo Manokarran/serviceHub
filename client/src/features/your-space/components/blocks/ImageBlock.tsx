@@ -6,7 +6,6 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
-import { getDisplayImageUrl } from '@/lib/imagekit/urls'
 import type { ImageBlockProps } from '../../types'
 import {
   getContinuousAnimationSx,
@@ -17,6 +16,12 @@ import {
   getMediaAspectRatio,
   getMediaOpacityFraction
 } from '../../utils/mediaBlockHelpers'
+import {
+  getCroppedImageElementSx,
+  getImageAdjustmentFilterSx,
+  resolveBlockImageSrc,
+  shouldApplyClientImageEdits
+} from '../../utils/imageEditHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
@@ -33,7 +38,16 @@ export function ImageBlock({ props }: Props) {
   const opacity = getMediaOpacityFraction(props.opacity)
   const cornerRadius = props.borderRadius ?? siteStyles.misc.imageCornerRadius
   const deliveryWidth = getImageDeliveryWidth(props.naturalWidth)
-  const optimizedSrc = props.src ? getDisplayImageUrl(props.src, deliveryWidth) : ''
+  const optimizedSrc = props.src
+    ? resolveBlockImageSrc({
+        src: props.src,
+        displayWidth: deliveryWidth,
+        crop: props.crop,
+        adjustments: props.adjustments,
+        naturalWidth: props.naturalWidth,
+        naturalHeight: props.naturalHeight
+      })
+    : ''
 
   const entranceAnimation = props.entranceAnimation ?? 'none'
   const continuousAnimation = props.continuousAnimation ?? 'none'
@@ -75,7 +89,17 @@ export function ImageBlock({ props }: Props) {
     ...(continuousSx as object)
   }
 
-  const imageSx = getImageElementSx(hasFixedAspect)
+  const useClientEdits = shouldApplyClientImageEdits({
+    src: props.src,
+    crop: props.crop,
+    adjustments: props.adjustments
+  })
+
+  const imageSx = {
+    ...getImageElementSx(hasFixedAspect),
+    ...(useClientEdits ? getCroppedImageElementSx(props.crop) : {}),
+    ...(useClientEdits ? getImageAdjustmentFilterSx(props.adjustments) : {})
+  }
 
   return (
     <Box

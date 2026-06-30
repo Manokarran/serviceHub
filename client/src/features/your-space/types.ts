@@ -70,6 +70,36 @@ export type BackgroundType = 'color' | 'pattern' | 'gradient' | 'photo' | 'video
 
 export type ImageHoverEffect = 'none' | 'zoom' | 'fade'
 
+/** Fractional crop region relative to the original image (0–1). */
+export type ImageCropSettings = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** Non-destructive image adjustments (100 = neutral). */
+export type ImageAdjustments = {
+  brightness: number
+  contrast: number
+  saturation: number
+  sharpness: number
+}
+
+export const DEFAULT_IMAGE_ADJUSTMENTS: ImageAdjustments = {
+  brightness: 100,
+  contrast: 100,
+  saturation: 100,
+  sharpness: 0
+}
+
+export const DEFAULT_IMAGE_CROP: ImageCropSettings = {
+  x: 0,
+  y: 0,
+  width: 1,
+  height: 1
+}
+
 /** Animation that plays once when the image scrolls into view. */
 export type ImageEntranceAnimation = 'none' | 'fade-in' | 'slide-up' | 'zoom-in' | 'blur-in' | 'flip-up'
 
@@ -355,6 +385,10 @@ export interface ImageBlockProps {
   entranceAnimation?: ImageEntranceAnimation
   /** Looping animation applied continuously to the image. */
   continuousAnimation?: ImageContinuousAnimation
+  /** Optional crop region (fractions of source). */
+  crop?: ImageCropSettings | null
+  /** Brightness, contrast, saturation, and sharpness tweaks. */
+  adjustments?: ImageAdjustments | null
 }
 
 export interface VideoBlockProps {

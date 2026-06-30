@@ -12,6 +12,7 @@ import { isManagerRole } from '@/lib/constants/roles'
 import { getPublicSiteDisplayUrl, getPublicSitePath } from '@/lib/utils/public-site-url'
 import { HomeBuilderCta } from '@/features/site-templates/components/HomeBuilderCta'
 import { HomeSiteManageCard } from '@/features/site-templates/components/HomeSiteManageCard'
+import { HomeStartWithAiCard } from '@/features/site-templates/components/HomeStartWithAiCard'
 import { HomeTemplatePicker } from '@/features/site-templates/components/HomeTemplatePicker'
 import { siteWorkspaceService } from '@/services/site-workspace'
 
@@ -83,6 +84,9 @@ export default async function HomePage() {
             <HomeBuilderCta liveSitePath={liveSitePath} isSiteStarted={isSiteStarted} />
           </CardContent>
         </Card>
+      </Grid>
+      <Grid size={12}>
+        <HomeStartWithAiCard />
       </Grid>
       <Grid size={12}>
         <HomeTemplatePicker isSiteStarted={isSiteStarted} />
