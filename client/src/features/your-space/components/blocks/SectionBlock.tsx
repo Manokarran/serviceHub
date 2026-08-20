@@ -80,7 +80,13 @@ function SectionColumn({
         display: 'flex',
         flexDirection: 'column',
         flex: 1,
-        minHeight: showVisual && children.length === 0 ? 200 : undefined
+        minHeight: 0,
+        height: '100%',
+        ...(editMode && children.length === 0
+          ? { minHeight: props.layout === 'split-vertical' ? 100 : showVisual ? 200 : 120 }
+          : showVisual && children.length === 0
+            ? { minHeight: 200 }
+            : {})
       }}
     >
       {showVisual && (

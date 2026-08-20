@@ -68,7 +68,13 @@ const CAROUSEL_BASE_PROPS = {
   borderRadius: 12,
   slideMinHeight: 280,
   arrowColor: '#1a1a2e',
-  dotColor: '#6366f1'
+  dotColor: '#6366f1',
+  background: 'transparent',
+  backgroundType: 'color' as const,
+  backgroundOpacity: 0,
+  splitVisualAnimation: 'static' as const,
+  splitVisualColorStart: '',
+  splitVisualColorEnd: ''
 }
 
 function carouselPaletteItem(
@@ -373,7 +379,53 @@ export const PALETTE_ITEMS: PaletteItem[] = [
       text: 'Your heading here',
       level: 2,
       alignment: 'left',
-      color: '#1a1a2e'
+      color: '#1a1a2e',
+      variant: 'default'
+    }
+  },
+  {
+    id: 'heading-display',
+    type: 'heading',
+    label: 'Display title',
+    description: 'Large hero-style headline',
+    icon: 'ri-font-size-2',
+    category: 'typography',
+    defaultProps: {
+      text: 'Make a bold statement',
+      level: 1,
+      alignment: 'center',
+      color: '#0f172a',
+      variant: 'display'
+    }
+  },
+  {
+    id: 'heading-eyebrow',
+    type: 'heading',
+    label: 'Eyebrow',
+    description: 'Small uppercase label above a title',
+    icon: 'ri-text-spacing',
+    category: 'typography',
+    defaultProps: {
+      text: 'Our clients',
+      level: 3,
+      alignment: 'left',
+      color: '#64748b',
+      variant: 'eyebrow'
+    }
+  },
+  {
+    id: 'heading-script',
+    type: 'heading',
+    label: 'Script heading',
+    description: 'Elegant calligraphy-style headline',
+    icon: 'ri-quill-pen-line',
+    category: 'typography',
+    defaultProps: {
+      text: 'With love',
+      level: 2,
+      alignment: 'center',
+      color: '#1a1a2e',
+      variant: 'script'
     }
   },
   {
@@ -386,7 +438,119 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     defaultProps: {
       text: 'Add your content here. Tell visitors about your business, services, or story.',
       alignment: 'left',
-      color: '#64748b'
+      color: '#64748b',
+      variant: 'paragraph'
+    }
+  },
+  {
+    id: 'text-lead',
+    type: 'text',
+    label: 'Lead text',
+    description: 'Larger intro paragraph under a heading',
+    icon: 'ri-font-size',
+    category: 'typography',
+    defaultProps: {
+      text: 'A short, inviting introduction that sets the tone for the section below.',
+      alignment: 'left',
+      color: '#334155',
+      variant: 'lead'
+    }
+  },
+  {
+    id: 'text-quote',
+    type: 'text',
+    label: 'Block quote',
+    description: 'Classic quote with a left accent bar',
+    icon: 'ri-double-quotes-l',
+    category: 'typography',
+    defaultProps: {
+      text: 'Working with this team transformed how we show up online. Clear, calm, and beautifully built.',
+      alignment: 'left',
+      color: '#1e293b',
+      variant: 'quote',
+      cite: 'Alex Morgan',
+      citeRole: 'Founder, Northwind Studio',
+      accentColor: '#6366f1'
+    }
+  },
+  {
+    id: 'text-pullquote',
+    type: 'text',
+    label: 'Pull quote',
+    description: 'Large centered quote for emphasis',
+    icon: 'ri-chat-quote-line',
+    category: 'typography',
+    defaultProps: {
+      text: 'Design is intelligence made visible.',
+      alignment: 'center',
+      color: '#0f172a',
+      variant: 'pullquote',
+      cite: '',
+      citeRole: '',
+      accentColor: '#6366f1'
+    }
+  },
+  {
+    id: 'text-testimonial',
+    type: 'text',
+    label: 'Client review',
+    description: 'Testimonial quote with name and role',
+    icon: 'ri-user-star-line',
+    category: 'typography',
+    defaultProps: {
+      text: 'They understood our brand immediately and delivered a site our customers love to use.',
+      alignment: 'left',
+      color: '#1e293b',
+      variant: 'testimonial',
+      cite: 'Jordan Lee',
+      citeRole: 'Marketing Director, Horizon Labs',
+      accentColor: '#6366f1'
+    }
+  },
+  {
+    id: 'text-calligraphy',
+    type: 'text',
+    label: 'Calligraphy quote',
+    description: 'Script-style quote for reviews or signatures',
+    icon: 'ri-quill-pen-line',
+    category: 'typography',
+    defaultProps: {
+      text: 'Absolutely wonderful experience from start to finish.',
+      alignment: 'center',
+      color: '#1a1a2e',
+      variant: 'calligraphy',
+      cite: 'Sam Rivera',
+      citeRole: 'Happy client',
+      accentColor: '#6366f1'
+    }
+  },
+  {
+    id: 'text-caption',
+    type: 'text',
+    label: 'Caption',
+    description: 'Small supporting note under media',
+    icon: 'ri-text-snippet',
+    category: 'typography',
+    defaultProps: {
+      text: 'Photo caption or short supporting note.',
+      alignment: 'left',
+      color: '#94a3b8',
+      variant: 'caption'
+    }
+  },
+  {
+    id: 'text-callout',
+    type: 'text',
+    label: 'Callout',
+    description: 'Highlighted tip or key message',
+    icon: 'ri-sticky-note-line',
+    category: 'typography',
+    defaultProps: {
+      text: 'Tip: Keep this short and focused so visitors notice the key takeaway.',
+      alignment: 'left',
+      color: '#1e293b',
+      variant: 'callout',
+      accentColor: '#6366f1'
     }
   },
   {

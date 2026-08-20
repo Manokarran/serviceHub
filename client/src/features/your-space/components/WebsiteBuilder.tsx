@@ -23,10 +23,11 @@ import type { SiteStyles } from '../types/siteStyles'
 import { BUILDER_FONT_SMOOTHING } from '../constants/builderLayout'
 import { builderShellSx } from '../constants/builderChrome'
 import { BuilderProvider, useBuilder } from '../context/BuilderContext'
+import { BuilderNestTargetsProvider, useBuilderNestTargets } from '../context/BuilderNestTargetsContext'
 import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-page'
 import type { ActiveDragItem, Block, BlockType } from '../types'
 import { resolveDropTarget } from '../utils/blockTreeUtils'
-import { builderCollisionDetection } from '../utils/builderCollisionDetection'
+import { builderCollisionDetection, pickPreferredDropTargetId } from '../utils/builderCollisionDetection'
 import { BuilderCanvas } from './BuilderCanvas'
 import { BuilderDragOverlay } from './dnd/BuilderDragOverlay'
 import { BuilderDockPanel } from './BuilderDockPanel'
@@ -50,6 +51,7 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   const { isFullscreen, toggleFullscreen } = useBuilderFullscreen()
 
   const { blocks, mode, selectedBlock, addBlock, moveBlock } = useBuilder()
+  const { hints: nestHints, setCanvasDragging } = useBuilderNestTargets()
   const [activeDrag, setActiveDrag] = useState<ActiveDragItem | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [pagesOpen, setPagesOpen] = useState(false)
@@ -119,16 +121,24 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
 
     if (data) {
       setActiveDrag(data)
+      setCanvasDragging(true)
     }
-  }, [])
+  }, [setCanvasDragging])
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       setActiveDrag(null)
+      setCanvasDragging(false)
 
       const { active, over } = event
 
       if (!over) {
+        return
+      }
+
+      const dropOverId = pickPreferredDropTargetId(over.id, event.collisions)
+
+      if (dropOverId === undefined) {
         return
       }
 
@@ -140,7 +150,7 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
 
       if (activeData.source === 'palette') {
         const type = activeData.type as BlockType
-        const target = resolveDropTarget(blocks, over.id, type)
+        const target = resolveDropTarget(blocks, dropOverId, type, nestHints)
 
         addBlock(type, target, activeData.paletteId)
 
@@ -152,11 +162,16 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
       }
 
       if (activeData.source === 'canvas') {
-        moveBlock(String(active.id), over.id)
+        moveBlock(String(active.id), dropOverId, nestHints)
       }
     },
-    [addBlock, blocks, isMobileLayout, moveBlock]
+    [addBlock, blocks, isMobileLayout, moveBlock, nestHints, setCanvasDragging]
   )
+
+  const handleDragCancel = useCallback(() => {
+    setActiveDrag(null)
+    setCanvasDragging(false)
+  }, [setCanvasDragging])
 
   return (
     <BuilderShellProvider openPropertyPanel={openPropertyPanel}>
@@ -165,6 +180,7 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
       collisionDetection={builderCollisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <Box
         ref={builderRootRef}
@@ -288,7 +304,9 @@ function WebsiteBuilderContent({
         initialPublishedAt={initialPublishedAt}
         initialVersions={initialVersions}
       >
-        <WebsiteBuilderInner tenantName={tenantName} />
+        <BuilderNestTargetsProvider>
+          <WebsiteBuilderInner tenantName={tenantName} />
+        </BuilderNestTargetsProvider>
       </BuilderProvider>
     </BuilderTemplateLauncher>
   )

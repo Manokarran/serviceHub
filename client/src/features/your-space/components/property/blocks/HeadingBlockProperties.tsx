@@ -10,12 +10,13 @@ import { builderSoftCardSx } from '../../../constants/builderChrome'
 import { useBuilder } from '../../../context/BuilderContext'
 import type { Block, HeadingBlockProps } from '../../../types'
 import type { PropertyPanelTab } from '../PropertyPanelUi'
-import { PropertyFields } from '../PropertyPanelUi'
 import { PropertyTextField } from '../PropertyTextField'
 import { PropertyColorField } from '../PropertyColorField'
 import { AlignmentControl } from '../AlignmentControl'
 import { TextTypographyControls } from '../TextTypographyControls'
 import { useSiteStyles } from '../../SiteStylesScope'
+import { getHeadingVariant, HEADING_VARIANT_OPTIONS } from '../../../utils/textBlockVariantHelpers'
+import { LayoutOptionGroup, PropertyFields, PropertySection } from '../PropertyPanelUi'
 
 const LEVEL_OPTIONS: { value: 1 | 2 | 3; label: string; sublabel: string }[] = [
   { value: 1, label: 'H1', sublabel: 'Large' },
@@ -98,6 +99,13 @@ export function HeadingBlockProperties({ block, activeTab }: Props) {
   if (activeTab === 'design') {
     return (
       <PropertyFields>
+        <PropertySection title='Style' collapsible defaultOpen>
+          <LayoutOptionGroup
+            value={getHeadingVariant(props)}
+            options={HEADING_VARIANT_OPTIONS}
+            onChange={variant => update({ variant })}
+          />
+        </PropertySection>
         <PropertyTextField
           label='Text'
           value={props.text}

@@ -25,6 +25,8 @@ export function InlineEditableText({ value, field, onCommit, multiline = false, 
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null)
+  const fieldKey = field ?? 'text'
+  const handledRequestToken = useRef<number | null>(null)
 
   useEffect(() => {
     if (!isEditing) {
@@ -45,7 +47,7 @@ export function InlineEditableText({ value, field, onCommit, multiline = false, 
     }
 
     if (isEditing) {
-      editContext.setInlineEditingField(field ?? 'text')
+      editContext.setInlineEditingField(fieldKey)
     } else {
       editContext.setInlineEditingField(null)
     }
@@ -53,7 +55,26 @@ export function InlineEditableText({ value, field, onCommit, multiline = false, 
     return () => {
       editContext.setInlineEditingField(null)
     }
-  }, [editContext, field, isEditing])
+  }, [editContext, fieldKey, isEditing])
+
+  useEffect(() => {
+    if (!editContext?.inlineEditRequest) {
+      return
+    }
+
+    const request = editContext.inlineEditRequest
+
+    if (request.field !== fieldKey) {
+      return
+    }
+
+    if (handledRequestToken.current === request.token) {
+      return
+    }
+
+    handledRequestToken.current = request.token
+    setIsEditing(true)
+  }, [editContext?.inlineEditRequest, fieldKey])
 
   if (!editContext) {
     return <Box component='span' sx={sx}>{value}</Box>
@@ -142,6 +163,12 @@ export function InlineEditableText({ value, field, onCommit, multiline = false, 
 
   const startEditing = (e: MouseEvent) => {
     e.stopPropagation()
+    e.preventDefault()
+
+    if (builder && editContext && builder.mode === 'edit') {
+      builder.selectBlock(editContext.blockId)
+    }
+
     setIsEditing(true)
   }
 
@@ -155,8 +182,6 @@ export function InlineEditableText({ value, field, onCommit, multiline = false, 
     if (builder.selectedBlockId !== editContext.blockId) {
       builder.selectBlock(editContext.blockId)
     }
-
-    startEditing(e)
   }
 
   return (
@@ -169,6 +194,8 @@ export function InlineEditableText({ value, field, onCommit, multiline = false, 
         cursor: 'text',
         borderRadius: 0.5,
         transition: 'background-color 0.12s',
+        position: 'relative',
+        zIndex: 1,
         ...(isBlockSelected && {
           '&:hover': {
             backgroundColor: alpha(theme.palette.primary.main, 0.06)

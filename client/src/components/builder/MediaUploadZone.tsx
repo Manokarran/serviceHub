@@ -163,7 +163,7 @@ export function MediaUploadZone({ onUploaded, onError }: Props) {
           {uploading ? progressLabel : 'Upload image or video'}
         </Typography>
         <Typography sx={{ ...BUILDER_TYPOGRAPHY.subtle, color: 'text.secondary', lineHeight: 1.5 }}>
-          Images are compressed to WebP (max 2560px). Videos up to {maxVideoMb} MB, 1080p, 60s.
+          Images are compressed to WebP (max 2560px, high quality). Videos up to {maxVideoMb} MB, 1080p, 60s.
         </Typography>
       </Box>
 

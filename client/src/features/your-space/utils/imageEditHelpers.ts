@@ -1,6 +1,6 @@
 import type { SxProps, Theme } from '@mui/material/styles'
 
-import type { ImageAdjustments, ImageCropSettings } from '../types'
+import type { ImageAdjustments, ImageCropSettings, ImageDeliveryQuality } from '../types'
 import {
   buildCssImageFilter,
   isDefaultImageAdjustments,
@@ -43,6 +43,7 @@ export function resolveBlockImageSrc(params: {
   adjustments?: ImageAdjustments | null
   naturalWidth?: number
   naturalHeight?: number
+  deliveryQuality?: ImageDeliveryQuality
 }): string {
   if (!params.src) {
     return ''
@@ -52,7 +53,8 @@ export function resolveBlockImageSrc(params: {
     crop: params.crop,
     adjustments: params.adjustments,
     naturalWidth: params.naturalWidth,
-    naturalHeight: params.naturalHeight
+    naturalHeight: params.naturalHeight,
+    deliveryQuality: params.deliveryQuality
   })
 }
 

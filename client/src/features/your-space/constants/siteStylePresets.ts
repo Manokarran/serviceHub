@@ -477,6 +477,7 @@ export const FONT_FAMILY_OPTIONS = [
   { label: 'Work Sans', value: '"Work Sans", system-ui, sans-serif', googleFont: 'Work+Sans' },
   { label: 'Cormorant Garamond', value: '"Cormorant Garamond", Georgia, serif', googleFont: 'Cormorant+Garamond' },
   { label: 'Crimson Pro', value: '"Crimson Pro", Georgia, serif', googleFont: 'Crimson+Pro' },
+  { label: 'Great Vibes', value: '"Great Vibes", cursive', googleFont: 'Great+Vibes' },
   { label: 'Lora', value: '"Lora", Georgia, serif', googleFont: 'Lora' },
   { label: 'Merriweather', value: '"Merriweather", Georgia, serif', googleFont: 'Merriweather' },
   { label: 'Playfair Display', value: '"Playfair Display", Georgia, serif', googleFont: 'Playfair+Display' },

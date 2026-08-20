@@ -1,8 +1,8 @@
 /** Max stored dimensions — high enough for crisp 2× retina delivery. */
 const DEFAULT_MAX_WIDTH = 2560
 const DEFAULT_MAX_HEIGHT = 2560
-/** Storage quality — compressed for space but not visibly degraded. */
-const DEFAULT_QUALITY = 0.88
+/** Storage quality — high visual fidelity while still saving space. */
+const DEFAULT_QUALITY = 0.95
 const MAX_IMAGE_INPUT_BYTES = 20 * 1024 * 1024
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])

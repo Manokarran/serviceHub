@@ -30,7 +30,8 @@ import {
   moveBlockInTree,
   resolveDropTarget,
   updateBlockInTree,
-  type BlockLocation
+  type BlockLocation,
+  type NestTargetHints
 } from '../utils/blockTreeUtils'
 import { mergeSiteStyles } from '../utils/siteStylesHelpers'
 import {
@@ -85,7 +86,7 @@ type BuilderAction =
   | { type: 'ADD_BLOCK'; block: Block; target: BlockLocation }
   | { type: 'UPDATE_BLOCK'; id: string; props: Partial<Block['props']> }
   | { type: 'DELETE_BLOCK'; id: string }
-  | { type: 'MOVE_BLOCK'; activeId: string; overId: string | number }
+  | { type: 'MOVE_BLOCK'; activeId: string; overId: string | number; nestHints?: NestTargetHints }
   | { type: 'SELECT_BLOCK'; id: string | null }
   | { type: 'SET_MODE'; mode: BuilderMode }
   | { type: 'SET_VIEWPORT'; viewport: BuilderViewport }
@@ -166,7 +167,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
     case 'MOVE_BLOCK':
       return {
         ...state,
-        blocks: moveBlockInTree(state.blocks, action.activeId, action.overId),
+        blocks: moveBlockInTree(state.blocks, action.activeId, action.overId, action.nestHints),
         isDirty: true,
         saveError: null,
         publishError: null
@@ -284,7 +285,7 @@ type BuilderContextValue = BuilderState & {
   copyBlock: (block: Block) => void
   /** Paste the clipboard block after a given block id (root-level). Clears clipboard after paste. */
   pasteBlock: (afterBlockId?: string) => void
-  moveBlock: (activeId: string, overId: string | number) => void
+  moveBlock: (activeId: string, overId: string | number, nestHints?: NestTargetHints) => void
   selectBlock: (id: string | null) => void
   setMode: (mode: BuilderMode) => void
   setViewport: (viewport: BuilderViewport) => void
@@ -635,8 +636,8 @@ export function BuilderProvider({
     [copiedBlock]
   )
 
-  const moveBlockAction = useCallback((activeId: string, overId: string | number) => {
-    dispatch({ type: 'MOVE_BLOCK', activeId, overId })
+  const moveBlockAction = useCallback((activeId: string, overId: string | number, nestHints?: NestTargetHints) => {
+    dispatch({ type: 'MOVE_BLOCK', activeId, overId, nestHints })
   }, [])
 
   const selectBlock = useCallback((id: string | null) => {

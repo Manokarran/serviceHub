@@ -23,14 +23,22 @@ export function builderContainerChromeSx(
   const borderColor = builderContainerBorderColor(theme, isOver && isDragging)
 
   return {
+    position: 'relative',
     borderRadius: '1px',
     border: '1px solid',
     borderColor,
     transition: 'border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease',
+    ...(isDragging && !isOver
+      ? {
+          borderColor: alpha(theme.palette.primary.main, 0.28),
+          backgroundColor: alpha(theme.palette.primary.main, 0.03)
+        }
+      : {}),
     ...(isDragging && isOver
       ? {
-          backgroundColor: alpha(theme.palette.primary.main, 0.08),
-          boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.12)}`
+          backgroundColor: alpha(theme.palette.primary.main, 0.1),
+          boxShadow: `inset 0 0 0 2px ${alpha(theme.palette.primary.main, 0.35)}`,
+          borderColor: alpha(theme.palette.primary.main, 0.55)
         }
       : {})
   }

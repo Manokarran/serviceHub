@@ -8,6 +8,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 import type { MouseEvent } from 'react'
 
 import { BUILDER_TYPOGRAPHY, BUILDER_Z_INDEX } from '../../constants/builderLayout'
+import { INLINE_TOOLBAR_GAP_PX } from './useSmartInlineToolbarPlacement'
 
 export function InlineToolbarShell({
   children,
@@ -28,11 +29,11 @@ export function InlineToolbarShell({
         ...(placement === 'below'
           ? {
               top: 'auto',
-              bottom: -8,
+              bottom: -INLINE_TOOLBAR_GAP_PX,
               transform: 'translate(-50%, 100%)'
             }
           : {
-              top: -8,
+              top: -INLINE_TOOLBAR_GAP_PX,
               bottom: 'auto',
               transform: 'translate(-50%, -100%)'
             }),
@@ -45,10 +46,11 @@ export function InlineToolbarShell({
         borderRadius: 1.25,
         backgroundColor: 'background.paper',
         boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.12)}, 0 0 0 1px ${alpha(theme.palette.divider, 0.6)}`,
-        maxWidth: 'calc(100% - 16px)',
+        maxWidth: 'min(100%, calc(100vw - 48px))',
         flexWrap: 'wrap',
         justifyContent: 'center',
-        rowGap: 0.375
+        rowGap: 0.375,
+        pointerEvents: 'auto'
       }}
     >
       {children}

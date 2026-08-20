@@ -45,7 +45,8 @@ export function ImageBlock({ props }: Props) {
         crop: props.crop,
         adjustments: props.adjustments,
         naturalWidth: props.naturalWidth,
-        naturalHeight: props.naturalHeight
+        naturalHeight: props.naturalHeight,
+        deliveryQuality: props.deliveryQuality
       })
     : ''
 

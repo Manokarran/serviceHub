@@ -4,7 +4,8 @@ import { useLayoutEffect, useState, type RefObject } from 'react'
 
 import type { Block } from '../../types'
 
-const TOOLBAR_CLEARANCE = 44
+const TOOLBAR_CLEARANCE = 52
+const TOOLBAR_GAP = 10
 
 function findScrollParent(element: HTMLElement | null): HTMLElement {
   let node = element?.parentElement
@@ -22,18 +23,48 @@ function findScrollParent(element: HTMLElement | null): HTMLElement {
   return document.documentElement
 }
 
+function prefersBelowPlacement(block: Block): boolean {
+  return block.type === 'text' || block.type === 'heading' || block.type === 'logo' || block.type === 'button'
+}
+
+/**
+ * Pick above/below so the toolbar never covers the block body.
+ * Prefers below for text-like blocks when there is room; otherwise uses the side with more space.
+ */
 function measurePlacement(
   blockEl: HTMLElement,
-  isInlineEditing: boolean
+  isInlineEditing: boolean,
+  preferBelow: boolean
 ): 'above' | 'below' {
   const blockRect = blockEl.getBoundingClientRect()
   const scrollParent = findScrollParent(blockEl)
   const parentRect = scrollParent.getBoundingClientRect()
-  const spaceAbove = blockRect.top - parentRect.top
-  const spaceBelow = parentRect.bottom - blockRect.bottom
+  const spaceAbove = Math.max(0, blockRect.top - parentRect.top)
+  const spaceBelow = Math.max(0, parentRect.bottom - blockRect.bottom)
 
+  // While editing, keep the toolbar out of the text — prefer below when possible.
   if (isInlineEditing) {
-    return spaceBelow >= TOOLBAR_CLEARANCE || spaceBelow >= spaceAbove ? 'below' : 'above'
+    if (spaceBelow >= TOOLBAR_CLEARANCE) {
+      return 'below'
+    }
+
+    if (spaceAbove >= TOOLBAR_CLEARANCE) {
+      return 'above'
+    }
+
+    return spaceBelow >= spaceAbove ? 'below' : 'above'
+  }
+
+  if (preferBelow) {
+    if (spaceBelow >= TOOLBAR_CLEARANCE) {
+      return 'below'
+    }
+
+    if (spaceAbove >= TOOLBAR_CLEARANCE) {
+      return 'above'
+    }
+
+    return spaceBelow >= spaceAbove ? 'below' : 'above'
   }
 
   if (spaceAbove >= TOOLBAR_CLEARANCE) {
@@ -47,10 +78,6 @@ function measurePlacement(
   return spaceBelow > spaceAbove ? 'below' : 'above'
 }
 
-function prefersBelowPlacement(block: Block): boolean {
-  return block.type === 'text' || block.type === 'heading' || block.type === 'logo'
-}
-
 export function useSmartInlineToolbarPlacement(
   blockRef: RefObject<HTMLElement | null>,
   block: Block,
@@ -58,9 +85,8 @@ export function useSmartInlineToolbarPlacement(
   isInlineEditing: boolean,
   preferBelow = false
 ): 'above' | 'below' {
-  const [placement, setPlacement] = useState<'above' | 'below'>(
-    preferBelow || prefersBelowPlacement(block) ? 'below' : 'above'
-  )
+  const softPreferBelow = preferBelow || prefersBelowPlacement(block)
+  const [placement, setPlacement] = useState<'above' | 'below'>(softPreferBelow ? 'below' : 'above')
 
   useLayoutEffect(() => {
     if (!isSelected || !blockRef.current) {
@@ -72,13 +98,7 @@ export function useSmartInlineToolbarPlacement(
         return
       }
 
-      if (preferBelow || prefersBelowPlacement(block)) {
-        setPlacement('below')
-
-        return
-      }
-
-      setPlacement(measurePlacement(blockRef.current, isInlineEditing))
+      setPlacement(measurePlacement(blockRef.current, isInlineEditing, softPreferBelow))
     }
 
     updatePlacement()
@@ -88,9 +108,7 @@ export function useSmartInlineToolbarPlacement(
     window.addEventListener('resize', updatePlacement, { passive: true })
 
     const observer =
-      typeof ResizeObserver !== 'undefined'
-        ? new ResizeObserver(updatePlacement)
-        : null
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updatePlacement) : null
 
     observer?.observe(blockRef.current)
 
@@ -99,7 +117,9 @@ export function useSmartInlineToolbarPlacement(
       window.removeEventListener('resize', updatePlacement)
       observer?.disconnect()
     }
-  }, [block.id, block.type, blockRef, isInlineEditing, isSelected, preferBelow])
+  }, [block.id, blockRef, isInlineEditing, isSelected, softPreferBelow])
 
   return placement
 }
+
+export const INLINE_TOOLBAR_GAP_PX = TOOLBAR_GAP

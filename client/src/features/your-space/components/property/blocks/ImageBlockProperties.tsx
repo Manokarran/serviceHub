@@ -10,12 +10,14 @@ import type {
   Block,
   ImageBlockProps,
   ImageContinuousAnimation,
+  ImageDeliveryQuality,
   ImageEntranceAnimation,
   ImageHoverEffect
 } from '../../../types'
 import type { PropertyPanelTab } from '../PropertyPanelUi'
 import {
   LayoutOptionGroup,
+  PropertyBodyText,
   PropertyFieldLabel,
   PropertyFields,
   PropertySection
@@ -33,6 +35,12 @@ const HOVER_OPTIONS: LayoutOption<ImageHoverEffect>[] = [
   { value: 'none', label: 'None', icon: 'ri-forbid-line' },
   { value: 'zoom', label: 'Zoom', icon: 'ri-zoom-in-line' },
   { value: 'fade', label: 'Fade', icon: 'ri-contrast-drop-2-line' }
+]
+
+const QUALITY_OPTIONS: LayoutOption<ImageDeliveryQuality>[] = [
+  { value: 'optimized', label: 'Optimized', icon: 'ri-flashlight-line' },
+  { value: 'high', label: 'High', icon: 'ri-hd-line' },
+  { value: 'original', label: 'Original', icon: 'ri-image-2-line' }
 ]
 
 const ENTRANCE_OPTIONS: LayoutOption<ImageEntranceAnimation>[] = [
@@ -136,6 +144,20 @@ export function ImageBlockProperties({ block, activeTab }: Props) {
 
   return (
     <PropertyFields>
+      <PropertySection title='Image quality' collapsible defaultOpen>
+        <LayoutOptionGroup
+          value={props.deliveryQuality ?? 'optimized'}
+          options={QUALITY_OPTIONS}
+          onChange={deliveryQuality => update({ deliveryQuality })}
+        />
+        <PropertyBodyText>
+          {(props.deliveryQuality ?? 'optimized') === 'original'
+            ? 'Serves the stored file as-is (sharpest). Crop or enhance falls back to high quality.'
+            : (props.deliveryQuality ?? 'optimized') === 'high'
+              ? 'Near-lossless delivery with full resolution and color profile.'
+              : 'Balanced size and quality for faster loading.'}
+        </PropertyBodyText>
+      </PropertySection>
       <PropertySection title='Opacity & effects' collapsible defaultOpen>
         <BackgroundOpacityField
           label='Opacity'

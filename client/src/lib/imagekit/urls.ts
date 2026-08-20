@@ -1,5 +1,5 @@
 import { IMAGEKIT_URL_ENDPOINT, isImageKitUrl } from './config'
-import type { ImageAdjustments, ImageCropSettings } from '@/features/your-space/types'
+import type { ImageAdjustments, ImageCropSettings, ImageDeliveryQuality } from '@/features/your-space/types'
 import { isDefaultImageCrop, normalizeImageAdjustments, normalizeImageCrop } from '@/lib/media/image-edit'
 
 type ImageTransformOptions = {
@@ -8,10 +8,15 @@ type ImageTransformOptions = {
   quality?: number
   /** When true, request 2× pixel density for retina displays. */
   retina?: boolean
+  /** Prefer lossless output when the format supports it. */
+  lossless?: boolean
+  /** Preserve the embedded color profile for truer colors. */
+  colorProfile?: boolean
 }
 
 /** Default delivery quality — higher than storage compression for crisp rendering. */
 const DEFAULT_DISPLAY_QUALITY = 92
+const HIGH_DISPLAY_QUALITY = 100
 const DEFAULT_MAX_DELIVERY_WIDTH = 2560
 
 type VideoTransformOptions = {
@@ -32,6 +37,23 @@ function appendTransform(url: string, transform: string): string {
   }
 }
 
+function buildBaseDeliveryTransform(
+  width: number,
+  height: number,
+  options: {
+    quality: number
+    retina?: boolean
+    lossless?: boolean
+    colorProfile?: boolean
+  }
+): string {
+  const dpr = options.retina ? ',dpr-2' : ''
+  const lossless = options.lossless ? ',lo-true' : ''
+  const colorProfile = options.colorProfile ? ',cp-true' : ''
+
+  return `w-${width},h-${height},c-at_max,q-${options.quality},f-auto,cm-exif${dpr}${lossless}${colorProfile}`
+}
+
 /** Delivery URL — high-quality transform from the stored original, CDN cached. */
 export function getOptimizedImageUrl(url: string, options: ImageTransformOptions = {}): string {
   if (!url || !isImageKitUrl(url)) {
@@ -41,9 +63,16 @@ export function getOptimizedImageUrl(url: string, options: ImageTransformOptions
   const width = options.width ?? DEFAULT_MAX_DELIVERY_WIDTH
   const height = options.height ?? DEFAULT_MAX_DELIVERY_WIDTH
   const quality = options.quality ?? DEFAULT_DISPLAY_QUALITY
-  const dpr = options.retina ? ',dpr-2' : ''
 
-  return appendTransform(url, `w-${width},h-${height},c-at_max,q-${quality},f-auto,lo-true,cm-exif${dpr}`)
+  return appendTransform(
+    url,
+    buildBaseDeliveryTransform(width, height, {
+      quality,
+      retina: options.retina,
+      lossless: options.lossless,
+      colorProfile: options.colorProfile
+    })
+  )
 }
 
 /**
@@ -59,7 +88,9 @@ export function getDisplayImageUrl(
   return getOptimizedImageUrl(url, {
     width: deliveryWidth,
     height: deliveryWidth,
-    quality: options.quality ?? DEFAULT_DISPLAY_QUALITY
+    quality: options.quality ?? DEFAULT_DISPLAY_QUALITY,
+    lossless: options.lossless,
+    colorProfile: options.colorProfile
   })
 }
 
@@ -68,6 +99,23 @@ type ImageEditOptions = {
   adjustments?: ImageAdjustments | null
   naturalWidth?: number
   naturalHeight?: number
+  deliveryQuality?: ImageDeliveryQuality
+}
+
+function resolveDeliveryQualitySettings(mode: ImageDeliveryQuality | undefined): {
+  quality: number
+  lossless: boolean
+  colorProfile: boolean
+  useOriginal: boolean
+} {
+  switch (mode) {
+    case 'original':
+      return { quality: HIGH_DISPLAY_QUALITY, lossless: true, colorProfile: true, useOriginal: true }
+    case 'high':
+      return { quality: HIGH_DISPLAY_QUALITY, lossless: true, colorProfile: true, useOriginal: false }
+    default:
+      return { quality: DEFAULT_DISPLAY_QUALITY, lossless: false, colorProfile: true, useOriginal: false }
+  }
 }
 
 function buildEditTransformSegments(
@@ -119,10 +167,29 @@ export function getEditedImageUrl(
     return url
   }
 
-  const deliveryWidth = Math.min(Math.round(displayWidth * 2), DEFAULT_MAX_DELIVERY_WIDTH)
-  const editSegments = buildEditTransformSegments(edit, deliveryWidth)
-  const base = `w-${deliveryWidth},h-${deliveryWidth},c-at_max,q-${DEFAULT_DISPLAY_QUALITY},f-auto,lo-true,cm-exif`
-  const transform = editSegments.length ? `${editSegments.join(',')},${base}` : base
+  const qualitySettings = resolveDeliveryQualitySettings(edit.deliveryQuality)
+  const editSegments = buildEditTransformSegments(edit, displayWidth)
+  const hasEdits = editSegments.length > 0
+
+  // Serve the stored file untouched when requested and no crop/adjustments are active.
+  if (qualitySettings.useOriginal && !hasEdits) {
+    return appendTransform(url, 'orig-true')
+  }
+
+  const preferFullRes = edit.deliveryQuality === 'high' || edit.deliveryQuality === 'original'
+  const resolvedWidth = preferFullRes
+    ? Math.min(
+        edit.naturalWidth && edit.naturalWidth > 0 ? edit.naturalWidth : DEFAULT_MAX_DELIVERY_WIDTH,
+        DEFAULT_MAX_DELIVERY_WIDTH
+      )
+    : Math.min(Math.round(displayWidth * 2), DEFAULT_MAX_DELIVERY_WIDTH)
+
+  const base = buildBaseDeliveryTransform(resolvedWidth, resolvedWidth, {
+    quality: qualitySettings.quality,
+    lossless: qualitySettings.lossless,
+    colorProfile: qualitySettings.colorProfile
+  })
+  const transform = hasEdits ? `${editSegments.join(',')},${base}` : base
 
   return appendTransform(url, transform)
 }

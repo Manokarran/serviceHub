@@ -13,6 +13,7 @@ import { PropertyFields, PropertySection } from '../PropertyPanelUi'
 import { MaxWidthControl } from '../MaxWidthControl'
 import { TextTypographyControls } from '../TextTypographyControls'
 import { CarouselLayoutControls } from '../../CarouselLayoutControls'
+import { CarouselStyleControls } from '../../CarouselStyleControls'
 
 type Props = {
   block: Block<'carousel'>
@@ -36,6 +37,7 @@ export function CarouselBlockProperties({ block, activeTab }: Props) {
   // Style tab
   return (
     <PropertyFields>
+      <CarouselStyleControls props={props} accentColor={siteStyles.colors.accent} onUpdate={update} />
       <PropertySection title='Width' collapsible defaultOpen>
         <MaxWidthControl
           value={props.maxWidth}

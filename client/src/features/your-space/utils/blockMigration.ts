@@ -14,7 +14,9 @@ import type {
   SplitVisualConfig,
   TabsBlockProps,
   NavLinkItem,
-  VideoBlockProps
+  VideoBlockProps,
+  TextBlockProps,
+  HeadingBlockProps
 } from '../types'
 import { createBlockId } from './blockFactory'
 import { DEFAULT_SHAPE_PROPS } from '../constants/shapeBlock'
@@ -209,7 +211,8 @@ export function normalizeBlock(block: Block): Block {
         alignment: props.alignment ?? 'center',
         opacity: props.opacity ?? 100,
         crop: props.crop ?? null,
-        adjustments: props.adjustments ?? null
+        adjustments: props.adjustments ?? null,
+        deliveryQuality: props.deliveryQuality ?? 'optimized'
       }
     }
   }
@@ -376,7 +379,14 @@ export function normalizeBlock(block: Block): Block {
         borderRadius: props.borderRadius ?? 12,
         slideMinHeight: props.slideMinHeight ?? 280,
         arrowColor: props.arrowColor ?? '#1a1a2e',
-        dotColor: props.dotColor ?? '#6366f1'
+        dotColor: props.dotColor ?? '#6366f1',
+        ...normalizeChromeBackgroundProps(
+          {
+            ...props,
+            backgroundColor: props.backgroundColor ?? props.background ?? '#ffffff'
+          },
+          { backgroundColor: '#ffffff', backgroundOpacity: props.backgroundOpacity ?? 0 }
+        )
       }
     }
   }
@@ -449,6 +459,33 @@ export function normalizeBlock(block: Block): Block {
         contentBorderWidth: props.contentBorderWidth ?? 1,
         contentBorderColor: props.contentBorderColor ?? '#e2e8f0',
         tabBorderRadius: props.tabBorderRadius ?? 2
+      }
+    }
+  }
+
+  if (block.type === 'text') {
+    const props = block.props as TextBlockProps
+
+    return {
+      ...block,
+      props: {
+        ...props,
+        variant: props.variant ?? 'paragraph',
+        cite: props.cite ?? '',
+        citeRole: props.citeRole ?? '',
+        accentColor: props.accentColor ?? ''
+      }
+    }
+  }
+
+  if (block.type === 'heading') {
+    const props = block.props as HeadingBlockProps
+
+    return {
+      ...block,
+      props: {
+        ...props,
+        variant: props.variant ?? 'default'
       }
     }
   }

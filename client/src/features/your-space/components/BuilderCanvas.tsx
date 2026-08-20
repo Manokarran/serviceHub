@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect } from 'react'
+
 import { useDndContext, useDroppable } from '@dnd-kit/core'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
@@ -21,6 +23,7 @@ import { SiteStylesScope } from './SiteStylesScope'
 import { SitePageBackgroundLayer } from './SitePageBackgroundLayer'
 import { BuilderCanvasToolbar } from './BuilderCanvasToolbar'
 import { BlockInsertDropZone } from './dnd/BlockInsertDropZone'
+import { CanvasAppendDropZone } from './dnd/CanvasAppendDropZone'
 import { SortableBlockList } from './dnd/SortableBlockList'
 
 type Props = {
@@ -29,7 +32,8 @@ type Props = {
 
 export function BuilderCanvas({ isMobileLayout = false }: Props) {
   const theme = useTheme()
-  const { blocks, mode, viewport, selectBlock, siteStyles, currentPageSlug, showGrid } = useBuilder()
+  const { blocks, mode, viewport, selectBlock, selectedBlockId, siteStyles, currentPageSlug, showGrid } =
+    useBuilder()
   const isEditMode = mode === 'edit'
   const { active } = useDndContext()
   const isDragging = Boolean(active)
@@ -41,6 +45,32 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
 
   const frameRadius = getCanvasCornerRadius(siteStyles.misc)
   const useGradientFrame = isEditMode || showDeviceFrame
+
+  useEffect(() => {
+    if (!isEditMode || !selectedBlockId) {
+      return
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return
+      }
+
+      const target = event.target as HTMLElement | null
+
+      if (target?.closest('[role="dialog"], [role="menu"], .MuiPopover-root, .MuiModal-root')) {
+        return
+      }
+
+      selectBlock(null)
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isEditMode, selectBlock, selectedBlockId])
 
   return (
     <Box
@@ -143,7 +173,11 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
                 color: siteStyles.colors.swatch4
               }}
             >
-              <BlockInsertDropZone id={insertDropId({ container: 'root', index: 0 })} />
+              <BlockInsertDropZone
+                id={insertDropId({ container: 'root', index: 0 })}
+                location={{ container: 'root' }}
+                index={0}
+              />
               <Box
                 sx={{
                   width: 56,
@@ -175,7 +209,10 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
               </Typography>
             </Box>
           ) : (
-            <SortableBlockList blocks={blocks} location={{ container: 'root' }} />
+            <>
+              <SortableBlockList blocks={blocks} location={{ container: 'root' }} />
+              {isEditMode && <CanvasAppendDropZone index={blocks.length} />}
+            </>
           )}
             </Box>
           </Box>

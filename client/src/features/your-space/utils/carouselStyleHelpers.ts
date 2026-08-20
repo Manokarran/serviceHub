@@ -39,6 +39,7 @@ export function getCarouselTransitionClass(transition: CarouselTransition, selec
 
 export function getCarouselShellSx(props: CarouselBlockProps): SxProps<Theme> {
   return {
+    position: 'relative',
     py: `${props.paddingY}px`,
     px: `${props.paddingX}px`
   }

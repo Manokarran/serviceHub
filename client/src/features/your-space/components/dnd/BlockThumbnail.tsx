@@ -249,6 +249,33 @@ const THUMBNAILS: Record<string, Renderer> = {
     </>
   ),
 
+  'heading-display': ({ strong }) => (
+    <>
+      <rect x="6" y="10" width="68" height="12" rx="4" fill={strong} />
+      <rect x="14" y="28" width="52" height="8" rx="3" fill={strong} opacity="0.7" />
+    </>
+  ),
+
+  'heading-eyebrow': ({ mid, strong }) => (
+    <>
+      <rect x="18" y="12" width="44" height="4" rx="2" fill={mid} />
+      <rect x="10" y="24" width="60" height="8" rx="3" fill={strong} />
+    </>
+  ),
+
+  'heading-script': ({ accent, strong }) => (
+    <>
+      <path
+        d="M12 30 C22 12, 38 12, 48 26 C56 36, 66 34, 70 24"
+        fill="none"
+        stroke={accent}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+      <rect x="20" y="36" width="40" height="3" rx="1.5" fill={strong} opacity="0.35" />
+    </>
+  ),
+
   'text': ({ mid }) => (
     <>
       <rect x="8" y="7" width="64" height="3" rx="1.5" fill={mid} />
@@ -256,6 +283,76 @@ const THUMBNAILS: Record<string, Renderer> = {
       <rect x="8" y="21" width="62" height="3" rx="1.5" fill={mid} />
       <rect x="8" y="28" width="52" height="3" rx="1.5" fill={mid} />
       <rect x="8" y="35" width="46" height="3" rx="1.5" fill={mid} />
+    </>
+  ),
+
+  'text-lead': ({ strong, mid }) => (
+    <>
+      <rect x="8" y="10" width="64" height="5" rx="2.5" fill={strong} opacity="0.75" />
+      <rect x="8" y="20" width="58" height="4" rx="2" fill={mid} />
+      <rect x="8" y="29" width="50" height="4" rx="2" fill={mid} />
+    </>
+  ),
+
+  'text-quote': ({ accent, mid, faint, frame }) => (
+    <>
+      <rect x="6" y="6" width="68" height="36" rx="4" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="10" y="10" width="3" height="28" rx="1.5" fill={accent} />
+      <rect x="18" y="14" width="48" height="3" rx="1.5" fill={mid} />
+      <rect x="18" y="21" width="42" height="3" rx="1.5" fill={mid} />
+      <rect x="18" y="28" width="36" height="3" rx="1.5" fill={mid} />
+    </>
+  ),
+
+  'text-pullquote': ({ accent, strong }) => (
+    <>
+      <text x="12" y="22" fontSize="22" fill={accent} opacity="0.45" fontFamily="Georgia, serif">
+        “
+      </text>
+      <rect x="18" y="16" width="48" height="5" rx="2.5" fill={strong} opacity="0.8" />
+      <rect x="24" y="26" width="36" height="4" rx="2" fill={strong} opacity="0.55" />
+    </>
+  ),
+
+  'text-testimonial': ({ accent, mid, faint, frame }) => (
+    <>
+      <rect x="6" y="5" width="68" height="38" rx="6" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="14" y="12" width="52" height="3" rx="1.5" fill={mid} />
+      <rect x="14" y="18" width="46" height="3" rx="1.5" fill={mid} />
+      <rect x="14" y="24" width="40" height="3" rx="1.5" fill={mid} />
+      <circle cx="18" cy="34" r="4" fill={alpha(accent, 0.25)} />
+      <rect x="25" y="31" width="24" height="3" rx="1.5" fill={accent} opacity="0.55" />
+      <rect x="25" y="36" width="18" height="2" rx="1" fill={mid} opacity="0.7" />
+    </>
+  ),
+
+  'text-calligraphy': ({ accent, mid }) => (
+    <>
+      <path
+        d="M10 28 C24 10, 40 10, 52 24 C60 34, 70 30, 72 20"
+        fill="none"
+        stroke={accent}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <rect x="22" y="36" width="36" height="3" rx="1.5" fill={mid} opacity="0.55" />
+    </>
+  ),
+
+  'text-caption': ({ mid }) => (
+    <>
+      <rect x="16" y="18" width="48" height="3" rx="1.5" fill={mid} opacity="0.7" />
+      <rect x="22" y="26" width="36" height="2.5" rx="1.25" fill={mid} opacity="0.45" />
+    </>
+  ),
+
+  'text-callout': ({ accent, mid, faint }) => (
+    <>
+      <rect x="6" y="8" width="68" height="32" rx="5" fill={alpha(accent, 0.08)} stroke={alpha(accent, 0.28)} strokeWidth="0.9" />
+      <rect x="10" y="12" width="3" height="24" rx="1.5" fill={accent} />
+      <rect x="18" y="16" width="48" height="3" rx="1.5" fill={mid} />
+      <rect x="18" y="23" width="42" height="3" rx="1.5" fill={mid} />
+      <rect x="18" y="30" width="36" height="3" rx="1.5" fill={mid} />
     </>
   ),
 

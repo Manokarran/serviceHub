@@ -491,10 +491,19 @@ export function getSectionColumnShellSx(
 
   const layout = props.layout ?? 'default'
   const isHorizontalSplit = layout === 'split-horizontal'
+  const isVerticalSplit = layout === 'split-vertical'
 
   return {
     flex: column === 'primary' ? props.splitRatio : 100 - props.splitRatio,
     minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    ...(isVerticalSplit
+      ? {
+          minHeight: editMode ? 112 : undefined,
+          flexBasis: 0
+        }
+      : {}),
     ...(isHorizontalSplit
       ? {
           ...siteCanvasBelow({ flex: '1 1 auto', width: '100%' })

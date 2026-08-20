@@ -106,6 +106,14 @@ export type ImageEntranceAnimation = 'none' | 'fade-in' | 'slide-up' | 'zoom-in'
 /** Animation that loops continuously while the image is visible. */
 export type ImageContinuousAnimation = 'none' | 'float' | 'pulse' | 'breathe' | 'shimmer' | 'swing'
 
+/**
+ * How the image is delivered from the CDN.
+ * - optimized: smaller files, balanced quality (default)
+ * - high: near-lossless delivery (q-100)
+ * - original: serve the stored file as-is (no CDN recompression)
+ */
+export type ImageDeliveryQuality = 'optimized' | 'high' | 'original'
+
 export interface NavLinkItem {
   label: string
   href: string
@@ -273,7 +281,7 @@ export interface TabsBlockProps {
   tabTypography?: TextTypographyOverrides
 }
 
-export interface CarouselBlockProps {
+export interface CarouselBlockProps extends BlockBackgroundProps, SplitVisualConfig {
   slides: CarouselSlide[]
   transition: CarouselTransition
   autoplay: boolean
@@ -351,13 +359,35 @@ export interface HeadingBlockProps {
   alignment: TextAlign
   color: string
   typography?: TextTypographyOverrides
+  /** Visual treatment — display, eyebrow, or script headline. */
+  variant?: HeadingBlockVariant
 }
+
+export type HeadingBlockVariant = 'default' | 'display' | 'eyebrow' | 'script'
+
+export type TextBlockVariant =
+  | 'paragraph'
+  | 'lead'
+  | 'quote'
+  | 'pullquote'
+  | 'testimonial'
+  | 'calligraphy'
+  | 'caption'
+  | 'callout'
 
 export interface TextBlockProps {
   text: string
   alignment: TextAlign
   color: string
   typography?: TextTypographyOverrides
+  /** Visual treatment — paragraph, quote, review, calligraphy, etc. */
+  variant?: TextBlockVariant
+  /** Attribution name for quote / testimonial styles. */
+  cite?: string
+  /** Role or company under the attribution. */
+  citeRole?: string
+  /** Accent used for quote bars / callout borders. */
+  accentColor?: string
 }
 
 export interface ButtonBlockProps {
@@ -389,6 +419,8 @@ export interface ImageBlockProps {
   crop?: ImageCropSettings | null
   /** Brightness, contrast, saturation, and sharpness tweaks. */
   adjustments?: ImageAdjustments | null
+  /** CDN delivery quality — use `original` for the stored file without recompression. */
+  deliveryQuality?: ImageDeliveryQuality
 }
 
 export interface VideoBlockProps {

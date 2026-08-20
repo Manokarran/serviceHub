@@ -25,6 +25,7 @@ export const BUILDER_CANVAS_TOOLBAR_HEIGHT = 44
 /** Stacking order for canvas blocks and inline editing chrome */
 export const BUILDER_Z_INDEX = {
   sectionEditChip: 15,
+  blockInsert: 40,
   canvasBlockHover: 50,
   canvasBlockSelected: 100,
   canvasBlockDragging: 110,

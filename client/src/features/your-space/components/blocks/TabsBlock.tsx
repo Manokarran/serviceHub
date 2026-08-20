@@ -20,6 +20,7 @@ import {
   getTabsShellSx
 } from '../../utils/tabStyleHelpers'
 import { useBuilderOptional } from '../../context/BuilderContext'
+import { useBuilderNestTargetsOptional } from '../../context/BuilderNestTargetsContext'
 import { siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 import { TabsDropZone } from '../dnd/TabsDropZone'
 import { TabsEditChip } from '../inline/TabsEditChip'
@@ -406,6 +407,7 @@ function TabManagementBar({
 function TabsShell({ block, preview }: Props) {
   const theme = useTheme()
   const builder = useBuilderOptional()
+  const nestTargets = useBuilderNestTargetsOptional()
   const props = block.props as TabsBlockProps
   const editMode = !preview
   const maxWidth = getTabsMaxWidth(props.maxWidth)
@@ -431,6 +433,31 @@ function TabsShell({ block, preview }: Props) {
         : 'left'
 
   const activePanel = props.tabs[activeTabIndex] ?? props.tabs[0]
+
+  useEffect(() => {
+    if (!editMode || !nestTargets || !activePanel) {
+      return
+    }
+
+    const { setNestTarget, clearNestTarget } = nestTargets
+
+    setNestTarget(block.id, {
+      kind: 'tabs',
+      slotId: activePanel.id,
+      label: activePanel.label || `Tab ${activeTabIndex + 1}`
+    })
+
+    return () => {
+      clearNestTarget(block.id)
+    }
+  }, [
+    activePanel,
+    activeTabIndex,
+    block.id,
+    editMode,
+    nestTargets?.setNestTarget,
+    nestTargets?.clearNestTarget
+  ])
 
   const handleAddTab = () => {
     if (!builder) {
@@ -475,9 +502,10 @@ function TabsShell({ block, preview }: Props) {
     <TabsDropZone
       tabsId={block.id}
       panelId={panel.id}
+      panelLabel={panel.label || 'Tab'}
       children={panel.children}
       editMode={editMode}
-      emptyLabel='Drop heading, text, button, image, video, logo, shape, or icon blocks here'
+      emptyLabel={`Drop heading, text, button, image, video, logo, shape, or icon blocks into ${panel.label || 'this tab'}`}
     />
   )
 

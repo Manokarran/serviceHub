@@ -764,10 +764,117 @@ function getInsertIndexAfterBlock(blocks: Block[], blockId: string): BlockLocati
   return { ...location, index: location.index + 1 }
 }
 
+function canPlaceTypeAtLocation(type: BlockType, location: BlockLocation): boolean {
+  if (location.container === 'root') {
+    return true
+  }
+
+  if (location.container === 'section') {
+    return canNestInSection(type)
+  }
+
+  if (location.container === 'carousel') {
+    return canNestInCarousel(type)
+  }
+
+  return canNestInTabs(type)
+}
+
+/**
+ * Click-to-insert from the palette — mirrors drag/drop intent:
+ * - Nest containers (section / carousel / tabs): append into the active slot when allowed
+ * - Otherwise: insert after the selected block in the same container
+ * - Fallback: append at the end of the page
+ */
+export function resolvePaletteClickTarget(
+  blocks: Block[],
+  type: BlockType,
+  selectedBlockId: string | null,
+  nestHints?: NestTargetHints
+): BlockLocation {
+  if (!selectedBlockId) {
+    return { container: 'root', index: blocks.length }
+  }
+
+  const selected = findBlockInTree(blocks, selectedBlockId)
+
+  if (!selected) {
+    return { container: 'root', index: blocks.length }
+  }
+
+  if (selected.type === 'section' && canNestInSection(type)) {
+    const props = selected.props as SectionBlockProps
+    const hint = nestHints?.[selected.id]
+    const column =
+      hint?.kind === 'section' ? hint.column : getDefaultSectionColumn(props.layout)
+    const children = getSectionColumnChildren(selected, column)
+
+    return {
+      container: 'section',
+      sectionId: selected.id,
+      column,
+      index: children.length
+    }
+  }
+
+  if (selected.type === 'carousel' && canNestInCarousel(type)) {
+    const props = selected.props as CarouselBlockProps
+    const hint = nestHints?.[selected.id]
+    const slide =
+      hint?.kind === 'carousel'
+        ? props.slides.find(entry => entry.id === hint.slotId) ?? props.slides[0]
+        : props.slides[0]
+
+    if (slide) {
+      return {
+        container: 'carousel',
+        carouselId: selected.id,
+        slideId: slide.id,
+        index: slide.children.length
+      }
+    }
+  }
+
+  if (selected.type === 'tabs' && canNestInTabs(type)) {
+    const props = selected.props as TabsBlockProps
+    const hint = nestHints?.[selected.id]
+    const panel =
+      hint?.kind === 'tabs'
+        ? props.tabs.find(entry => entry.id === hint.slotId) ?? props.tabs[0]
+        : props.tabs[0]
+
+    if (panel) {
+      return {
+        container: 'tabs',
+        tabsId: selected.id,
+        panelId: panel.id,
+        index: panel.children.length
+      }
+    }
+  }
+
+  const after = getInsertIndexAfterBlock(blocks, selected.id)
+
+  if (canPlaceTypeAtLocation(type, after)) {
+    return after
+  }
+
+  return { container: 'root', index: blocks.length }
+}
+
+/** Hints for which nested slot is currently visible (active slide/tab/column). */
+export type NestTargetHints = Record<
+  string,
+  | { kind: 'carousel'; slotId: string; label?: string }
+  | { kind: 'tabs'; slotId: string; label?: string }
+  | { kind: 'section'; column: BlockColumn; label?: string }
+>
+
 export function resolveDropTarget(
   blocks: Block[],
   overId: string | number,
-  movingBlock?: Block | BlockType
+  movingBlock?: Block | BlockType,
+  nestHints?: NestTargetHints
 ): BlockLocation {
   const movingType = typeof movingBlock === 'string' ? movingBlock : movingBlock?.type
   const insertTarget = parseInsertDropId(overId)
@@ -776,7 +883,7 @@ export function resolveDropTarget(
     return insertTarget
   }
 
-  if (overId === 'canvas-drop-zone') {
+  if (overId === 'canvas-drop-zone' || overId === 'canvas-append-zone') {
     return { container: 'root', index: blocks.length }
   }
 
@@ -835,7 +942,13 @@ export function resolveDropTarget(
 
   if (overBlock?.type === 'section') {
     const props = overBlock.props as SectionBlockProps
-    const column = props.layout === 'default' ? 'default' : 'primary'
+    const hint = nestHints?.[overBlock.id]
+    const column =
+      hint?.kind === 'section'
+        ? hint.column
+        : props.layout === 'default'
+          ? 'default'
+          : 'primary'
     const children = getSectionColumnChildren(overBlock, column)
 
     if (movingType && canNestInSection(movingType)) {
@@ -852,14 +965,18 @@ export function resolveDropTarget(
 
   if (overBlock?.type === 'carousel') {
     const props = overBlock.props as CarouselBlockProps
-    const firstSlide = props.slides[0]
+    const hint = nestHints?.[overBlock.id]
+    const slide =
+      hint?.kind === 'carousel'
+        ? props.slides.find(entry => entry.id === hint.slotId) ?? props.slides[0]
+        : props.slides[0]
 
-    if (firstSlide && movingType && canNestInCarousel(movingType)) {
+    if (slide && movingType && canNestInCarousel(movingType)) {
       return {
         container: 'carousel',
         carouselId: overBlock.id,
-        slideId: firstSlide.id,
-        index: firstSlide.children.length
+        slideId: slide.id,
+        index: slide.children.length
       }
     }
 
@@ -868,14 +985,18 @@ export function resolveDropTarget(
 
   if (overBlock?.type === 'tabs') {
     const props = overBlock.props as TabsBlockProps
-    const firstPanel = props.tabs[0]
+    const hint = nestHints?.[overBlock.id]
+    const panel =
+      hint?.kind === 'tabs'
+        ? props.tabs.find(entry => entry.id === hint.slotId) ?? props.tabs[0]
+        : props.tabs[0]
 
-    if (firstPanel && movingType && canNestInTabs(movingType)) {
+    if (panel && movingType && canNestInTabs(movingType)) {
       return {
         container: 'tabs',
         tabsId: overBlock.id,
-        panelId: firstPanel.id,
-        index: firstPanel.children.length
+        panelId: panel.id,
+        index: panel.children.length
       }
     }
 
@@ -891,7 +1012,12 @@ export function resolveDropTarget(
   return { container: 'root', index: blocks.length }
 }
 
-export function moveBlockInTree(blocks: Block[], activeId: string, overId: string | number): Block[] {
+export function moveBlockInTree(
+  blocks: Block[],
+  activeId: string,
+  overId: string | number,
+  nestHints?: NestTargetHints
+): Block[] {
   if (activeId === String(overId)) {
     return blocks
   }
@@ -902,7 +1028,7 @@ export function moveBlockInTree(blocks: Block[], activeId: string, overId: strin
     return blocks
   }
 
-  const target = resolveDropTarget(withoutActive, overId, block)
+  const target = resolveDropTarget(withoutActive, overId, block, nestHints)
 
   if (!canNestInSection(block.type) && target.container === 'section') {
     return insertBlockAtLocation(withoutActive, block, { container: 'root', index: withoutActive.length })

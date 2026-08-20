@@ -12,7 +12,7 @@ export const runtime = 'nodejs'
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024
 const MAX_STORED_WIDTH = 2560
 const MAX_STORED_HEIGHT = 2560
-const STORAGE_WEBP_QUALITY = 88
+const STORAGE_WEBP_QUALITY = 95
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/webm', 'video/quicktime'])
 
