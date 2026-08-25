@@ -35,7 +35,7 @@ export function getQuickAddPaletteItems(location: QuickAddLocation): PaletteItem
   const allowed = PALETTE_ITEMS.filter(item => canAddBlockAtLocation(item.type, location))
 
   // Types that ship multiple palette presets — show every preset in insert menus.
-  const keepVariants = new Set<BlockType>(['section', 'carousel', 'tabs', 'heading', 'text', 'shape'])
+  const keepVariants = new Set<BlockType>(['section', 'carousel', 'tabs', 'heading', 'text', 'shape', 'showcase', 'pricing'])
   const seenTypes = new Set<BlockType>()
   const items: PaletteItem[] = []
 

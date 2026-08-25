@@ -9,6 +9,7 @@ import type { SxProps, Theme } from '@mui/material/styles'
 import { alpha } from '@mui/material/styles'
 
 import type { HeaderBlockProps } from '../../types'
+import { normalizeNavLinks } from '../../utils/blockMigration'
 import { getFixedBlockShellSx } from '../../utils/mediaBlockHelpers'
 import { normalizeSiteFonts } from '../../utils/siteStylesHelpers'
 import { resolveTextTypographyValues } from '../../utils/textTypographyHelpers'
@@ -32,7 +33,9 @@ export function HeaderBlock({ props }: Props) {
   const order = getHorizontalOrder(props.logoPosition)
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null)
   const navRef = useRef<HTMLElement | null>(null)
-  const lightText = props.textColor.toLowerCase() === '#ffffff' || props.textColor.toLowerCase() === 'white'
+  const navLinks = normalizeNavLinks(props.navLinks)
+  const textColor = typeof props.textColor === 'string' && props.textColor ? props.textColor : '#111827'
+  const lightText = textColor.toLowerCase() === '#ffffff' || textColor.toLowerCase() === 'white'
   const submenuBg = lightText ? 'rgba(15, 23, 42, 0.92)' : 'rgba(255, 255, 255, 0.94)'
   const submenuBorder = lightText ? alpha('#ffffff', 0.14) : alpha('#0f172a', 0.12)
   const submenuHover = lightText ? alpha('#ffffff', 0.12) : alpha('#0f172a', 0.08)
@@ -46,12 +49,12 @@ export function HeaderBlock({ props }: Props) {
 
   const updateNavLabel = (index: number, label: string) => {
     editContext?.updateProps({
-      navLinks: props.navLinks.map((link, i) => (i === index ? { ...link, label } : link))
+      navLinks: navLinks.map((link, i) => (i === index ? { ...link, label } : link))
     })
   }
   const updateChildNavLabel = (index: number, childIndex: number, label: string) => {
     editContext?.updateProps({
-      navLinks: props.navLinks.map((link, i) =>
+      navLinks: navLinks.map((link, i) =>
         i === index
           ? {
               ...link,
@@ -95,7 +98,7 @@ export function HeaderBlock({ props }: Props) {
         props={props}
         fallbackColor='#ffffff'
         sx={{
-          color: props.textColor,
+          color: textColor,
           borderBottom: '1px solid rgba(0,0,0,0.06)',
           ...(props.borderRadius ? { borderRadius: `${props.borderRadius}px` } : {})
         }}
@@ -154,7 +157,7 @@ export function HeaderBlock({ props }: Props) {
             flex: props.logoPosition === 'center' && !isVertical ? '1 1 100%' : '0 0 auto'
           }}
         >
-          {props.navLinks.map((link, index) => {
+          {navLinks.map((link, index) => {
             const children = link.children ?? []
             const isOpen = openMenuIndex === index
 
@@ -180,7 +183,7 @@ export function HeaderBlock({ props }: Props) {
               >
                 <Typography
                   component={SitePageLink}
-                  href={link.href || '#'}
+                  href={link?.href || '#'}
                   onClick={event => {
                     if (children.length > 0) {
                       event.preventDefault()
@@ -255,7 +258,7 @@ export function HeaderBlock({ props }: Props) {
                       <Typography
                         key={`${link.label}-${index}-child-${childIndex}`}
                         component={SitePageLink}
-                        href={child.href || '#'}
+                        href={child?.href || '#'}
                         sx={{
                           ...navLinkSx,
                           py: 0.8,

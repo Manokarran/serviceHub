@@ -7,13 +7,15 @@ import type { Block } from '../../types'
 const TOOLBAR_CLEARANCE = 52
 const TOOLBAR_GAP = 10
 
-function findScrollParent(element: HTMLElement | null): HTMLElement {
+export type InlineToolbarPlacement = 'above' | 'below' | 'inside'
+
+function findClippingParent(element: HTMLElement | null): HTMLElement {
   let node = element?.parentElement
 
   while (node) {
-    const { overflowY, overflow } = getComputedStyle(node)
+    const { overflowY, overflowX, overflow } = getComputedStyle(node)
 
-    if (/(auto|scroll|overlay)/.test(`${overflowY} ${overflow}`)) {
+    if (/(hidden|auto|scroll|overlay|clip)/.test(`${overflowY} ${overflowX} ${overflow}`)) {
       return node
     }
 
@@ -34,11 +36,16 @@ function prefersBelowPlacement(block: Block): boolean {
 function measurePlacement(
   blockEl: HTMLElement,
   isInlineEditing: boolean,
-  preferBelow: boolean
-): 'above' | 'below' {
+  preferBelow: boolean,
+  nested: boolean
+): InlineToolbarPlacement {
+  if (nested) {
+    return 'inside'
+  }
+
   const blockRect = blockEl.getBoundingClientRect()
-  const scrollParent = findScrollParent(blockEl)
-  const parentRect = scrollParent.getBoundingClientRect()
+  const clipParent = findClippingParent(blockEl)
+  const parentRect = clipParent.getBoundingClientRect()
   const spaceAbove = Math.max(0, blockRect.top - parentRect.top)
   const spaceBelow = Math.max(0, parentRect.bottom - blockRect.bottom)
 
@@ -83,10 +90,13 @@ export function useSmartInlineToolbarPlacement(
   block: Block,
   isSelected: boolean,
   isInlineEditing: boolean,
-  preferBelow = false
-): 'above' | 'below' {
+  preferBelow = false,
+  nested = false
+): InlineToolbarPlacement {
   const softPreferBelow = preferBelow || prefersBelowPlacement(block)
-  const [placement, setPlacement] = useState<'above' | 'below'>(softPreferBelow ? 'below' : 'above')
+  const [placement, setPlacement] = useState<InlineToolbarPlacement>(
+    nested ? 'inside' : softPreferBelow ? 'below' : 'above'
+  )
 
   useLayoutEffect(() => {
     if (!isSelected || !blockRef.current) {
@@ -98,13 +108,13 @@ export function useSmartInlineToolbarPlacement(
         return
       }
 
-      setPlacement(measurePlacement(blockRef.current, isInlineEditing, softPreferBelow))
+      setPlacement(measurePlacement(blockRef.current, isInlineEditing, softPreferBelow, nested))
     }
 
     updatePlacement()
 
-    const scrollParent = findScrollParent(blockRef.current)
-    scrollParent.addEventListener('scroll', updatePlacement, { passive: true })
+    const clipParent = findClippingParent(blockRef.current)
+    clipParent.addEventListener('scroll', updatePlacement, { passive: true })
     window.addEventListener('resize', updatePlacement, { passive: true })
 
     const observer =
@@ -113,11 +123,11 @@ export function useSmartInlineToolbarPlacement(
     observer?.observe(blockRef.current)
 
     return () => {
-      scrollParent.removeEventListener('scroll', updatePlacement)
+      clipParent.removeEventListener('scroll', updatePlacement)
       window.removeEventListener('resize', updatePlacement)
       observer?.disconnect()
     }
-  }, [block.id, blockRef, isInlineEditing, isSelected, softPreferBelow])
+  }, [block.id, blockRef, isInlineEditing, isSelected, nested, softPreferBelow])
 
   return placement
 }

@@ -18,15 +18,19 @@ import { BlockThumbnail } from './BlockThumbnail'
 type Props = {
   item: PaletteItem
   compact?: boolean
+  layout?: 'tile' | 'row'
+  dragId?: string
+  comfortable?: boolean
 }
 
-export function DraggablePaletteItem({ item, compact = false }: Props) {
+export function DraggablePaletteItem({ item, compact = false, layout, dragId, comfortable = false }: Props) {
+  const itemLayout = layout ?? (compact ? 'tile' : 'row')
   const theme = useTheme()
   const { blocks, selectedBlockId, addBlock } = useBuilder()
   const nestTargets = useBuilderNestTargetsOptional()
   const dragStarted = useRef(false)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `palette-${item.id}`,
+    id: dragId ?? `palette-${item.id}`,
     data: { source: 'palette', type: item.type, paletteId: item.id }
   })
 
@@ -37,7 +41,6 @@ export function DraggablePaletteItem({ item, compact = false }: Props) {
   }, [isDragging])
 
   const handleClick = () => {
-    // Ignore the click that follows a completed drag
     if (dragStarted.current) {
       dragStarted.current = false
 
@@ -54,19 +57,20 @@ export function DraggablePaletteItem({ item, compact = false }: Props) {
     addBlock(item.type, target, item.id)
   }
 
-  if (compact) {
+  if (itemLayout === 'tile') {
     return (
       <Box
         ref={setNodeRef}
         {...listeners}
         {...attributes}
         onClick={handleClick}
-        title='Click to insert · drag to place'
+        title={`${item.label} · Click to insert, drag to place`}
         sx={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 0.625,
-          p: 0.875,
+          gap: comfortable ? 0.75 : 0.5,
+          p: comfortable ? 1.125 : 0.75,
+          minWidth: 0,
           cursor: isDragging ? 'grabbing' : 'pointer',
           opacity: isDragging ? 0.4 : 1,
           transition: 'box-shadow 0.15s, transform 0.15s',
@@ -78,12 +82,15 @@ export function DraggablePaletteItem({ item, compact = false }: Props) {
           }
         }}
       >
-        <BlockThumbnail itemId={item.id} itemType={item.type} itemIcon={item.icon} />
+        <BlockThumbnail itemId={item.id} itemType={item.type} itemIcon={item.icon} height={comfortable ? 58 : 48} />
         <Typography
           variant='caption'
           sx={{
             ...BUILDER_TYPOGRAPHY.label,
-            lineHeight: 1.2,
+            fontSize: comfortable ? '0.75rem' : '0.6875rem',
+            fontWeight: 700,
+            color: 'text.primary',
+            lineHeight: 1.25,
             textAlign: 'center',
             px: 0.25,
             overflow: 'hidden',
@@ -104,12 +111,13 @@ export function DraggablePaletteItem({ item, compact = false }: Props) {
       {...listeners}
       {...attributes}
       onClick={handleClick}
-      title='Click to insert · drag to place'
+      title={`${item.label} · Click to insert, drag to place`}
       sx={{
         display: 'flex',
-        alignItems: 'flex-start',
-        gap: 1.5,
-        p: 1.5,
+        alignItems: 'center',
+        gap: comfortable ? 1.25 : 1,
+        px: comfortable ? 1.125 : 0.875,
+        py: comfortable ? 0.875 : 0.625,
         cursor: isDragging ? 'grabbing' : 'pointer',
         opacity: isDragging ? 0.4 : 1,
         transition: 'box-shadow 0.15s',
@@ -122,9 +130,9 @@ export function DraggablePaletteItem({ item, compact = false }: Props) {
     >
       <Box
         sx={{
-          width: 36,
-          height: 36,
-          borderRadius: 1.25,
+          width: comfortable ? 30 : 26,
+          height: comfortable ? 30 : 26,
+          borderRadius: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -133,26 +141,11 @@ export function DraggablePaletteItem({ item, compact = false }: Props) {
           flexShrink: 0
         }}
       >
-        <i className={item.icon} style={{ fontSize: '1.05rem' }} />
+        <i className={item.icon} style={{ fontSize: '0.85rem' }} />
       </Box>
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography variant='body2' sx={{ ...BUILDER_TYPOGRAPHY.label, lineHeight: 1.3 }}>
+        <Typography variant='body2' sx={{ ...BUILDER_TYPOGRAPHY.label, fontWeight: 700, color: 'text.primary', lineHeight: 1.25 }} noWrap>
           {item.label}
-        </Typography>
-        <Typography variant='caption' color='text.secondary' sx={{ lineHeight: 1.4 }}>
-          {item.description}
-        </Typography>
-        <Typography
-          variant='caption'
-          sx={{
-            display: 'block',
-            mt: 0.5,
-            color: 'text.disabled',
-            fontSize: '0.65rem',
-            lineHeight: 1.3
-          }}
-        >
-          Click to insert · drag to place
         </Typography>
       </Box>
     </Box>

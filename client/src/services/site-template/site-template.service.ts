@@ -5,7 +5,7 @@ import { cloneBlockWithNewIds } from '@/features/your-space/utils/blockFactory'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
 import type { SiteTemplateCategory } from '@/lib/constants/site-template'
 import { AppError } from '@/lib/errors'
-import { isHomePageSlug } from '@/lib/utils/page-slug'
+import { ensureUniqueSlug, isHomePageSlug, slugifyPageTitle } from '@/lib/utils/page-slug'
 import { toPlainJson } from '@/lib/utils/plain-json'
 import { slugify } from '@/lib/utils/slug'
 import { generateTemplatePreviewThumbnail } from '@/lib/site-template/generate-template-preview'
@@ -22,7 +22,7 @@ import type {
   SiteTemplateHomePreview,
   SiteTemplateSummary
 } from '@/models/site-template'
-import type { ISitePageBlock } from '@/models/site-page'
+import type { ISitePageBlock, SitePageSummary } from '@/models/site-page'
 import { sitePageRepository } from '@/repositories/site-page.repository'
 import { siteTemplateRepository } from '@/repositories/site-template.repository'
 import { tenantRepository } from '@/repositories/tenant.repository'
@@ -153,6 +153,60 @@ export class SiteTemplateService {
       createdBy: new mongoose.Types.ObjectId(userId),
       usageCount: 0
     })
+
+    return mapTemplateDetail(doc)
+  }
+
+  async createTemplateFromGeneratedSite(
+    userId: string,
+    input: {
+      name: string
+      description?: string
+      category?: SiteTemplateCategory
+      preview: import('@/lib/ai-site-wizard/types').AiSiteGenerationPreview
+      logoUrl?: string
+    }
+  ): Promise<SiteTemplateDetail> {
+    const template = await this.createTemplate(userId, {
+      name: input.name,
+      description: input.description ?? input.preview.pages[0]?.description ?? '',
+      category: input.category
+    })
+
+    const pages: ISiteTemplatePageSnapshot[] = input.preview.pages.map((page, index) => ({
+      slug: page.slug,
+      title: page.title,
+      description: page.description,
+      sortOrder: index,
+      blocks: toPlainJson(page.blocks) as Block[],
+      siteStyles: page.siteStyles ? (toPlainJson(page.siteStyles) as SiteStyles) : null
+    }))
+
+    const homePage = pages.find(page => isHomePageSlug(page.slug)) ?? pages[0]
+    let generatedThumbnailUrl: string | null = null
+
+    if (homePage?.blocks?.length) {
+      generatedThumbnailUrl = await generateTemplatePreviewThumbnail({
+        templateName: template.name,
+        homeBlocks: homePage.blocks as Block[],
+        siteStyles: homePage.siteStyles
+      })
+    }
+
+    const accent = homePage?.siteStyles?.colors?.accent
+
+    const doc = await siteTemplateRepository.updateById(template.id, {
+      pages,
+      tenantSettings: {
+        ...(accent ? { primaryColor: accent } : {}),
+        ...(input.logoUrl ? { logoUrl: input.logoUrl } : {})
+      },
+      ...(generatedThumbnailUrl ? { generatedThumbnailUrl } : {})
+    })
+
+    if (!doc) {
+      throw new AppError('Template not found', 404, 'TEMPLATE_NOT_FOUND')
+    }
 
     return mapTemplateDetail(doc)
   }
@@ -362,6 +416,280 @@ export class SiteTemplateService {
 
     await siteTemplateRepository.incrementUsageCount(templateId)
     await siteWorkspaceService.markSiteStarted(tenantId, { appliedTemplateId: templateId })
+  }
+
+  private async requireEditableTemplate(templateId: string): Promise<ISiteTemplateDocument> {
+    const template = await siteTemplateRepository.findById(templateId)
+
+    if (!template || template.status === 'archived') {
+      throw new AppError('Template not found', 404, 'TEMPLATE_NOT_FOUND')
+    }
+
+    return template
+  }
+
+  private mapTemplatePageSummary(page: ISiteTemplatePageSnapshot): SitePageSummary {
+    return {
+      slug: page.slug,
+      title: page.title,
+      description: page.description ?? '',
+      sortOrder: page.sortOrder ?? 0,
+      isHome: isHomePageSlug(page.slug),
+      publishedAt: null,
+      hasUnpublishedChanges: false,
+      blockCount: page.blocks?.length ?? 0
+    }
+  }
+
+  async listTemplatePages(templateId: string): Promise<SitePageSummary[]> {
+    const template = await this.requireEditableTemplate(templateId)
+    const pages = [...(template.pages ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+
+    return pages.map(page => this.mapTemplatePageSummary(page))
+  }
+
+  async getTemplatePage(templateId: string, pageSlug: string) {
+    const template = await this.requireEditableTemplate(templateId)
+    const page = (template.pages ?? []).find(item => item.slug === pageSlug)
+
+    if (!page) {
+      throw new AppError('Page not found', 404, 'PAGE_NOT_FOUND')
+    }
+
+    const blocks = toPlainJson(page.blocks ?? []) as Block[]
+    const siteStyles = page.siteStyles ? (toPlainJson(page.siteStyles) as SiteStyles) : null
+    const updatedAt = template.updatedAt.toISOString()
+
+    return {
+      slug: page.slug,
+      title: page.title,
+      description: page.description ?? '',
+      isHome: isHomePageSlug(page.slug),
+      draftBlocks: blocks,
+      publishedBlocks: blocks,
+      draftSiteStyles: siteStyles,
+      publishedSiteStyles: siteStyles,
+      draftUpdatedAt: updatedAt,
+      publishedAt: null as string | null
+    }
+  }
+
+  async saveTemplatePageDraft(
+    templateId: string,
+    pageSlug: string,
+    blocks: Block[],
+    siteStyles?: SiteStyles
+  ): Promise<{ savedAt: string }> {
+    const template = await this.requireEditableTemplate(templateId)
+    const pages = toPlainJson(template.pages ?? []) as ISiteTemplatePageSnapshot[]
+    const index = pages.findIndex(page => page.slug === pageSlug)
+
+    if (index < 0) {
+      throw new AppError('Page not found', 404, 'PAGE_NOT_FOUND')
+    }
+
+    const nextPages = [...pages]
+    const current = nextPages[index]
+    const nextStyles = isHomePageSlug(pageSlug)
+      ? siteStyles !== undefined
+        ? siteStyles
+        : current.siteStyles ?? null
+      : null
+
+    nextPages[index] = {
+      ...current,
+      blocks: toPlainJson(blocks) as Block[],
+      siteStyles: nextStyles
+    }
+
+    const home = nextPages.find(page => isHomePageSlug(page.slug))
+    let generatedThumbnailUrl: string | null | undefined
+
+    if (home?.blocks?.length) {
+      generatedThumbnailUrl = await generateTemplatePreviewThumbnail({
+        templateName: template.name,
+        homeBlocks: home.blocks as Block[],
+        siteStyles: home.siteStyles
+      })
+    }
+
+    const doc = await siteTemplateRepository.updateById(templateId, {
+      pages: nextPages,
+      ...(generatedThumbnailUrl ? { generatedThumbnailUrl } : {})
+    })
+
+    if (!doc) {
+      throw new AppError('Template not found', 404, 'TEMPLATE_NOT_FOUND')
+    }
+
+    return { savedAt: doc.updatedAt.toISOString() }
+  }
+
+  async createTemplatePage(
+    templateId: string,
+    input: { title: string; slug?: string }
+  ): Promise<SitePageSummary> {
+    const template = await this.requireEditableTemplate(templateId)
+    const pages = toPlainJson(template.pages ?? []) as ISiteTemplatePageSnapshot[]
+    const baseSlug = input.slug?.trim() || slugifyPageTitle(input.title)
+
+    if (!baseSlug) {
+      throw new AppError('Enter a valid page title or slug', 400, 'INVALID_SLUG')
+    }
+
+    const wantsHome = isHomePageSlug(baseSlug)
+    const hasHome = pages.some(page => isHomePageSlug(page.slug))
+    const slug =
+      wantsHome && !hasHome
+        ? 'home'
+        : ensureUniqueSlug(wantsHome ? 'page' : baseSlug, pages.map(page => page.slug))
+    const sortOrder = pages.reduce((max, page) => Math.max(max, page.sortOrder ?? 0), 0) + 1
+    const nextPage: ISiteTemplatePageSnapshot = {
+      slug,
+      title: input.title.trim() || slug,
+      description: '',
+      sortOrder,
+      blocks: [],
+      siteStyles: null
+    }
+
+    const doc = await siteTemplateRepository.updateById(templateId, {
+      pages: [...pages, nextPage]
+    })
+
+    if (!doc) {
+      throw new AppError('Template not found', 404, 'TEMPLATE_NOT_FOUND')
+    }
+
+    return this.mapTemplatePageSummary(nextPage)
+  }
+
+  async updateTemplatePageMeta(
+    templateId: string,
+    pageSlug: string,
+    input: { title?: string; description?: string }
+  ): Promise<SitePageSummary> {
+    const template = await this.requireEditableTemplate(templateId)
+    const pages = toPlainJson(template.pages ?? []) as ISiteTemplatePageSnapshot[]
+    const index = pages.findIndex(page => page.slug === pageSlug)
+
+    if (index < 0) {
+      throw new AppError('Page not found', 404, 'PAGE_NOT_FOUND')
+    }
+
+    const nextPages = [...pages]
+    nextPages[index] = {
+      ...nextPages[index],
+      ...(input.title !== undefined ? { title: input.title.trim() || nextPages[index].title } : {}),
+      ...(input.description !== undefined ? { description: input.description } : {})
+    }
+
+    const doc = await siteTemplateRepository.updateById(templateId, { pages: nextPages })
+
+    if (!doc) {
+      throw new AppError('Template not found', 404, 'TEMPLATE_NOT_FOUND')
+    }
+
+    return this.mapTemplatePageSummary(nextPages[index])
+  }
+
+  async deleteTemplatePage(templateId: string, pageSlug: string): Promise<void> {
+    if (isHomePageSlug(pageSlug)) {
+      throw new AppError('The home page cannot be deleted', 400, 'HOME_PAGE_PROTECTED')
+    }
+
+    const template = await this.requireEditableTemplate(templateId)
+    const pages = (template.pages ?? []).filter(page => page.slug !== pageSlug)
+
+    if (pages.length === (template.pages ?? []).length) {
+      throw new AppError('Page not found', 404, 'PAGE_NOT_FOUND')
+    }
+
+    const doc = await siteTemplateRepository.updateById(templateId, { pages: toPlainJson(pages) })
+
+    if (!doc) {
+      throw new AppError('Template not found', 404, 'TEMPLATE_NOT_FOUND')
+    }
+  }
+
+  async duplicateTemplatePage(templateId: string, sourceSlug: string, newTitle: string): Promise<SitePageSummary> {
+    const template = await this.requireEditableTemplate(templateId)
+    const pages = toPlainJson(template.pages ?? []) as ISiteTemplatePageSnapshot[]
+    const source = pages.find(page => page.slug === sourceSlug)
+
+    if (!source) {
+      throw new AppError('Source page not found', 404, 'PAGE_NOT_FOUND')
+    }
+
+    const created = await this.createTemplatePage(templateId, { title: newTitle })
+    await this.saveTemplatePageDraft(
+      templateId,
+      created.slug,
+      cloneBlocks(source.blocks as Block[]),
+      isHomePageSlug(created.slug) ? (source.siteStyles ?? undefined) : undefined
+    )
+
+    return (await this.listTemplatePages(templateId)).find(page => page.slug === created.slug) ?? created
+  }
+
+  async reorderTemplatePages(templateId: string, orderedSlugs: string[]): Promise<void> {
+    const template = await this.requireEditableTemplate(templateId)
+    const pages = toPlainJson(template.pages ?? []) as ISiteTemplatePageSnapshot[]
+
+    if (!orderedSlugs.includes('home')) {
+      throw new AppError('Home page must be included in page order', 400, 'HOME_PAGE_REQUIRED')
+    }
+
+    const bySlug = new Map(pages.map(page => [page.slug, page]))
+    const nextPages = orderedSlugs
+      .map((slug, index) => {
+        const page = bySlug.get(slug)
+
+        if (!page) {
+          return null
+        }
+
+        return { ...page, sortOrder: index }
+      })
+      .filter((page): page is ISiteTemplatePageSnapshot => Boolean(page))
+
+    const leftovers = pages.filter(page => !orderedSlugs.includes(page.slug))
+
+    for (const page of leftovers) {
+      nextPages.push({ ...page, sortOrder: nextPages.length })
+    }
+
+    const doc = await siteTemplateRepository.updateById(templateId, { pages: nextPages })
+
+    if (!doc) {
+      throw new AppError('Template not found', 404, 'TEMPLATE_NOT_FOUND')
+    }
+  }
+
+  async finalizeTemplateEdits(templateId: string): Promise<{ publishedAt: string }> {
+    const template = await this.requireEditableTemplate(templateId)
+    const pages = toPlainJson(template.pages ?? []) as ISiteTemplatePageSnapshot[]
+    const home = pages.find(page => isHomePageSlug(page.slug))
+
+    let generatedThumbnailUrl: string | null | undefined
+
+    if (home?.blocks?.length) {
+      generatedThumbnailUrl = await generateTemplatePreviewThumbnail({
+        templateName: template.name,
+        homeBlocks: home.blocks as Block[],
+        siteStyles: home.siteStyles
+      })
+    }
+
+    const doc = await siteTemplateRepository.updateById(templateId, {
+      ...(generatedThumbnailUrl ? { generatedThumbnailUrl } : {})
+    })
+
+    if (!doc) {
+      throw new AppError('Template not found', 404, 'TEMPLATE_NOT_FOUND')
+    }
+
+    return { publishedAt: doc.updatedAt.toISOString() }
   }
 }
 

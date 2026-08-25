@@ -14,17 +14,29 @@ import { BlockRenderer } from './blocks/BlockRenderer'
 type Props = {
   blocks: Block[]
   siteStyles?: SiteStyles | null
+
+  /** When false, the page sizes to its content. Use inside scaled preview frames. */
+  fillViewport?: boolean
 }
 
-export function PublicSiteRenderer({ blocks, siteStyles }: Props) {
+export function PublicSiteRenderer({ blocks, siteStyles, fillViewport = true }: Props) {
   const styles = siteStyles ? mergeSiteStyles(siteStyles, DEFAULT_SITE_STYLES) : DEFAULT_SITE_STYLES
 
   return (
     <SiteStylesScope siteStyles={styles}>
-      <Box component='main' sx={{ position: 'relative', minHeight: '100vh', width: '100%', backgroundColor: styles.colors.background, ...siteCanvasContainerSx() }}>
+      <Box
+        component='main'
+        sx={{
+          position: 'relative',
+          minHeight: fillViewport ? '100vh' : undefined,
+          width: '100%',
+          backgroundColor: styles.colors.background,
+          ...siteCanvasContainerSx()
+        }}
+      >
         <SitePageBackgroundLayer />
         <Box sx={{ position: 'relative', zIndex: 1 }}>
-          {blocks.map(block => (
+          {blocks.filter(block => Boolean(block?.id && block?.type)).map(block => (
             <BlockRenderer key={block.id} block={block} preview />
           ))}
         </Box>

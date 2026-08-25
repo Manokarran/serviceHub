@@ -14,7 +14,9 @@ import type {
   LogoBlockProps,
   ShapeBlockProps,
   TextBlockProps,
-  VideoBlockProps
+  VideoBlockProps,
+  ShowcaseBlockProps,
+  PricingBlockProps
 } from '../../types'
 import { ContactFormBlock } from './ContactFormBlock'
 import { ButtonBlock } from './ButtonBlock'
@@ -31,6 +33,8 @@ import { TabsBlock, TabsBlockPreview } from './TabsBlock'
 import { SectionBlock, SectionBlockPreview } from './SectionBlock'
 import { TextBlock } from './TextBlock'
 import { VideoBlock } from './VideoBlock'
+import { ShowcaseBlock } from './ShowcaseBlock'
+import { PricingBlock } from './PricingBlock'
 
 type Props = {
   block: Block
@@ -38,6 +42,10 @@ type Props = {
 }
 
 export function BlockRenderer({ block, preview = false }: Props) {
+  if (!block?.type) {
+    return null
+  }
+
   switch (block.type) {
     case 'header':
       return <HeaderBlock props={block.props as HeaderBlockProps} />
@@ -69,6 +77,10 @@ export function BlockRenderer({ block, preview = false }: Props) {
       return <IconBlock props={block.props as IconBlockProps} />
     case 'contactForm':
       return <ContactFormBlock blockId={block.id} props={block.props as ContactFormBlockProps} />
+    case 'showcase':
+      return <ShowcaseBlock props={block.props as ShowcaseBlockProps} />
+    case 'pricing':
+      return <PricingBlock props={block.props as PricingBlockProps} />
     default:
       return null
   }
@@ -90,7 +102,9 @@ export function getBlockLabel(type: Block['type']) {
     logo: 'Logo',
     shape: 'Shape',
     icon: 'Icon',
-    contactForm: 'Contact Form'
+    contactForm: 'Contact Form',
+    showcase: 'Showcase',
+    pricing: 'Pricing'
   }
 
   return labels[type]

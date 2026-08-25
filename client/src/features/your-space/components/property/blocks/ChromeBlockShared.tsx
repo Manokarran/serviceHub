@@ -10,6 +10,7 @@ import { DEFAULT_LOGO_ICON_STYLE, type IconPickerStyle } from '@/components/icon
 import { BUILDER_TYPOGRAPHY } from '../../../constants/builderLayout'
 import { builderSoftCardSx } from '../../../constants/builderChrome'
 import type { HeaderLayout, LogoPosition, NavLinkItem } from '../../../types'
+import { normalizeNavLinks } from '../../../utils/blockMigration'
 import { CompactButton, LayoutOptionGroup, PropertySection } from '../PropertyPanelUi'
 import { PropertyTextField } from '../PropertyTextField'
 import { PageLinkField } from '../PageLinkField'
@@ -40,16 +41,17 @@ function NavLinksEditor({
   onChange: (links: NavLinkItem[]) => void
 }) {
   const theme = useTheme()
+  const safeLinks = normalizeNavLinks(links)
 
   const updateLink = (index: number, changes: Partial<NavLinkItem>) => {
-    onChange(links.map((link, i) => (i === index ? { ...link, ...changes } : link)))
+    onChange(safeLinks.map((link, i) => (i === index ? { ...link, ...changes } : link)))
   }
 
-  const removeLink = (index: number) => onChange(links.filter((_, i) => i !== index))
-  const addLink = () => onChange([...links, { label: 'New link', href: '#' }])
+  const removeLink = (index: number) => onChange(safeLinks.filter((_, i) => i !== index))
+  const addLink = () => onChange([...safeLinks, { label: 'New link', href: '#' }])
   const addChildLink = (index: number) =>
     onChange(
-      links.map((link, i) =>
+      safeLinks.map((link, i) =>
         i === index
           ? {
               ...link,
@@ -60,7 +62,7 @@ function NavLinksEditor({
     )
   const updateChildLink = (index: number, childIndex: number, changes: Partial<NavLinkItem>) =>
     onChange(
-      links.map((link, i) =>
+      safeLinks.map((link, i) =>
         i === index
           ? {
               ...link,
@@ -71,7 +73,7 @@ function NavLinksEditor({
     )
   const removeChildLink = (index: number, childIndex: number) =>
     onChange(
-      links.map((link, i) =>
+      safeLinks.map((link, i) =>
         i === index
           ? {
               ...link,
@@ -83,11 +85,8 @@ function NavLinksEditor({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-      <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.secondary', m: 0 }}>
-        Navigation links
-      </Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        {links.map((link, index) => (
+        {safeLinks.map((link, index) => (
           <Box
             key={index}
             sx={{
@@ -107,7 +106,7 @@ function NavLinksEditor({
                 size='small'
                 onClick={() => removeLink(index)}
                 aria-label='Remove link'
-                disabled={links.length <= 1}
+                disabled={safeLinks.length <= 1}
                 sx={{ width: 24, height: 24, color: 'text.secondary' }}
               >
                 <i className='ri-close-line' style={{ fontSize: '0.8125rem' }} />
@@ -121,7 +120,7 @@ function NavLinksEditor({
             />
             <PageLinkField
               label='Link'
-              value={link.href}
+              value={link.href ?? ''}
               onChange={href => updateLink(index, { href })}
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, pl: 1 }}>
@@ -162,7 +161,7 @@ function NavLinksEditor({
                   />
                   <PageLinkField
                     label='Link'
-                    value={child.href}
+                    value={child.href ?? ''}
                     onChange={href => updateChildLink(index, childIndex, { href })}
                   />
                 </Box>
@@ -287,7 +286,9 @@ export function ChromeBlockBrandingFields({
           Used when no logo image is uploaded. Image takes priority when both are set.
         </Typography>
       </PropertySection>
-      <NavLinksEditor links={navLinks} onChange={navLinks => onUpdate({ navLinks })} />
+      <PropertySection title='Navigation' collapsible defaultOpen>
+        <NavLinksEditor links={navLinks ?? []} onChange={navLinks => onUpdate({ navLinks })} />
+      </PropertySection>
     </Box>
   )
 }

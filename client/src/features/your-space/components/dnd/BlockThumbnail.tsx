@@ -240,6 +240,86 @@ const THUMBNAILS: Record<string, Renderer> = {
     </>
   ),
 
+  'showcase-split': ({ accent, strong, mid, faint, frame }) => (
+    <>
+      <rect x="3" y="3" width="34" height="42" rx="4" fill={alpha(accent, 0.12)} stroke={alpha(accent, 0.22)} strokeWidth="0.8" />
+      <circle cx="20" cy="16" r="5" fill={alpha(accent, 0.35)} />
+      <rect x="42" y="10" width="16" height="3" rx="1.5" fill={mid} />
+      <rect x="42" y="17" width="32" height="5" rx="2.5" fill={strong} />
+      <rect x="42" y="26" width="30" height="2.5" rx="1.25" fill={mid} />
+      <rect x="42" y="31" width="24" height="2.5" rx="1.25" fill={mid} />
+      <rect x="42" y="37" width="18" height="5" rx="2.5" fill={alpha(accent, 0.28)} />
+    </>
+  ),
+
+  'showcase-stack': ({ accent, strong, mid, faint, frame }) => (
+    <>
+      <rect x="3" y="3" width="74" height="42" rx="4" fill={alpha(accent, 0.1)} stroke={alpha(accent, 0.2)} strokeWidth="0.8" />
+      <rect x="10" y="8" width="18" height="4" rx="2" fill={strong} />
+      <rect x="10" y="28" width="36" height="5" rx="2.5" fill={strong} />
+      <rect x="10" y="36" width="48" height="3" rx="1.5" fill={mid} />
+    </>
+  ),
+
+  'showcase-cards': ({ accent, strong, mid, faint, frame }) => (
+    <>
+      <rect x="3" y="6" width="22" height="36" rx="3" fill={alpha(accent, 0.1)} stroke={frame} strokeWidth="0.8" />
+      <rect x="29" y="6" width="22" height="36" rx="3" fill={alpha(accent, 0.1)} stroke={frame} strokeWidth="0.8" />
+      <rect x="55" y="6" width="22" height="36" rx="3" fill={alpha(accent, 0.1)} stroke={frame} strokeWidth="0.8" />
+      <rect x="7" y="10" width="10" height="2.5" rx="1.25" fill={strong} />
+      <rect x="33" y="10" width="10" height="2.5" rx="1.25" fill={strong} />
+      <rect x="59" y="10" width="10" height="2.5" rx="1.25" fill={strong} />
+      <rect x="7" y="32" width="14" height="3" rx="1.5" fill={mid} />
+      <rect x="33" y="32" width="14" height="3" rx="1.5" fill={mid} />
+      <rect x="59" y="32" width="14" height="3" rx="1.5" fill={mid} />
+    </>
+  ),
+
+  'pricing-cards': ({ accent, strong, mid, faint, frame }) => (
+    <>
+      <rect x="4" y="8" width="22" height="34" rx="3" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="29" y="4" width="22" height="40" rx="3" fill={alpha(accent, 0.14)} stroke={alpha(accent, 0.45)} strokeWidth="1" />
+      <rect x="54" y="8" width="22" height="34" rx="3" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="8" y="12" width="14" height="3" rx="1.5" fill={strong} />
+      <rect x="33" y="8" width="14" height="3" rx="1.5" fill={accent} />
+      <rect x="58" y="12" width="14" height="3" rx="1.5" fill={strong} />
+      <rect x="8" y="18" width="10" height="6" rx="1.5" fill={mid} />
+      <rect x="33" y="14" width="12" height="8" rx="1.5" fill={strong} />
+      <rect x="58" y="18" width="10" height="6" rx="1.5" fill={mid} />
+      <rect x="33" y="36" width="14" height="4" rx="2" fill={accent} />
+    </>
+  ),
+
+  'pricing-comparison': ({ accent, strong, mid, faint, frame }) => (
+    <>
+      <rect x="3" y="6" width="74" height="36" rx="3" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="6" y="10" width="16" height="3" rx="1.5" fill={mid} />
+      <rect x="28" y="9" width="12" height="4" rx="2" fill={strong} />
+      <rect x="46" y="9" width="12" height="4" rx="2" fill={accent} />
+      <rect x="64" y="9" width="10" height="4" rx="2" fill={strong} />
+      <rect x="6" y="18" width="68" height="1" fill={frame} />
+      <rect x="6" y="23" width="16" height="2" rx="1" fill={mid} />
+      <circle cx="34" cy="24" r="2" fill={accent} />
+      <circle cx="52" cy="24" r="2" fill={accent} />
+      <circle cx="69" cy="24" r="2" fill={mid} />
+      <rect x="6" y="31" width="16" height="2" rx="1" fill={mid} />
+      <circle cx="34" cy="32" r="2" fill={accent} />
+      <circle cx="52" cy="32" r="2" fill={accent} />
+      <circle cx="69" cy="32" r="2" fill={accent} />
+    </>
+  ),
+
+  'pricing-simple': ({ accent, strong, mid, faint, frame }) => (
+    <>
+      <rect x="6" y="5" width="68" height="18" rx="3" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="12" y="9" width="20" height="3" rx="1.5" fill={strong} />
+      <rect x="50" y="8" width="16" height="10" rx="2" fill={alpha(accent, 0.28)} />
+      <rect x="6" y="27" width="68" height="18" rx="3" fill={alpha(accent, 0.1)} stroke={alpha(accent, 0.35)} strokeWidth="0.8" />
+      <rect x="12" y="31" width="20" height="3" rx="1.5" fill={accent} />
+      <rect x="50" y="30" width="16" height="10" rx="2" fill={accent} />
+    </>
+  ),
+
   /* ─── Typography ────────────────────────────────────────────────── */
   'heading': ({ strong, mid }) => (
     <>
@@ -419,9 +499,10 @@ interface Props {
   itemId: string
   itemType?: string
   itemIcon?: string
+  height?: number
 }
 
-export function BlockThumbnail({ itemId, itemIcon }: Props) {
+export function BlockThumbnail({ itemId, itemIcon, height = 52 }: Props) {
   const theme = useTheme()
   const isDark = theme.palette.mode === 'dark'
   const accent = theme.palette.primary.main
@@ -439,8 +520,8 @@ export function BlockThumbnail({ itemId, itemIcon }: Props) {
     <Box
       sx={{
         width: '100%',
-        height: 48,
-        borderRadius: 1,
+        height,
+        borderRadius: 1.25,
         overflow: 'hidden',
         flexShrink: 0,
         backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'

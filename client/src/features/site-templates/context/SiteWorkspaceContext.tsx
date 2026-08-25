@@ -105,6 +105,10 @@ export function useSiteWorkspace() {
   return context
 }
 
+export function useSiteWorkspaceOptional() {
+  return useContext(SiteWorkspaceContext)
+}
+
 /** @deprecated Use useSiteWorkspace */
 export function useTemplatePicker() {
   const { openTemplatePicker, closeTemplatePicker, isTemplatePickerOpen } = useSiteWorkspace()

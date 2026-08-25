@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
@@ -30,7 +30,9 @@ export function PropertyPanelHeader({
   icon,
   onClose,
   onDelete,
-  deleteLabel = 'Delete block'
+  deleteLabel = 'Delete block',
+  draggable = false,
+  extraActions
 }: {
   title: string
   subtitle?: string
@@ -38,13 +40,45 @@ export function PropertyPanelHeader({
   onClose?: () => void
   onDelete?: () => void
   deleteLabel?: string
+  draggable?: boolean
+  extraActions?: ReactNode
 }) {
   const theme = useTheme()
 
   return (
     <Box sx={{ ...builderPanelHeaderSx(theme) }}>
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+        <Box
+          data-panel-drag={draggable ? true : undefined}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            minWidth: 0,
+            flex: 1,
+            cursor: draggable ? 'grab' : 'default',
+            touchAction: draggable ? 'none' : undefined
+          }}
+        >
+          {draggable && (
+            <Tooltip title='Drag to move'>
+              <Box
+                component='span'
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  color: 'text.primary',
+                  flexShrink: 0,
+                  px: 0.5,
+                  py: 0.25,
+                  borderRadius: 1,
+                  backgroundColor: alpha(theme.palette.text.primary, 0.06)
+                }}
+              >
+                <i className='ri-draggable' style={{ fontSize: '1.15rem' }} />
+              </Box>
+            </Tooltip>
+          )}
           {icon && (
             <Box
               sx={{
@@ -71,7 +105,8 @@ export function PropertyPanelHeader({
             {subtitle && <PropertyPanelSubtitle>{subtitle}</PropertyPanelSubtitle>}
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0, mt: -0.25 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0, mt: -0.25 }} onPointerDown={event => event.stopPropagation()}>
+          {extraActions}
           {onDelete && (
             <Tooltip title={deleteLabel} placement='left'>
               <IconButton
@@ -115,6 +150,7 @@ export function PropertyPanelTabs({
     <Box
       sx={{
         display: 'flex',
+        flexWrap: 'wrap',
         gap: 0,
         px: 2,
         py: 0.875,
@@ -133,7 +169,7 @@ export function PropertyPanelTabs({
         }
       }}
     >
-      <Box sx={{ display: 'flex', width: '100%', ...builderSegmentedControlSx(theme) }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', width: '100%', ...builderSegmentedControlSx(theme) }}>
         {tabs.map(tab => (
           <Box
             key={tab.id}

@@ -111,6 +111,12 @@ const HorizontalMenu = () => {
             <MenuItem href='/super-admin' icon={<i className='ri-shield-star-line' />}>
               Dashboard
             </MenuItem>
+            <MenuItem href='/super-admin/studio' icon={<i className='ri-palette-line' />}>
+              Design studio
+            </MenuItem>
+            <MenuItem href='/super-admin/templates' icon={<i className='ri-layout-grid-line' />}>
+              Template library
+            </MenuItem>
           </MenuSection>
         ) : null}
       </Menu>

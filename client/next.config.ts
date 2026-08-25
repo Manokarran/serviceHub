@@ -4,6 +4,11 @@ const basePath = process.env.BASEPATH?.replace(/\/$/, '') ?? ''
 
 const nextConfig: NextConfig = {
   ...(basePath ? { basePath } : {}),
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '8mb'
+    }
+  },
   redirects: async () => {
     return [
       {

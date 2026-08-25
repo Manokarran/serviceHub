@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { PublicSiteAnalytics } from '@/features/your-space/components/PublicSiteAnalytics'
 import { PublicSiteEmptyState } from '@/features/your-space/components/PublicSiteEmptyState'
 import { PublicSiteRenderer } from '@/features/your-space/components/PublicSiteRenderer'
 import { DEFAULT_SITE_STYLES } from '@/features/your-space/constants/siteStylePresets'
@@ -43,8 +44,18 @@ export default async function PublicSiteHomePage({ params }: PageProps) {
   )
 
   if (blocks.length === 0) {
-    return <PublicSiteEmptyState tenantName={site.tenant.name} pageTitle={site.page.title} />
+    return (
+      <>
+        <PublicSiteAnalytics />
+        <PublicSiteEmptyState tenantName={site.tenant.name} pageTitle={site.page.title} />
+      </>
+    )
   }
 
-  return <PublicSiteRenderer blocks={blocks} siteStyles={siteStyles} />
+  return (
+    <>
+      <PublicSiteAnalytics />
+      <PublicSiteRenderer blocks={blocks} siteStyles={siteStyles} />
+    </>
+  )
 }

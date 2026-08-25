@@ -38,6 +38,7 @@ import {
 import type { SiteTemplateDetail } from '@/models/site-template'
 
 import { ThumbnailUploadField } from './ThumbnailUploadField'
+import { TemplateWebsitePreviewDialog, type TemplateWebsitePreviewPage } from './TemplateWebsitePreviewDialog'
 
 type Props = {
   template: SiteTemplateDetail
@@ -52,6 +53,16 @@ export function TemplateDetailView({ template: initialTemplate }: Props) {
   const [thumbnailUrl, setThumbnailUrl] = useState(initialTemplate.thumbnailUrl ?? '')
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [busyAction, setBusyAction] = useState<string | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
+
+  const previewPages: TemplateWebsitePreviewPage[] = template.pages
+    .filter(page => page.blocks.length > 0)
+    .map(page => ({
+      slug: page.slug,
+      title: page.title,
+      blocks: page.blocks,
+      siteStyles: page.siteStyles ?? null
+    }))
 
   const setStatusMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text })
@@ -104,7 +115,7 @@ export function TemplateDetailView({ template: initialTemplate }: Props) {
         'success',
         result.template.generatedThumbnailUrl
           ? `Captured ${result.template.pageCount} pages and updated the home page preview thumbnail.`
-          : `Captured ${result.template.pageCount} pages from your workspace.`
+          : `Captured ${result.template.pageCount} pages from the master base template.`
       )
     })
   }
@@ -168,12 +179,29 @@ export function TemplateDetailView({ template: initialTemplate }: Props) {
         </div>
         <Box className='flex flex-wrap gap-2'>
           <Button
+            variant='contained'
+            startIcon={<i className='ri-edit-line' />}
+            disabled={Boolean(busyAction)}
+            component={Link}
+            href={`/super-admin/templates/${template.id}/edit`}
+          >
+            Edit website
+          </Button>
+          <Button
+            variant='outlined'
+            startIcon={<i className='ri-eye-line' />}
+            disabled={!previewPages.length || Boolean(busyAction)}
+            onClick={() => setPreviewOpen(true)}
+          >
+            View website
+          </Button>
+          <Button
             variant='outlined'
             startIcon={<i className='ri-download-cloud-line' />}
             disabled={Boolean(busyAction)}
             onClick={() => void handleCapture()}
           >
-            {busyAction === 'capture' ? 'Capturing…' : 'Capture from workspace'}
+            {busyAction === 'capture' ? 'Capturing…' : 'Capture from base template'}
           </Button>
           <Button
             variant='contained'
@@ -293,16 +321,25 @@ export function TemplateDetailView({ template: initialTemplate }: Props) {
                     </Typography>
                   </div>
                   {page.slug === 'home' ? <Chip label='Home + styles' size='small' color='primary' variant='tonal' /> : null}
+                  <Button
+                    size='small'
+                    variant='text'
+                    component={Link}
+                    href={`/super-admin/templates/${template.id}/edit?p=${encodeURIComponent(page.slug)}`}
+                    startIcon={<i className='ri-edit-line' />}
+                  >
+                    Edit
+                  </Button>
                 </Box>
               ))}
             </Box>
           ) : (
             <Typography color='text.secondary'>
-              No pages captured yet. Build your site in{' '}
-              <Link href='/your-space' className='text-primary'>
-                Your Space
-              </Link>{' '}
-              and click &quot;Capture from workspace&quot;.
+              No pages captured yet. Click <strong>Edit website</strong> to design pages here, or capture from the{' '}
+              <Link href='/super-admin/studio/builder' className='text-primary'>
+                Base template builder
+              </Link>
+              .
             </Typography>
           )}
         </CardContent>
@@ -313,6 +350,13 @@ export function TemplateDetailView({ template: initialTemplate }: Props) {
           Archive template
         </Button>
       </Box>
+
+      <TemplateWebsitePreviewDialog
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={template.name}
+        pages={previewPages}
+      />
     </Box>
   )
 }

@@ -9,7 +9,9 @@ import MenuItem from '@mui/material/MenuItem'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
 import Tooltip from '@mui/material/Tooltip'
-import { alpha, useTheme } from '@mui/material/styles'
+import { useTheme } from '@mui/material/styles'
+
+import { builderToolbarIconButtonSx } from '../constants/builderLayout'
 
 type Props = {
   siteUrl: string
@@ -31,6 +33,7 @@ export function LiveSiteButton({ siteUrl, displayUrl, hasUnpublishedChanges = fa
     } catch {
       setCopied(false)
     }
+
     setMenuAnchor(null)
   }, [siteUrl])
 
@@ -45,14 +48,7 @@ export function LiveSiteButton({ siteUrl, displayUrl, hasUnpublishedChanges = fa
           size='small'
           onClick={e => setMenuAnchor(e.currentTarget)}
           aria-label='Live site'
-          sx={{
-            position: 'relative',
-            color: 'text.secondary',
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.text.primary, 0.06),
-              color: 'text.primary'
-            }
-          }}
+          sx={builderToolbarIconButtonSx(theme)}
         >
           <i className='ri-global-line' />
           <Box

@@ -1,6 +1,6 @@
 import type { Block } from '@/features/your-space/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
-import { createContactPageBlocks } from '@/features/your-space/constants/pageTemplates'
+import { createAboutPageBlocks, createContactPageBlocks } from '@/features/your-space/constants/pageTemplates'
 import { AppError } from '@/lib/errors'
 import { ensureUniqueSlug, isHomePageSlug, isReservedPageSlug, slugifyPageTitle } from '@/lib/utils/page-slug'
 import { toPlainJson } from '@/lib/utils/plain-json'
@@ -235,7 +235,26 @@ export class SitePageService {
     }))
   }
 
+  async getPublishedVersion(tenantId: string, pageSlug: string, versionId: string) {
+    const version = await this.findPublishedVersion(tenantId, pageSlug, versionId)
+
+    return {
+      blocks: toPlainJson(version.blocks) as unknown as Block[],
+      publishedAt: version.publishedAt.toISOString()
+    }
+  }
+
   async restoreVersionToDraft(tenantId: string, pageSlug: string, versionId: string) {
+    const version = await this.findPublishedVersion(tenantId, pageSlug, versionId)
+    const page = await sitePageRepository.restoreDraft(tenantId, version.blocks, pageSlug)
+
+    return {
+      blocks: toPlainJson(version.blocks) as unknown as Block[],
+      draftUpdatedAt: page.draftUpdatedAt ?? page.updatedAt
+    }
+  }
+
+  private async findPublishedVersion(tenantId: string, pageSlug: string, versionId: string) {
     assertTenantId(tenantId)
 
     const version = await sitePageVersionRepository.findVersionById(tenantId, versionId)
@@ -248,12 +267,7 @@ export class SitePageService {
       throw new AppError('Version does not belong to this page', 400, 'VERSION_MISMATCH')
     }
 
-    const page = await sitePageRepository.restoreDraft(tenantId, version.blocks, pageSlug)
-
-    return {
-      blocks: toPlainJson(version.blocks) as unknown as Block[],
-      draftUpdatedAt: page.draftUpdatedAt ?? page.updatedAt
-    }
+    return version
   }
 
   async createPage(
@@ -317,6 +331,30 @@ export class SitePageService {
       slug: 'contact',
       draftBlocks: createContactPageBlocks() as unknown as ISitePageBlock[]
     }, { markSiteStarted: false })
+  }
+
+  async ensureAboutPage(tenantId: string): Promise<SitePageSummary> {
+    assertTenantId(tenantId)
+
+    await this.ensureHomePage(tenantId)
+
+    const existing = await sitePageRepository.findByTenantAndSlug(tenantId, 'about')
+
+    if (existing) {
+      return mapPageToSummary(existing)
+    }
+
+    return this.createPage(tenantId, {
+      title: 'About',
+      slug: 'about',
+      draftBlocks: createAboutPageBlocks() as unknown as ISitePageBlock[]
+    }, { markSiteStarted: false })
+  }
+
+  async ensureBaseWebsitePages(tenantId: string) {
+    await this.ensureHomePage(tenantId)
+    await this.ensureAboutPage(tenantId)
+    await this.ensureContactPage(tenantId)
   }
 
   async updatePageMeta(

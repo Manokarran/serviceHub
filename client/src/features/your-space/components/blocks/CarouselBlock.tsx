@@ -172,7 +172,11 @@ function CarouselShell({ block, preview }: Props) {
   const builder = useBuilderOptional()
   const nestTargets = useBuilderNestTargetsOptional()
   const isDragging = Boolean(nestTargets?.isCanvasDragging)
-  const props = block.props as CarouselBlockProps
+  const rawProps = block.props as CarouselBlockProps
+  const props = {
+    ...rawProps,
+    slides: (rawProps.slides ?? []).filter(slide => Boolean(slide && typeof slide === 'object' && slide.id))
+  }
   const editMode = !preview
   const maxWidth = MAX_WIDTH_MAP[props.maxWidth]
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)

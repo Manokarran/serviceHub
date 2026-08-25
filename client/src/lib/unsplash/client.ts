@@ -1,4 +1,4 @@
-import type { UnsplashPhoto, UnsplashSearchResult } from './types'
+import type { UnsplashColorFilter, UnsplashPhoto, UnsplashSearchResult } from './types'
 
 const PHOTOS_PER_PAGE = 9
 
@@ -15,6 +15,7 @@ export async function searchUnsplashPhotos(params: {
   page?: number
   perPage?: number
   orientation?: 'landscape' | 'portrait' | 'squarish'
+  color?: UnsplashColorFilter
 }): Promise<UnsplashSearchResult> {
   const key = getUnsplashKey()
 
@@ -32,8 +33,13 @@ export async function searchUnsplashPhotos(params: {
     searchParams.set('orientation', params.orientation)
   }
 
+  if (params.color) {
+    searchParams.set('color', params.color)
+  }
+
   const response = await fetch(`https://api.unsplash.com/search/photos?${searchParams.toString()}`, {
-    headers: { Authorization: `Client-ID ${key}` }
+    headers: { Authorization: `Client-ID ${key}` },
+    signal: AbortSignal.timeout(8_000)
   })
 
   if (!response.ok) {
@@ -58,7 +64,8 @@ export async function trackUnsplashDownload(photo: UnsplashPhoto): Promise<void>
 
   try {
     await fetch(photo.links.download_location, {
-      headers: { Authorization: `Client-ID ${key}` }
+      headers: { Authorization: `Client-ID ${key}` },
+      signal: AbortSignal.timeout(4_000)
     })
   } catch {
     // Non-blocking — selection should still work if tracking fails.

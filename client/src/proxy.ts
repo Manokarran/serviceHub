@@ -16,6 +16,8 @@ export const config = {
     '/leads',
     '/leads/:path*',
     '/about/:path*',
+    '/profile',
+    '/profile/:path*',
     '/super-admin',
     '/super-admin/:path*',
     '/login',

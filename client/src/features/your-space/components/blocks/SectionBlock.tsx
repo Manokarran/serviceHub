@@ -182,6 +182,7 @@ function SectionShell({ block, preview }: Props) {
         ...getBlockBackgroundShellSx(props, photoAnimation, fillOpacity, '#ffffff', {
           fillEnabled: showStaticBackgroundLayers
         }),
+        overflow: editMode ? 'visible' : undefined,
         py: `${props.paddingY}px`,
         px: `${props.paddingX}px`,
         ...siteCanvasBelow({
@@ -220,6 +221,7 @@ function SectionShell({ block, preview }: Props) {
           maxWidth: typeof maxWidth === 'number' ? maxWidth : maxWidth,
           mx: props.maxWidth === 'full' ? 0 : 'auto',
           ...getSectionFrameSx(props),
+          ...(editMode ? { overflow: 'visible' } : {}),
           ...((props.borderStyle === 'elevated' || props.borderStyle === 'inset') && { p: 1.5 })
         }}
       >

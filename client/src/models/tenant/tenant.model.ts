@@ -34,6 +34,7 @@ const tenantSchema = new Schema<ITenantDocument>(
       required: true
     },
     settings: {
+      kind: { type: String, enum: ['base_template'], trim: true },
       primaryColor: { type: String, trim: true },
       logoUrl: { type: String, trim: true },
       customDomain: { type: String, trim: true, lowercase: true },

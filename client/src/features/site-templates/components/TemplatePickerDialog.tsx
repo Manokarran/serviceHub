@@ -13,13 +13,13 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 import { useRouter } from 'next/navigation'
 
-import { applySiteTemplateAction } from '@/app/actions/site-template.actions'
+import { applySiteTemplateAction, getPublishedSiteTemplateAction } from '@/app/actions/site-template.actions'
 import type { SiteTemplateSummary } from '@/models/site-template'
 
-import { useSiteWorkspace } from '../context/SiteWorkspaceContext'
 import { DestructiveConfirmDialog } from './DestructiveConfirmDialog'
 import { TemplateGallery } from './TemplateGallery'
 import { TemplateLivePreview } from './TemplateLivePreview'
+import { TemplateWebsitePreviewDialog, type TemplateWebsitePreviewPage } from './TemplateWebsitePreviewDialog'
 
 type Props = {
   open: boolean
@@ -27,7 +27,6 @@ type Props = {
   loading?: boolean
   isReplaceMode?: boolean
   onClose: () => void
-  onScratch: () => void
   onApplied?: () => void
   title?: string
   subtitle?: string
@@ -40,27 +39,23 @@ export function TemplatePickerDialog({
   loading = false,
   isReplaceMode = false,
   onClose,
-  onScratch,
   onApplied,
-  title = 'How would you like to start?',
-  subtitle = 'Pick a professionally designed layout and customize it, or begin with a blank canvas.',
+  title = 'Choose a template',
+  subtitle = 'Pick a published layout from the library. Your live site stays unchanged until you publish.',
   allowDismiss = true
 }: Props) {
   const theme = useTheme()
   const router = useRouter()
-  const { openAiWizard } = useSiteWorkspace()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [fullPreviewOpen, setFullPreviewOpen] = useState(false)
+  const [fullPreviewPages, setFullPreviewPages] = useState<TemplateWebsitePreviewPage[]>([])
+  const [fullPreviewTitle, setFullPreviewTitle] = useState('')
+  const [fullPreviewLoading, setFullPreviewLoading] = useState(false)
 
   const selectedTemplate = templates.find(template => template.id === selectedId)
-
-  const handleScratch = () => {
-    setSelectedId(null)
-    setError(null)
-    onScratch()
-  }
 
   const runApply = async () => {
     if (!selectedId) {
@@ -101,6 +96,45 @@ export function TemplatePickerDialog({
     void runApply()
   }
 
+  const handleViewFullWebsite = async () => {
+    if (!selectedId) {
+      return
+    }
+
+    setFullPreviewLoading(true)
+    setError(null)
+
+    const result = await getPublishedSiteTemplateAction(selectedId)
+
+    if (!result.success) {
+      setError(result.error)
+      setFullPreviewLoading(false)
+
+      return
+    }
+
+    const pages = result.template.pages
+      .filter(page => page.blocks.length > 0)
+      .map(page => ({
+        slug: page.slug,
+        title: page.title,
+        blocks: page.blocks,
+        siteStyles: page.siteStyles ?? null
+      }))
+
+    if (!pages.length) {
+      setError('This template has no pages to preview yet.')
+      setFullPreviewLoading(false)
+
+      return
+    }
+
+    setFullPreviewTitle(result.template.name)
+    setFullPreviewPages(pages)
+    setFullPreviewOpen(true)
+    setFullPreviewLoading(false)
+  }
+
   const handleClose = () => {
     if (applying) {
       return
@@ -112,6 +146,7 @@ export function TemplatePickerDialog({
 
     setError(null)
     setConfirmOpen(false)
+    setFullPreviewOpen(false)
     onClose()
   }
 
@@ -178,61 +213,6 @@ export function TemplatePickerDialog({
         </Box>
 
         <DialogContent sx={{ px: { xs: 3, sm: 4 }, py: 3 }}>
-          {templates.length ? (
-            <Box
-              className='mbe-4'
-              sx={{
-                p: { xs: 2.5, sm: 3 },
-                borderRadius: 2,
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: { xs: 'stretch', sm: 'center' },
-                gap: 2,
-                background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.16)} 0%, ${alpha(theme.palette.primary.main, 0.06)} 100%)`,
-                border: `1px solid ${alpha(theme.palette.secondary.main, 0.28)}`
-              }}
-            >
-              <Box className='flex items-start gap-3' sx={{ flex: 1 }}>
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: alpha(theme.palette.secondary.main, 0.18),
-                    color: 'secondary.main',
-                    flexShrink: 0
-                  }}
-                >
-                  <i className='ri-magic-line' style={{ fontSize: '1.35rem' }} />
-                </Box>
-                <div>
-                  <Typography variant='subtitle1' className='font-semibold mbe-1'>
-                    Start with AI
-                  </Typography>
-                  <Typography variant='body2' color='text.secondary'>
-                    Answer a few questions — we auto-pick the best layout, write your copy, and style your site.
-                  </Typography>
-                </div>
-              </Box>
-              <Button
-                variant='contained'
-                color='secondary'
-                size='large'
-                startIcon={<i className='ri-sparkling-line' />}
-                onClick={() => {
-                  onClose()
-                  openAiWizard()
-                }}
-                disabled={applying || loading}
-                sx={{ flexShrink: 0, alignSelf: { xs: 'stretch', sm: 'center' } }}
-              >
-                Start with AI
-              </Button>
-            </Box>
-          ) : null}
           {isReplaceMode ? (
             <Alert severity='info' variant='outlined' className='mbe-4'>
               Applying a template updates your <strong>draft</strong> workspace. Visitors still see your current live
@@ -241,16 +221,33 @@ export function TemplatePickerDialog({
           ) : null}
 
           {error ? (
-            <Alert severity='error' className='mbe-4'>
+            <Alert severity='error' className='mbe-4' onClose={() => setError(null)}>
               {error}
             </Alert>
           ) : null}
 
           {selectedTemplate?.homePreview?.blocks.length ? (
             <Box className='mbe-4'>
-              <Typography variant='subtitle2' color='text.secondary' className='mbe-2 font-medium'>
-                Live preview — {selectedTemplate.name}
-              </Typography>
+              <Box className='flex flex-wrap items-center justify-between gap-2 mbe-2'>
+                <Typography variant='subtitle2' color='text.secondary' className='font-medium'>
+                  Quick preview — {selectedTemplate.name}
+                </Typography>
+                <Button
+                  variant='outlined'
+                  size='small'
+                  startIcon={
+                    fullPreviewLoading ? (
+                      <i className='ri-loader-4-line animate-spin' />
+                    ) : (
+                      <i className='ri-eye-line' />
+                    )
+                  }
+                  disabled={fullPreviewLoading || applying}
+                  onClick={() => void handleViewFullWebsite()}
+                >
+                  View full website
+                </Button>
+              </Box>
               <Box
                 sx={{
                   borderRadius: 2,
@@ -266,6 +263,24 @@ export function TemplatePickerDialog({
                 />
               </Box>
             </Box>
+          ) : selectedTemplate ? (
+            <Box className='mbe-4 flex justify-end'>
+              <Button
+                variant='outlined'
+                size='small'
+                startIcon={
+                  fullPreviewLoading ? (
+                    <i className='ri-loader-4-line animate-spin' />
+                  ) : (
+                    <i className='ri-eye-line' />
+                  )
+                }
+                disabled={fullPreviewLoading || applying}
+                onClick={() => void handleViewFullWebsite()}
+              >
+                View full website
+              </Button>
+            </Box>
           ) : null}
 
           {loading ? (
@@ -278,7 +293,7 @@ export function TemplatePickerDialog({
               templates={templates}
               selectedId={selectedId}
               onSelect={setSelectedId}
-              allowBlank={!isReplaceMode}
+              allowBlank={false}
               variant='featured'
               showCategoryFilter
             />
@@ -290,15 +305,8 @@ export function TemplatePickerDialog({
               <i className='ri-layout-line text-4xl text-textSecondary' />
               <Typography variant='h6'>No templates available yet</Typography>
               <Typography color='text.secondary' className='max-is-[420px]'>
-                {isReplaceMode
-                  ? 'No published templates are available right now.'
-                  : 'Start with a blank layout and build your site from scratch.'}
+                No published templates are available right now. Use Generate website from the builder menu instead.
               </Typography>
-              {!isReplaceMode ? (
-                <Button variant='contained' onClick={handleScratch} sx={{ mt: 1 }}>
-                  Start from scratch
-                </Button>
-              ) : null}
             </Box>
           )}
         </DialogContent>
@@ -319,11 +327,20 @@ export function TemplatePickerDialog({
               </Button>
             ) : null}
             <Box sx={{ flex: 1 }} />
-            {!isReplaceMode ? (
-              <Button variant='outlined' onClick={handleScratch} disabled={applying}>
-                Start from scratch
-              </Button>
-            ) : null}
+            <Button
+              variant='outlined'
+              disabled={!selectedId || applying || loading || fullPreviewLoading}
+              onClick={() => void handleViewFullWebsite()}
+              startIcon={
+                fullPreviewLoading ? (
+                  <i className='ri-loader-4-line animate-spin' />
+                ) : (
+                  <i className='ri-eye-line' />
+                )
+              }
+            >
+              View full website
+            </Button>
             <Button
               variant='contained'
               disabled={!selectedId || applying || loading}
@@ -360,6 +377,13 @@ export function TemplatePickerDialog({
           }
         }}
         onConfirm={() => void runApply()}
+      />
+
+      <TemplateWebsitePreviewDialog
+        open={fullPreviewOpen}
+        onClose={() => setFullPreviewOpen(false)}
+        title={fullPreviewTitle}
+        pages={fullPreviewPages}
       />
     </>
   )

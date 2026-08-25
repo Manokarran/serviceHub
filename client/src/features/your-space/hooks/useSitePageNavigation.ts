@@ -86,7 +86,7 @@ export function useSitePageNavigation() {
           await builder.switchPage(pageSlug)
           scrollBuilderCanvasToTop()
 
-          if (pathname?.startsWith('/your-space')) {
+          if (pathname?.startsWith('/your-space') || pathname?.startsWith('/super-admin/studio/builder') || pathname?.includes('/super-admin/templates/')) {
             const params = new URLSearchParams(window.location.search)
 
             params.set('p', pageSlug)

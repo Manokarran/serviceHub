@@ -2,7 +2,11 @@ import type { Document } from 'mongoose'
 
 import type { TenantPlan, TenantStatus } from '@/models/shared/enums'
 
+export type TenantKind = 'base_template'
+
 export interface ITenantSettings {
+  /** System tenant used as the master website design for AI generation. */
+  kind?: TenantKind
   primaryColor?: string
   logoUrl?: string
   customDomain?: string

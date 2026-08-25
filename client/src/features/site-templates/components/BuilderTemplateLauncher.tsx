@@ -4,13 +4,11 @@ import { useEffect, useRef } from 'react'
 
 import { useRouter, useSearchParams } from 'next/navigation'
 
-import { markSiteStartedAction } from '@/app/actions/site-workspace.actions'
-
 import { SiteWorkspaceProvider, useSiteWorkspace } from '../context/SiteWorkspaceContext'
 import { usePublishedTemplates } from '../hooks/usePublishedTemplates'
 import { hasSeenTemplateSetup, markTemplateSetupSeen } from '../utils/template-setup-storage'
-import { SiteResetDialog } from './SiteResetDialog'
 import { AiSiteWizardDialog } from './ai-wizard/AiSiteWizardDialog'
+import { SiteResetDialog } from './SiteResetDialog'
 import { TemplatePickerDialog } from './TemplatePickerDialog'
 
 type LauncherProps = {
@@ -60,7 +58,7 @@ function BuilderTemplateLauncherInner({
       return
     }
 
-    if (aiSetupRequested && hasTemplates) {
+    if (aiSetupRequested) {
       openAiWizard()
       autoPromptHandled.current = true
 
@@ -101,7 +99,7 @@ function BuilderTemplateLauncherInner({
   ])
 
   const clearQueryFlags = () => {
-    if (!setupRequested && !replaceRequested && !startFreshRequested && !aiSetupRequested) {
+    if (!setupRequested && !replaceRequested && !aiSetupRequested && !startFreshRequested) {
       return
     }
 
@@ -112,18 +110,6 @@ function BuilderTemplateLauncherInner({
     markTemplateSetupSeen(tenantSlug)
     clearQueryFlags()
     closeTemplatePicker()
-  }
-
-  const handleScratch = async () => {
-    markTemplateSetupSeen(tenantSlug)
-
-    if (!isSiteStarted) {
-      await markSiteStartedAction()
-    }
-
-    clearQueryFlags()
-    closeTemplatePicker()
-    router.refresh()
   }
 
   const handleApplied = () => {
@@ -154,13 +140,12 @@ function BuilderTemplateLauncherInner({
         loading={loading}
         isReplaceMode={templatePickerMode === 'replace'}
         onClose={handlePickerClose}
-        onScratch={() => void handleScratch()}
         onApplied={handleApplied}
-        title={templatePickerMode === 'replace' ? 'Replace site with template' : 'How would you like to start?'}
+        title={templatePickerMode === 'replace' ? 'Browse template library' : 'Choose a template'}
         subtitle={
           templatePickerMode === 'replace'
-            ? 'Your draft pages will be replaced with the template layout. Your live site stays unchanged until you publish.'
-            : 'Pick a professionally designed layout and customize it, or begin with a blank canvas.'
+            ? 'Preview any layout in full, then apply it to your draft. Your live site stays unchanged until you publish.'
+            : 'Pick a published layout from the library, preview the full site, then customize it in the builder.'
         }
       />
       <SiteResetDialog

@@ -1,5 +1,7 @@
 import type { Block, PaletteItem, SectionLayout, CarouselTransition, CarouselArrowStyle, TabOrientation, TabVariant, TabsBlockProps } from './types'
 import { DEFAULT_SECTION_STYLE } from './utils/sectionStyleHelpers'
+import { createPricingDefaultProps, SIMPLE_PRICING_PLANS } from './constants/pricingLayout'
+import { createShowcaseDefaultProps } from './constants/showcaseLayout'
 
 const DEFAULT_CAROUSEL_SLIDES = [
   {
@@ -369,6 +371,100 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     }
   },
   {
+    id: 'showcase-split',
+    type: 'showcase',
+    label: 'Showcase split',
+    description: 'Visual one side, editorial copy the other',
+    icon: 'ri-layout-column-line',
+    category: 'sections',
+    defaultProps: createShowcaseDefaultProps({
+      layout: 'split',
+      columns: 1,
+      cardStyle: 'stacked',
+      textColor: '#0f172a',
+      minHeight: 520,
+      maxWidth: 'full',
+      paddingX: 48
+    })
+  },
+  {
+    id: 'showcase-stack',
+    type: 'showcase',
+    label: 'Showcase stack',
+    description: 'Layered image with logo on top and copy below',
+    icon: 'ri-stack-line',
+    category: 'sections',
+    defaultProps: createShowcaseDefaultProps({
+      layout: 'stack',
+      columns: 1,
+      cardStyle: 'layered',
+      textColor: '#ffffff',
+      minHeight: 540,
+      maxWidth: 'lg'
+    })
+  },
+  {
+    id: 'showcase-cards',
+    type: 'showcase',
+    label: 'Showcase cards',
+    description: 'Two or three tiles with logo, visual, and text',
+    icon: 'ri-layout-grid-line',
+    category: 'sections',
+    defaultProps: createShowcaseDefaultProps({
+      layout: 'cards',
+      columns: 3,
+      cardStyle: 'layered',
+      textColor: '#ffffff',
+      minHeight: 420,
+      maxWidth: 'lg'
+    })
+  },
+  {
+    id: 'pricing-cards',
+    type: 'pricing',
+    label: 'Pricing cards',
+    description: 'Monthly/annual plans with features, discounts, and a recommended card',
+    icon: 'ri-price-tag-3-line',
+    category: 'pricing',
+    defaultProps: createPricingDefaultProps({
+      layout: 'cards',
+      columns: 3,
+      cardStyle: 'elevated'
+    })
+  },
+  {
+    id: 'pricing-comparison',
+    type: 'pricing',
+    label: 'Pricing comparison',
+    description: 'Feature matrix with billed monthly or annually',
+    icon: 'ri-table-line',
+    category: 'pricing',
+    defaultProps: createPricingDefaultProps({
+      layout: 'comparison',
+      columns: 3,
+      cardStyle: 'outlined',
+      hoverEffect: 'none'
+    })
+  },
+  {
+    id: 'pricing-simple',
+    type: 'pricing',
+    label: 'Simple pricing',
+    description: 'Two stacked plans without a billing toggle',
+    icon: 'ri-stack-line',
+    category: 'pricing',
+    defaultProps: createPricingDefaultProps({
+      layout: 'stack',
+      columns: 2,
+      cardStyle: 'filled',
+      showIntervalToggle: false,
+      defaultInterval: 'monthly',
+      showYearlyTotal: false,
+      subtitle: 'Two clear options. Edit names, prices, and features — then publish.',
+      plans: SIMPLE_PRICING_PLANS
+    })
+  },
+  {
     id: 'heading',
     type: 'heading',
     label: 'Heading',
@@ -717,13 +813,14 @@ export function getPaletteItem(paletteId?: string, type?: PaletteItem['type']): 
 }
 
 export const PALETTE_CATEGORIES = [
-  { id: 'sections' as const, label: 'Sections', icon: 'ri-layout-masonry-line', defaultExpanded: true },
-  { id: 'layout' as const, label: 'Columns', icon: 'ri-layout-grid-line', defaultExpanded: true },
-  { id: 'carousel' as const, label: 'Carousels', icon: 'ri-carousel-view', defaultExpanded: false },
-  { id: 'tabs' as const, label: 'Tabs', icon: 'ri-layout-top-2-line', defaultExpanded: false },
-  { id: 'typography' as const, label: 'Typography', icon: 'ri-font-size-2', defaultExpanded: false },
-  { id: 'media' as const, label: 'Media', icon: 'ri-image-line', defaultExpanded: false },
-  { id: 'forms' as const, label: 'Forms', icon: 'ri-mail-send-line', defaultExpanded: false }
+  { id: 'sections' as const, label: 'Sections', chipLabel: 'Sections', icon: 'ri-layout-masonry-line', defaultExpanded: true, itemLayout: 'tile' as const },
+  { id: 'layout' as const, label: 'Columns', chipLabel: 'Columns', icon: 'ri-layout-grid-line', defaultExpanded: false, itemLayout: 'tile' as const },
+  { id: 'carousel' as const, label: 'Carousels', chipLabel: 'Carousels', icon: 'ri-carousel-view', defaultExpanded: false, itemLayout: 'tile' as const },
+  { id: 'tabs' as const, label: 'Tabs', chipLabel: 'Tabs', icon: 'ri-layout-top-2-line', defaultExpanded: false, itemLayout: 'tile' as const },
+  { id: 'typography' as const, label: 'Typography', chipLabel: 'Type', icon: 'ri-font-size-2', defaultExpanded: false, itemLayout: 'row' as const },
+  { id: 'media' as const, label: 'Media', chipLabel: 'Media', icon: 'ri-image-line', defaultExpanded: false, itemLayout: 'tile' as const },
+  { id: 'forms' as const, label: 'Forms', chipLabel: 'Forms', icon: 'ri-mail-send-line', defaultExpanded: false, itemLayout: 'row' as const },
+  { id: 'pricing' as const, label: 'Pricing', chipLabel: 'Pricing', icon: 'ri-price-tag-3-line', defaultExpanded: false, itemLayout: 'tile' as const }
 ]
 
 export const STARTER_BLOCKS: Block[] = [

@@ -217,38 +217,11 @@ export function PagesPanel({ onClose, embedded = false }: Props) {
             )}
           </Box>
         </Box>
-      ) : (
-        <Box
-          sx={{
-            flexShrink: 0,
-            px: 1.5,
-            py: 1.25,
-            borderBottom: 'none',
-            position: 'relative',
-            backgroundColor: alpha(theme.palette.primary.main, 0.03),
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              bottom: 0,
-              left: 12,
-              right: 12,
-              height: '1px',
-              backgroundColor: alpha(theme.palette.divider, 0.6)
-            }
-          }}
-        >
-          <Typography variant='subtitle2' sx={BUILDER_TYPOGRAPHY.title}>
-            Pages
-          </Typography>
-          <Typography variant='caption' sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.disabled' }}>
-            {pages.length} page{pages.length === 1 ? '' : 's'}
-          </Typography>
-        </Box>
-      )}
+      ) : null}
 
       {/* Page list */}
-      <Box sx={{ flex: 1, overflow: 'auto', p: embedded ? 1 : 1.5, ...BUILDER_PROPERTY_PANEL_SX }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: embedded ? 0.5 : 0.75 }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: embedded ? 1.5 : 1.5, ...BUILDER_PROPERTY_PANEL_SX }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: embedded ? 0.875 : 0.75 }}>
           {pages.map(page => {
             const isActive = page.slug === currentPageSlug
 
@@ -256,7 +229,7 @@ export function PagesPanel({ onClose, embedded = false }: Props) {
               <Box
                 key={page.slug}
                 sx={{
-                  p: embedded ? 0.875 : 1.25,
+                  p: embedded ? 1.125 : 1.25,
                   borderRadius: embedded ? 1 : 1.25,
                   cursor: isPageSwitching ? 'wait' : 'pointer',
                   opacity: isPageSwitching && !isActive ? 0.6 : 1,
@@ -299,7 +272,7 @@ export function PagesPanel({ onClose, embedded = false }: Props) {
                         component='p'
                         sx={{
                           ...BUILDER_TYPOGRAPHY.title,
-                          fontSize: embedded ? '0.75rem' : undefined,
+                          fontSize: embedded ? '0.8125rem' : undefined,
                           m: 0,
                           color: isActive ? 'primary.main' : 'text.primary'
                         }}

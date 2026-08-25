@@ -464,6 +464,23 @@ export function applySiteThemeToBlockProps<T extends BlockType>(
         iconColor: colors.accent,
         iconBackgroundColor: colors.accent
       }
+    case 'showcase':
+      return {
+        ...props,
+        textColor: (props as BlockPropsMap['showcase']).cardStyle === 'layered' ? '#ffffff' : colors.text,
+        background: 'transparent',
+        backgroundType: 'color',
+        backgroundOpacity: 0
+      }
+    case 'pricing':
+      return {
+        ...props,
+        textColor: colors.text,
+        accentColor: colors.accent,
+        background: 'transparent',
+        backgroundType: 'color',
+        backgroundOpacity: 0
+      }
     default:
       return props
   }

@@ -1,27 +1,8 @@
 import mongoose, { Schema, type Model } from 'mongoose'
 
-import type { BlockType } from '@/features/your-space/types'
-
 import type { ISitePageDocument, ISitePageVersionDocument } from './site-page.types'
 
-const BLOCK_TYPES: BlockType[] = [
-  'section',
-  'carousel',
-  'tabs',
-  'header',
-  'footer',
-  'hero',
-  'heading',
-  'text',
-  'button',
-  'image',
-  'video',
-  'logo',
-  'shape',
-  'icon',
-  'contactForm'
-]
-
+import { BLOCK_TYPES } from '@/features/your-space/types'
 
 const sitePageBlockSchema = new Schema(
   {

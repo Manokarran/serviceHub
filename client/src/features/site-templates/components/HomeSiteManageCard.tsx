@@ -17,22 +17,17 @@ export function HomeSiteManageCard({ hasPublishedSite }: Props) {
       <CardContent className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
         <div className='flex flex-col gap-1'>
           <Typography variant='subtitle1' className='font-semibold'>
-            Need a clean slate?
+            Start over
           </Typography>
           <Typography variant='body2' color='text.secondary'>
             {hasPublishedSite
-              ? 'Reset your draft or swap in a new template. Your live site stays published until you publish again.'
-              : 'Reset your draft workspace or apply a different template layout.'}
+              ? 'Reset the draft in Your Space. Your live site stays published until you publish again.'
+              : 'Clear the current draft and begin with a blank Home, About, and Contact layout.'}
           </Typography>
         </div>
         <Box className='flex flex-wrap gap-2'>
-          <Link href='/your-space?replaceTemplate=1' style={{ textDecoration: 'none' }}>
-            <Button variant='outlined' size='small' component='span' startIcon={<i className='ri-exchange-line' />}>
-              Replace with template
-            </Button>
-          </Link>
           <Link href='/your-space?startFresh=1' style={{ textDecoration: 'none' }}>
-            <Button variant='text' size='small' component='span' startIcon={<i className='ri-refresh-line' />}>
+            <Button variant='outlined' size='small' component='span' startIcon={<i className='ri-refresh-line' />}>
               Start fresh
             </Button>
           </Link>

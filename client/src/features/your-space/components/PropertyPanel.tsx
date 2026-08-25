@@ -1,17 +1,23 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import { alpha, useTheme, type SxProps, type Theme } from '@mui/material/styles'
+import { alpha, useTheme } from '@mui/material/styles'
 
 import { PALETTE_ITEMS } from '../constants'
-import { BUILDER_PROPERTY_PANEL_SX, FLOATING_PROPERTY_PANEL_WIDTH } from '../constants/builderLayout'
+import {
+  BUILDER_PROPERTY_PANEL_SX,
+  BUILDER_Z_INDEX
+} from '../constants/builderLayout'
 import { builderFormOutlineSx, builderSidePanelSx } from '../constants/builderChrome'
 import { useBuilder } from '../context/BuilderContext'
+import { useFloatingPanelRect } from '../hooks/useFloatingPanelRect'
+import { BUILDER_PROPERTY_FRAME_KEY, isDockedMaximized, isMaximizedRect } from '../utils/builderPanelFrame'
+import { BuilderFloatingFrame, DockToolButton } from './BuilderFloatingFrame'
 import {
   PropertyBodyText,
   PropertyPanelHeader,
@@ -35,6 +41,8 @@ import { TabsBlockProperties } from './property/blocks/TabsBlockProperties'
 import { ContactFormBlockProperties } from './property/blocks/ContactFormBlockProperties'
 import { HeaderBlockProperties } from './property/blocks/HeaderBlockProperties'
 import { FooterBlockProperties } from './property/blocks/FooterBlockProperties'
+import { ShowcaseBlockProperties } from './property/blocks/ShowcaseBlockProperties'
+import { PricingBlockProperties } from './property/blocks/PricingBlockProperties'
 
 function getBlockIcon(type: Block['type']): string {
   return PALETTE_ITEMS.find(item => item.type === type)?.icon ?? 'ri-layout-grid-line'
@@ -80,6 +88,10 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
       return <IconBlockProperties block={block as Block<'icon'>} activeTab={activeTab} />
     case 'contactForm':
       return <ContactFormBlockProperties block={block as Block<'contactForm'>} activeTab={activeTab} />
+    case 'showcase':
+      return <ShowcaseBlockProperties block={block as Block<'showcase'>} activeTab={activeTab} />
+    case 'pricing':
+      return <PricingBlockProperties block={block as Block<'pricing'>} activeTab={activeTab} />
     default:
       return null
   }
@@ -114,9 +126,25 @@ type PropertyContentProps = {
   onClose?: () => void
   focusTab?: PropertyPanelTab | null
   onFocusTabConsumed?: () => void
+  draggable?: boolean
+  maximized?: boolean
+  onMaximize?: () => void
+  overlay?: boolean
+  pinned?: boolean
+  onPinToggle?: () => void
 }
 
-export function PropertyPanelContent({ onClose, focusTab, onFocusTabConsumed }: PropertyContentProps) {
+export function PropertyPanelContent({
+  onClose,
+  focusTab,
+  onFocusTabConsumed,
+  draggable = false,
+  maximized = false,
+  onMaximize,
+  overlay = false,
+  pinned = false,
+  onPinToggle
+}: PropertyContentProps) {
   const theme = useTheme()
   const { selectedBlock, mode, deleteBlock } = useBuilder()
   const [activeTab, setActiveTab] = useState<PropertyPanelTab>('design')
@@ -166,6 +194,29 @@ export function PropertyPanelContent({ onClose, focusTab, onFocusTabConsumed }: 
         icon={selectedBlock ? getBlockIcon(selectedBlock.type) : undefined}
         onClose={onClose}
         onDelete={selectedBlock ? () => deleteBlock(selectedBlock.id) : undefined}
+        draggable={draggable}
+        extraActions={
+          <>
+            {onMaximize && (
+              <DockToolButton
+                title={maximized ? 'Restore panel size' : overlay ? 'Fill canvas' : 'Widen panel'}
+                icon={maximized ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'}
+                onClick={onMaximize}
+                active={maximized}
+                ariaLabel={maximized ? 'Restore panel size' : overlay ? 'Fill canvas' : 'Widen panel'}
+              />
+            )}
+            {onPinToggle && (
+              <DockToolButton
+                title={pinned ? 'Float over canvas' : 'Pin to the side'}
+                icon={pinned ? 'ri-pushpin-fill' : 'ri-pushpin-line'}
+                onClick={onPinToggle}
+                active={pinned}
+                ariaLabel={pinned ? 'Unpin panel' : 'Pin panel'}
+              />
+            )}
+          </>
+        }
       />
       {selectedBlock && tabItems.length > 0 && (
         <PropertyPanelTabs value={activeTab} onChange={setActiveTab} tabs={tabItems} />
@@ -192,66 +243,175 @@ type Props = {
   open: boolean
   onClose: () => void
   onOpen: () => void
+  overlay?: boolean
+  highlighted?: boolean
   focusTab?: PropertyPanelTab | null
   onFocusTabConsumed?: () => void
+  pinned?: boolean
+  onPinToggle?: () => void
 }
 
-export function PropertyPanel({ open, onClose, onOpen, focusTab, onFocusTabConsumed }: Props) {
+function PropertyPanelRail({
+  highlighted,
+  onClose,
+  onOpen
+}: {
+  highlighted: boolean
+  onClose: () => void
+  onOpen: () => void
+}) {
   const theme = useTheme()
+
+  return (
+    <Box
+      sx={{
+        width: 44,
+        flexShrink: 0,
+        display: { xs: 'none', lg: 'flex' },
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        pt: 1.25,
+        gap: 0.5,
+        height: '100%',
+        ...builderSidePanelSx(theme, 'left')
+      }}
+    >
+      <Tooltip title={highlighted ? 'Hide block properties' : 'Block properties'} placement='left'>
+        <IconButton
+          size='small'
+          onClick={highlighted ? onClose : onOpen}
+          aria-label={highlighted ? 'Hide block properties' : 'Open block properties'}
+          aria-pressed={highlighted}
+          sx={{
+            width: 32,
+            height: 32,
+            color: highlighted ? 'primary.main' : 'text.secondary',
+            backgroundColor: highlighted ? alpha(theme.palette.primary.main, 0.12) : 'transparent'
+          }}
+        >
+          <i className='ri-settings-3-line' style={{ fontSize: '1rem' }} />
+        </IconButton>
+      </Tooltip>
+      <Typography
+        component='span'
+        sx={{
+          fontSize: '0.5625rem',
+          fontWeight: 700,
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+          color: highlighted ? 'primary.main' : 'text.disabled',
+          writingMode: 'vertical-rl',
+          transform: 'rotate(180deg)',
+          mt: 0.5
+        }}
+      >
+        Props
+      </Typography>
+    </Box>
+  )
+}
+
+function PropertyPanelFrame({
+  overlay,
+  onClose,
+  focusTab,
+  onFocusTabConsumed,
+  pinned,
+  onPinToggle
+}: {
+  overlay: boolean
+  onClose: () => void
+  focusTab?: PropertyPanelTab | null
+  onFocusTabConsumed?: () => void
+  pinned: boolean
+  onPinToggle: () => void
+}) {
   const { mode } = useBuilder()
+  const { rect, parentSize, commit, ensureLayout, maximize } = useFloatingPanelRect(BUILDER_PROPERTY_FRAME_KEY, 'right')
 
-  const collapsedPanelSx: SxProps<Theme> = {
-    width: 40,
-    flexShrink: 0,
-    display: { xs: 'none', lg: 'flex' },
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    pt: 1.5,
-    height: '100%',
-    ...builderSidePanelSx(theme, 'left')
-  }
+  const handleCommit = useCallback((next: Parameters<typeof commit>[0], parent: Parameters<typeof commit>[1]) => {
+    commit(next, parent, overlay ? 'overlay' : 'docked')
+  }, [commit, overlay])
 
-  const openPanelSx: SxProps<Theme> = {
-    width: FLOATING_PROPERTY_PANEL_WIDTH,
-    flexShrink: 0,
-    display: { xs: 'none', lg: 'flex' },
-    flexDirection: 'column',
-    overflow: 'hidden',
-    height: '100%',
-    ...builderSidePanelSx(theme, 'left')
-  }
+  const handleEnsureLayout = useCallback((parent: Parameters<typeof ensureLayout>[0]) => {
+    ensureLayout(parent, overlay ? 'overlay' : 'docked')
+  }, [ensureLayout, overlay])
 
-  if (!open) {
-    return (
-      <Box sx={collapsedPanelSx}>
-        <Tooltip title='Block properties' placement='left'>
-          <IconButton
-            size='small'
-            onClick={onOpen}
-            aria-label='Open block properties'
-            sx={{ width: 32, height: 32, color: 'text.secondary' }}
-          >
-            <i className='ri-settings-3-line' style={{ fontSize: '1rem' }} />
-          </IconButton>
-        </Tooltip>
+  const content =
+    mode === 'preview' ? (
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+        <PropertyBodyText>Switch to Edit mode to customize blocks</PropertyBodyText>
       </Box>
+    ) : (
+      <PropertyPanelContent
+        onClose={onClose}
+        focusTab={focusTab}
+        onFocusTabConsumed={onFocusTabConsumed}
+        draggable={overlay}
+        overlay={overlay}
+        pinned={pinned}
+        onPinToggle={onPinToggle}
+        maximized={Boolean(
+          rect &&
+            parentSize.width > 80 &&
+            (overlay ? isMaximizedRect(rect, parentSize) : isDockedMaximized(rect, parentSize))
+        )}
+        onMaximize={() => maximize(overlay ? 'overlay' : 'docked')}
+      />
+    )
+
+  if (overlay) {
+    return (
+      <BuilderFloatingFrame
+        overlay
+        side='right'
+        rect={rect}
+        zIndex={BUILDER_Z_INDEX.propertyOverlay}
+        onCommit={handleCommit}
+        onEnsureLayout={handleEnsureLayout}
+      >
+        {content}
+      </BuilderFloatingFrame>
     )
   }
 
   return (
-    <Box sx={openPanelSx}>
-      {mode === 'preview' ? (
-        <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-          <PropertyBodyText>Switch to Edit mode to customize blocks</PropertyBodyText>
-        </Box>
-      ) : (
-        <PropertyPanelContent
-          onClose={onClose}
-          focusTab={focusTab}
-          onFocusTabConsumed={onFocusTabConsumed}
-        />
-      )}
-    </Box>
+    <BuilderFloatingFrame
+      overlay={false}
+      side='right'
+      rect={rect}
+      onCommit={handleCommit}
+      onEnsureLayout={handleEnsureLayout}
+    >
+      {content}
+    </BuilderFloatingFrame>
+  )
+}
+
+export function PropertyPanel({
+  open,
+  onClose,
+  onOpen,
+  overlay = false,
+  highlighted = false,
+  focusTab,
+  onFocusTabConsumed,
+  pinned = false,
+  onPinToggle
+}: Props) {
+  if (!open) {
+    return <PropertyPanelRail highlighted={highlighted} onClose={onClose} onOpen={onOpen} />
+  }
+
+  return (
+    <PropertyPanelFrame
+      overlay={overlay}
+      onClose={onClose}
+      focusTab={focusTab}
+      onFocusTabConsumed={onFocusTabConsumed}
+      pinned={pinned}
+      onPinToggle={onPinToggle ?? (() => undefined)}
+    />
   )
 }

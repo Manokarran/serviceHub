@@ -1,6 +1,7 @@
 'use client'
 
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
 import CardContent from '@mui/material/CardContent'
@@ -19,6 +20,7 @@ type Props = {
   template: SiteTemplateSummary
   selected?: boolean
   onSelect?: (templateId: string) => void
+  onPreview?: (templateId: string) => void
   showStatus?: boolean
   href?: string
   variant?: 'default' | 'featured'
@@ -28,6 +30,7 @@ export function TemplateCard({
   template,
   selected = false,
   onSelect,
+  onPreview,
   showStatus = false,
   href,
   variant = 'default'
@@ -63,6 +66,27 @@ export function TemplateCard({
         }}
       >
         {preview}
+        {onPreview && (hasLivePreview || template.pageCount > 0) ? (
+          <Button
+            size='small'
+            variant='contained'
+            startIcon={<i className='ri-eye-line' />}
+            onClick={event => {
+              event.preventDefault()
+              event.stopPropagation()
+              onPreview(template.id)
+            }}
+            sx={{
+              position: 'absolute',
+              bottom: 12,
+              right: 12,
+              zIndex: 2,
+              boxShadow: theme.shadows[4]
+            }}
+          >
+            View
+          </Button>
+        ) : null}
         {selected ? (
           <Box
             sx={{

@@ -1,3 +1,5 @@
+import mongoose from 'mongoose'
+
 import { connectDB } from '@/lib/db'
 import {
   ContactSubmissionModel,
@@ -93,6 +95,31 @@ export class ContactSubmissionRepository {
       .exec()
 
     return docs.map(toSummary)
+  }
+
+  async countByDaySince(tenantId: string, since: Date): Promise<{ day: string; count: number }[]> {
+    await connectDB()
+
+    if (!mongoose.Types.ObjectId.isValid(tenantId)) {
+      return []
+    }
+
+    const rows = await ContactSubmissionModel.aggregate<{ _id: string; count: number }>([
+      {
+        $match: {
+          tenantId: new mongoose.Types.ObjectId(tenantId),
+          createdAt: { $gte: since }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          count: { $sum: 1 }
+        }
+      }
+    ]).exec()
+
+    return rows.map(row => ({ day: row._id, count: row.count }))
   }
 }
 

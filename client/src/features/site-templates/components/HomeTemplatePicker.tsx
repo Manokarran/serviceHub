@@ -94,12 +94,11 @@ export function HomeTemplatePicker({ isSiteStarted }: Props) {
         <CardContent className='flex flex-col gap-5'>
           <Box className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4'>
             <div>
-              <Typography variant='h6' className='mbe-1'>
-                Choose your starting layout
+              <Typography variant='h6' className='mbe-1' sx={{ fontWeight: 700 }}>
+                Or pick a layout below
               </Typography>
               <Typography color='text.secondary'>
-                Pick a professionally designed template to bootstrap your site, or open the builder to start from
-                scratch.
+                Select a published template to apply it right away, or open the full browser for a larger preview.
               </Typography>
             </div>
             <Box className='flex flex-wrap gap-2'>
@@ -109,8 +108,8 @@ export function HomeTemplatePicker({ isSiteStarted }: Props) {
                 </Button>
               </Link>
               <Link href='/your-space?aiSetup=1' style={{ textDecoration: 'none' }}>
-                <Button variant='contained' color='secondary' component='span' startIcon={<i className='ri-magic-line' />}>
-                  Start with AI
+                <Button variant='contained' color='secondary' component='span' startIcon={<i className='ri-sparkling-line' />}>
+                  Generate website
                 </Button>
               </Link>
             </Box>

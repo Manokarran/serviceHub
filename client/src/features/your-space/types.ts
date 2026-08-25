@@ -1,19 +1,24 @@
-export type BlockType =
-  | 'section'
-  | 'carousel'
-  | 'tabs'
-  | 'header'
-  | 'footer'
-  | 'hero'
-  | 'heading'
-  | 'text'
-  | 'button'
-  | 'image'
-  | 'video'
-  | 'logo'
-  | 'shape'
-  | 'icon'
-  | 'contactForm'
+export const BLOCK_TYPES = [
+  'section',
+  'carousel',
+  'tabs',
+  'header',
+  'footer',
+  'hero',
+  'heading',
+  'text',
+  'button',
+  'image',
+  'video',
+  'logo',
+  'shape',
+  'icon',
+  'contactForm',
+  'showcase',
+  'pricing'
+] as const
+
+export type BlockType = (typeof BLOCK_TYPES)[number]
 
 export type LogoPosition = 'left' | 'center' | 'right'
 
@@ -128,7 +133,15 @@ export type BuilderViewport = 'desktop' | 'tablet' | 'mobile'
 
 export type BuilderSidebarPanel = 'pages' | 'blocks' | 'design'
 
-export type PaletteCategory = 'layout' | 'carousel' | 'tabs' | 'sections' | 'media' | 'typography' | 'forms'
+export type PaletteCategory =
+  | 'layout'
+  | 'carousel'
+  | 'tabs'
+  | 'sections'
+  | 'media'
+  | 'typography'
+  | 'forms'
+  | 'pricing'
 
 export interface BlockBackgroundProps {
   background?: string
@@ -221,6 +234,122 @@ export interface HeroBlockProps {
   backgroundPhotoAnimation?: ImageHoverEffect
   /** @deprecated Use `background` — kept for persisted documents before migration */
   backgroundColor?: string
+}
+
+export type ShowcaseLayout = 'split' | 'stack' | 'cards'
+export type ShowcaseColumns = 1 | 2 | 3
+export type ShowcaseMediaSide = 'start' | 'end'
+export type ShowcaseCardStyle = 'layered' | 'stacked'
+export type ShowcaseVisualKind = 'image' | 'logo' | 'animation'
+
+export interface ShowcaseItem {
+  id: string
+  logoSrc: string
+  logoAlt: string
+  logoText: string
+  imageSrc: string
+  imageAlt: string
+  visualKind: ShowcaseVisualKind
+  splitVisualAnimation: HeroSplitVisualAnimation
+  splitVisualColorStart: string
+  splitVisualColorEnd: string
+  eyebrow: string
+  title: string
+  body: string
+  buttonText: string
+  buttonLink: string
+}
+
+export interface ShowcaseBlockProps extends BlockBackgroundProps, SplitVisualConfig {
+  layout: ShowcaseLayout
+  columns: ShowcaseColumns
+  mediaSide: ShowcaseMediaSide
+  cardStyle: ShowcaseCardStyle
+  alignment: TextAlign
+  textColor: string
+  minHeight: number
+  paddingY: number
+  paddingX: number
+  maxWidth: 'sm' | 'md' | 'lg' | 'full'
+  splitRatio: number
+  gap: number
+  mediaRadius: number
+  mediaOverlay: HeroMediaOverlay
+  buttonStyle?: HeroButtonStyle
+  titleStyle?: HeroTitleStyle
+  items: ShowcaseItem[]
+}
+
+export type PricingLayout = 'cards' | 'comparison' | 'stack'
+export type PricingCardStyle = 'elevated' | 'outlined' | 'filled' | 'tinted' | 'glass'
+export type PricingCardShadow = 'none' | 'soft' | 'medium' | 'strong'
+export type PricingInterval = 'monthly' | 'annual'
+export type PricingFeatureState = 'included' | 'excluded' | 'limited'
+export type PricingHoverEffect = 'none' | 'lift' | 'glow'
+export type PricingEntranceAnimation = 'none' | 'fade-in' | 'slide-up'
+export type PricingFeatureIconStyle = 'check' | 'dot' | 'none'
+export type PricingColumns = 2 | 3 | 4
+
+export interface PricingFeature {
+  id: string
+  text: string
+  state: PricingFeatureState
+  hint?: string
+}
+
+export interface PricingPlan {
+  id: string
+  name: string
+  description: string
+  badge: string
+  recommended: boolean
+  monthlyPrice: number
+  annualMonthlyPrice: number
+  customPriceLabel: string
+  currency: string
+  discountPercent: number
+  discountLabel: string
+  features: PricingFeature[]
+  ctaText: string
+  ctaLink: string
+  accentColor: string
+  cardBackground: string
+}
+
+export interface PricingBlockProps extends BlockBackgroundProps, SplitVisualConfig {
+  eyebrow: string
+  title: string
+  subtitle: string
+  alignment: TextAlign
+  layout: PricingLayout
+  cardStyle: PricingCardStyle
+  columns: PricingColumns
+  showIntervalToggle: boolean
+  defaultInterval: PricingInterval
+  monthlyLabel: string
+  annualLabel: string
+  annualBadge: string
+  currency: string
+  showYearlyTotal: boolean
+  plans: PricingPlan[]
+  paddingY: number
+  paddingX: number
+  maxWidth: 'sm' | 'md' | 'lg' | 'full'
+  gap: number
+  cardRadius: number
+  textColor: string
+  accentColor: string
+  cardBackground: string
+  cardBorderColor: string
+  cardBorderWidth: number
+  cardShadow: PricingCardShadow
+  recommendedScale: boolean
+  buttonStyle?: HeroButtonStyle
+  titleStyle?: HeroTitleStyle
+  hoverEffect: PricingHoverEffect
+  entranceAnimation: PricingEntranceAnimation
+  recommendedGlow: boolean
+  featureIconStyle: PricingFeatureIconStyle
 }
 
 export type CarouselTransition = 'slide' | 'fade' | 'scale' | 'coverflow'
@@ -534,6 +663,8 @@ export type BlockPropsMap = {
   shape: ShapeBlockProps
   icon: IconBlockProps
   contactForm: ContactFormBlockProps
+  showcase: ShowcaseBlockProps
+  pricing: PricingBlockProps
 }
 
 export interface Block<T extends BlockType = BlockType> {

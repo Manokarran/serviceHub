@@ -12,6 +12,7 @@ import {
   saveSitePageDraftAction,
   updateSitePageMetaAction
 } from '@/app/actions/site-page.actions'
+import type { BuilderScope } from '@/lib/site-template/resolve-builder-tenant'
 import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-page'
 import { toPlainJson } from '@/lib/utils/plain-json'
 import { isHomePageSlug } from '@/lib/utils/page-slug'
@@ -41,6 +42,7 @@ import {
   readBuilderGridMode
 } from '../utils/builderContainerChrome'
 import { siteStylesEqual } from '../utils/siteStylesEqual'
+import { recordPaletteUse } from '../utils/paletteUsage'
 
 type BuilderState = {
   blocks: Block[]
@@ -48,6 +50,7 @@ type BuilderState = {
   siteStyles: SiteStyles
   publishedSiteStyles: SiteStyles
   selectedBlockId: string | null
+  selectedNestedItemId: string | null
   mode: BuilderMode
   viewport: BuilderViewport
   showGrid: boolean
@@ -88,6 +91,7 @@ type BuilderAction =
   | { type: 'DELETE_BLOCK'; id: string }
   | { type: 'MOVE_BLOCK'; activeId: string; overId: string | number; nestHints?: NestTargetHints }
   | { type: 'SELECT_BLOCK'; id: string | null }
+  | { type: 'SELECT_NESTED_ITEM'; id: string | null }
   | { type: 'SET_MODE'; mode: BuilderMode }
   | { type: 'SET_VIEWPORT'; viewport: BuilderViewport }
   | { type: 'SET_SHOW_GRID'; showGrid: boolean }
@@ -126,6 +130,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         currentPageSlug: action.currentPageSlug ?? state.currentPageSlug,
         currentPageTitle: action.currentPageTitle ?? state.currentPageTitle,
         pages: action.pages ?? state.pages,
+        selectedNestedItemId: null,
         saveError: null,
         publishError: null
       }
@@ -143,6 +148,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         ...state,
         blocks: addBlockToTree(state.blocks, action.block, action.target),
         selectedBlockId: action.block.id,
+        selectedNestedItemId: null,
         isDirty: true,
         saveError: null,
         publishError: null
@@ -160,6 +166,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         ...state,
         blocks: deleteBlockFromTree(state.blocks, action.id),
         selectedBlockId: state.selectedBlockId === action.id ? null : state.selectedBlockId,
+        selectedNestedItemId: state.selectedBlockId === action.id ? null : state.selectedNestedItemId,
         isDirty: true,
         saveError: null,
         publishError: null
@@ -173,9 +180,20 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         publishError: null
       }
     case 'SELECT_BLOCK':
-      return { ...state, selectedBlockId: action.id }
+      return {
+        ...state,
+        selectedBlockId: action.id,
+        selectedNestedItemId: action.id && action.id === state.selectedBlockId ? state.selectedNestedItemId : null
+      }
+    case 'SELECT_NESTED_ITEM':
+      return { ...state, selectedNestedItemId: action.id }
     case 'SET_MODE':
-      return { ...state, mode: action.mode, selectedBlockId: action.mode === 'preview' ? null : state.selectedBlockId }
+      return {
+        ...state,
+        mode: action.mode,
+        selectedBlockId: action.mode === 'preview' ? null : state.selectedBlockId,
+        selectedNestedItemId: action.mode === 'preview' ? null : state.selectedNestedItemId
+      }
     case 'SET_VIEWPORT':
       return { ...state, viewport: action.viewport }
     case 'SET_SHOW_GRID':
@@ -211,6 +229,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         blocks: normalizeBlocks(action.blocks),
         publishedBlocks: normalizeBlocks(action.publishedBlocks),
         selectedBlockId: null,
+        selectedNestedItemId: null,
         isDirty: false,
         isPageSwitching: false,
         isLoading: false,
@@ -254,6 +273,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         ...state,
         blocks: createStarterBlocks(),
         selectedBlockId: null,
+        selectedNestedItemId: null,
         isDirty: true,
         saveError: null,
         publishError: null
@@ -263,6 +283,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         ...state,
         blocks: [],
         selectedBlockId: null,
+        selectedNestedItemId: null,
         isDirty: true,
         saveError: null,
         publishError: null
@@ -274,6 +295,8 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
 
 type BuilderContextValue = BuilderState & {
   tenantSlug: string
+  builderScope: BuilderScope
+  libraryTemplateId: string | null
   selectedBlock: Block | null
   hasUnpublishedChanges: boolean
   addBlock: (type: BlockType, target?: BlockLocation, paletteId?: string) => Block
@@ -287,6 +310,7 @@ type BuilderContextValue = BuilderState & {
   pasteBlock: (afterBlockId?: string) => void
   moveBlock: (activeId: string, overId: string | number, nestHints?: NestTargetHints) => void
   selectBlock: (id: string | null) => void
+  selectNestedItem: (id: string | null) => void
   setMode: (mode: BuilderMode) => void
   setViewport: (viewport: BuilderViewport) => void
   setShowGrid: (showGrid: boolean) => void
@@ -317,6 +341,8 @@ const BuilderContext = createContext<BuilderContextValue | null>(null)
 
 type BuilderProviderProps = {
   tenantSlug: string
+  builderScope?: BuilderScope
+  libraryTemplateId?: string | null
   initialPageSlug: string
   initialPages: SitePageSummary[]
   initialDraftBlocks: Block[] | null
@@ -356,6 +382,8 @@ function loadBlocksFromLocalStorage(tenantSlug: string, pageSlug: string): Block
 
 export function BuilderProvider({
   tenantSlug,
+  builderScope = 'organization',
+  libraryTemplateId = null,
   initialPageSlug,
   initialPages,
   initialDraftBlocks,
@@ -377,6 +405,7 @@ export function BuilderProvider({
       DEFAULT_SITE_STYLES
     ),
     selectedBlockId: null,
+    selectedNestedItemId: null,
     mode: 'edit',
     viewport: 'desktop',
     showGrid: readBuilderGridMode(),
@@ -425,12 +454,12 @@ export function BuilderProvider({
 
   const refreshPages = useCallback(async () => {
     const { listSitePagesAction } = await import('@/app/actions/site-page.actions')
-    const result = await listSitePagesAction()
+    const result = await listSitePagesAction(builderScope, libraryTemplateId ?? undefined)
 
     if (result.success) {
       dispatch({ type: 'SET_PAGES', pages: result.pages })
     }
-  }, [])
+  }, [builderScope, libraryTemplateId])
 
   const persistDraft = useCallback(
     async (pageSlug: string, blocks: Block[], siteStyles: SiteStyles): Promise<boolean> => {
@@ -440,7 +469,9 @@ export function BuilderProvider({
       const result = await saveSitePageDraftAction(
         pageSlug,
         blocks,
-        isHomePageSlug(pageSlug) ? siteStyles : undefined
+        isHomePageSlug(pageSlug) ? siteStyles : undefined,
+        builderScope,
+        libraryTemplateId ?? undefined
       )
 
       if (!result.success) {
@@ -450,10 +481,16 @@ export function BuilderProvider({
       }
 
       if (!isHomePageSlug(pageSlug) && stylesChanged) {
-        const homePage = await getSitePageAction('home')
+        const homePage = await getSitePageAction('home', builderScope, libraryTemplateId ?? undefined)
 
         if (homePage.success) {
-          await saveSitePageDraftAction('home', homePage.page.draftBlocks, siteStyles)
+          await saveSitePageDraftAction(
+            'home',
+            homePage.page.draftBlocks,
+            siteStyles,
+            builderScope,
+            libraryTemplateId ?? undefined
+          )
         }
       }
 
@@ -463,7 +500,7 @@ export function BuilderProvider({
 
       return true
     },
-    [tenantSlug, refreshPages]
+    [tenantSlug, refreshPages, builderScope, libraryTemplateId]
   )
 
   useEffect(() => {
@@ -515,7 +552,9 @@ export function BuilderProvider({
         const result = await saveSitePageDraftAction(
           initialPageSlug,
           localBlocks,
-          isHomePageSlug(initialPageSlug) ? siteStylesRef.current : undefined
+          isHomePageSlug(initialPageSlug) ? siteStylesRef.current : undefined,
+          builderScope,
+          libraryTemplateId ?? undefined
         )
 
         if (!cancelled) {
@@ -563,7 +602,9 @@ export function BuilderProvider({
     initialPageSlug,
     initialPageTitle,
     initialPages,
-    tenantSlug
+    tenantSlug,
+    builderScope,
+    libraryTemplateId
   ])
 
   const hasUnpublishedChanges = useMemo(() => {
@@ -595,6 +636,7 @@ export function BuilderProvider({
     const dropTarget = target ?? resolveDropTarget(blocksRef.current, 'canvas-drop-zone', type)
 
     dispatch({ type: 'ADD_BLOCK', block, target: dropTarget })
+    recordPaletteUse(paletteId)
 
     return block
   }, [])
@@ -642,6 +684,10 @@ export function BuilderProvider({
 
   const selectBlock = useCallback((id: string | null) => {
     dispatch({ type: 'SELECT_BLOCK', id })
+  }, [])
+
+  const selectNestedItem = useCallback((id: string | null) => {
+    dispatch({ type: 'SELECT_NESTED_ITEM', id })
   }, [])
 
   const setMode = useCallback((mode: BuilderMode) => {
@@ -701,7 +747,7 @@ export function BuilderProvider({
       return
     }
 
-    const result = await publishAllSitePagesAction()
+    const result = await publishAllSitePagesAction(builderScope, libraryTemplateId ?? undefined)
 
     if (!result.success) {
       dispatch({ type: 'SET_PUBLISH_ERROR', error: result.error })
@@ -709,7 +755,7 @@ export function BuilderProvider({
       return
     }
 
-    const versionsResult = await listSitePageVersionsAction(pageSlug)
+    const versionsResult = await listSitePageVersionsAction(pageSlug, builderScope, libraryTemplateId ?? undefined)
     const versions = versionsResult.success ? versionsResult.versions : result.versions
 
     dispatch({
@@ -725,7 +771,7 @@ export function BuilderProvider({
     }
 
     void refreshPages()
-  }, [persistDraft, tenantSlug, refreshPages, state.pages])
+  }, [persistDraft, tenantSlug, refreshPages, state.pages, builderScope, libraryTemplateId])
 
   const switchPage = useCallback(
     async (slug: string) => {
@@ -739,7 +785,7 @@ export function BuilderProvider({
         await persistDraft(currentPageSlugRef.current, blocksRef.current, siteStylesRef.current)
       }
 
-      const result = await getSitePageAction(slug)
+      const result = await getSitePageAction(slug, builderScope, libraryTemplateId ?? undefined)
 
       if (!result.success) {
         dispatch({ type: 'SET_PAGE_SWITCHING', isPageSwitching: false })
@@ -748,7 +794,7 @@ export function BuilderProvider({
         return
       }
 
-      const versionsResult = await listSitePageVersionsAction(slug)
+      const versionsResult = await listSitePageVersionsAction(slug, builderScope, libraryTemplateId ?? undefined)
       const versions = versionsResult.success ? versionsResult.versions : []
 
       dispatch({
@@ -764,12 +810,12 @@ export function BuilderProvider({
 
       void refreshPages()
     },
-    [persistDraft, refreshPages]
+    [persistDraft, refreshPages, builderScope, libraryTemplateId]
   )
 
   const createPage = useCallback(
     async (title: string, options?: { slug?: string }) => {
-      const result = await createSitePageAction({ title, ...options })
+      const result = await createSitePageAction({ title, ...options }, builderScope, libraryTemplateId ?? undefined)
 
       if (result.success) {
         void refreshPages()
@@ -777,12 +823,17 @@ export function BuilderProvider({
 
       return result
     },
-    [refreshPages]
+    [refreshPages, builderScope, libraryTemplateId]
   )
 
   const duplicatePage = useCallback(
     async (sourceSlug: string, newTitle: string) => {
-      const result = await duplicateSitePageAction(sourceSlug, newTitle)
+      const result = await duplicateSitePageAction(
+        sourceSlug,
+        newTitle,
+        builderScope,
+        libraryTemplateId ?? undefined
+      )
 
       if (result.success) {
         void refreshPages()
@@ -790,12 +841,12 @@ export function BuilderProvider({
 
       return result
     },
-    [refreshPages]
+    [refreshPages, builderScope, libraryTemplateId]
   )
 
   const pasteBlocksFromPage = useCallback(
     async (sourceSlug: string) => {
-      const result = await getSitePageAction(sourceSlug)
+      const result = await getSitePageAction(sourceSlug, builderScope, libraryTemplateId ?? undefined)
 
       if (!result.success) {
         return
@@ -805,12 +856,12 @@ export function BuilderProvider({
 
       dispatch({ type: 'SET_BLOCKS', blocks: sourceBlocks, savedAt: state.lastSavedAt ?? new Date().toISOString() })
     },
-    [state.lastSavedAt]
+    [state.lastSavedAt, builderScope, libraryTemplateId]
   )
 
   const deletePage = useCallback(
     async (slug: string) => {
-      const result = await deleteSitePageAction(slug)
+      const result = await deleteSitePageAction(slug, builderScope, libraryTemplateId ?? undefined)
 
       if (!result.success) {
         dispatch({ type: 'SET_SAVE_ERROR', error: result.error })
@@ -824,12 +875,12 @@ export function BuilderProvider({
 
       void refreshPages()
     },
-    [switchPage, refreshPages]
+    [switchPage, refreshPages, builderScope, libraryTemplateId]
   )
 
   const updatePageMeta = useCallback(
     async (slug: string, input: { title?: string; description?: string }) => {
-      const result = await updateSitePageMetaAction(slug, input)
+      const result = await updateSitePageMetaAction(slug, input, builderScope, libraryTemplateId ?? undefined)
 
       if (result.success) {
         if (slug === currentPageSlugRef.current && input.title) {
@@ -850,7 +901,15 @@ export function BuilderProvider({
         dispatch({ type: 'SET_SAVE_ERROR', error: result.error })
       }
     },
-    [refreshPages, state.lastPublishedAt, state.lastSavedAt, state.publishedBlocks, state.versions]
+    [
+      refreshPages,
+      state.lastPublishedAt,
+      state.lastSavedAt,
+      state.publishedBlocks,
+      state.versions,
+      builderScope,
+      libraryTemplateId
+    ]
   )
 
   const restoreVersionToDraft = useCallback((blocks: Block[], savedAt: string) => {
@@ -903,6 +962,8 @@ export function BuilderProvider({
     () => ({
       ...state,
       tenantSlug,
+      builderScope,
+      libraryTemplateId,
       hasUnpublishedChanges,
       selectedBlock,
       addBlock,
@@ -913,6 +974,7 @@ export function BuilderProvider({
       pasteBlock,
       moveBlock: moveBlockAction,
       selectBlock,
+      selectNestedItem,
       setMode,
       setViewport,
       setShowGrid,
@@ -937,6 +999,8 @@ export function BuilderProvider({
     [
       state,
       tenantSlug,
+      builderScope,
+      libraryTemplateId,
       hasUnpublishedChanges,
       selectedBlock,
       addBlock,
@@ -947,6 +1011,7 @@ export function BuilderProvider({
       pasteBlock,
       moveBlockAction,
       selectBlock,
+      selectNestedItem,
       setMode,
       setViewport,
       setShowGrid,

@@ -38,7 +38,12 @@ import { PropertyPanel } from './PropertyPanel'
 import type { PropertyPanelTab } from '../components/property/PropertyPanelUi'
 import { BuilderShellProvider } from '../context/BuilderShellContext'
 import { useBuilderFullscreen } from '../hooks/useBuilderFullscreen'
+import { useBuilderLeftChrome } from '../hooks/useBuilderLeftChrome'
+import { useBuilderPropertyChrome } from '../hooks/useBuilderPropertyChrome'
+import { useFloatingPanelRect } from '../hooks/useFloatingPanelRect'
+import { BUILDER_LEFT_FRAME_KEY } from '../utils/builderPanelFrame'
 import { BuilderTemplateLauncher } from '@/features/site-templates/components/BuilderTemplateLauncher'
+import type { BuilderScope } from '@/lib/site-template/resolve-builder-tenant'
 
 type WebsiteBuilderInnerProps = {
   tenantName: string
@@ -57,15 +62,12 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   const [pagesOpen, setPagesOpen] = useState(false)
   const [propertiesOpen, setPropertiesOpen] = useState(false)
   const [stylesOpen, setStylesOpen] = useState(false)
-  // Left panel: which panel is open (null = collapsed — icon rail only)
-  const [leftPanel, setLeftPanel] = useState<'pages' | 'blocks' | 'design' | null>(null)
+  const { leftPanel, leftPinned, chromeReady, togglePanel, closePanel, togglePinned } = useBuilderLeftChrome()
+  const leftFrame = useFloatingPanelRect(BUILDER_LEFT_FRAME_KEY, 'left')
+  const { propertyPinned, propertyChromeReady, togglePropertyPinned } = useBuilderPropertyChrome()
   const [propertyPanelOpen, setPropertyPanelOpen] = useState(false)
   const [propertyPanelFocusTab, setPropertyPanelFocusTab] = useState<PropertyPanelTab | null>(null)
   const lastOpenedBlockId = useRef<string | null>(null)
-
-  const handleLeftPanelToggle = useCallback((panel: 'pages' | 'blocks' | 'design') => {
-    setLeftPanel(prev => (prev === panel ? null : panel))
-  }, [])
 
   const openPropertyPanel = useCallback((tab?: PropertyPanelTab) => {
     setPropertyPanelOpen(true)
@@ -106,10 +108,68 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
       setPagesOpen(false)
       setPropertiesOpen(false)
       setStylesOpen(false)
-      setLeftPanel(null)
       setPropertyPanelOpen(false)
     }
   }, [isEditMode])
+
+  useEffect(() => {
+    if (!isEditMode || isMobileLayout) {
+      return
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
+        return
+      }
+
+      const target = event.target as HTMLElement | null
+
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) {
+        return
+      }
+
+      if (event.key === 'Escape') {
+        if (propertyPanelOpen && !propertyPinned) {
+          event.preventDefault()
+          event.stopPropagation()
+          setPropertyPanelOpen(false)
+
+          return
+        }
+
+        if (leftPanel && !leftPinned) {
+          event.preventDefault()
+          event.stopPropagation()
+          closePanel()
+
+          return
+        }
+      }
+
+      if (event.repeat) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+
+      if (key === 'b') {
+        event.preventDefault()
+        togglePanel('blocks')
+      } else if (key === 'p') {
+        event.preventDefault()
+        togglePanel('pages')
+      } else if (key === 's') {
+        event.preventDefault()
+        togglePanel('design')
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown, true)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [closePanel, isEditMode, isMobileLayout, leftPanel, leftPinned, propertyPanelOpen, propertyPinned, togglePanel])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -203,24 +263,83 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
         />
         <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
           {isEditMode && !isMobileLayout && (
-            <BuilderSidebar activePanel={leftPanel} onToggle={handleLeftPanelToggle} />
+            <BuilderSidebar activePanel={leftPanel} onToggle={togglePanel} />
           )}
 
-          {isEditMode && !isMobileLayout && leftPanel !== null && (
-            <BuilderDockPanel panel={leftPanel} onClose={() => setLeftPanel(null)} />
+          {isEditMode && !isMobileLayout && chromeReady && leftPanel !== null && leftPinned && (
+            <BuilderDockPanel
+              panel={leftPanel}
+              onClose={closePanel}
+              pinned={leftPinned}
+              onPinToggle={togglePinned}
+              rect={leftFrame.rect}
+              parentSize={leftFrame.parentSize}
+              onCommit={leftFrame.commit}
+              onEnsureLayout={leftFrame.ensureLayout}
+              onMaximize={leftFrame.maximize}
+            />
           )}
 
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+          <Box
+            sx={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 0,
+              minHeight: 0,
+              overflow: 'hidden',
+              position: 'relative'
+            }}
+          >
+            {isEditMode && !isMobileLayout && chromeReady && leftPanel !== null && !leftPinned && (
+              <BuilderDockPanel
+                panel={leftPanel}
+                onClose={closePanel}
+                pinned={leftPinned}
+                onPinToggle={togglePinned}
+                overlay
+                rect={leftFrame.rect}
+                parentSize={leftFrame.parentSize}
+                onCommit={leftFrame.commit}
+                onEnsureLayout={leftFrame.ensureLayout}
+                onMaximize={leftFrame.maximize}
+              />
+            )}
+
             <BuilderCanvas isMobileLayout={isMobileLayout} />
+
+            {isEditMode && !isMobileLayout && propertyChromeReady && propertyPanelOpen && !propertyPinned && (
+              <PropertyPanel
+                open
+                overlay
+                pinned={propertyPinned}
+                onPinToggle={togglePropertyPinned}
+                onClose={() => setPropertyPanelOpen(false)}
+                onOpen={() => setPropertyPanelOpen(true)}
+                focusTab={propertyPanelFocusTab}
+                onFocusTabConsumed={() => setPropertyPanelFocusTab(null)}
+              />
+            )}
           </Box>
 
-          {isEditMode && !isMobileLayout && (
+          {isEditMode && !isMobileLayout && propertyChromeReady && propertyPanelOpen && propertyPinned && (
             <PropertyPanel
-              open={propertyPanelOpen}
+              open
+              pinned={propertyPinned}
+              onPinToggle={togglePropertyPinned}
               onClose={() => setPropertyPanelOpen(false)}
               onOpen={() => setPropertyPanelOpen(true)}
               focusTab={propertyPanelFocusTab}
               onFocusTabConsumed={() => setPropertyPanelFocusTab(null)}
+            />
+          )}
+
+          {isEditMode && !isMobileLayout && !(propertyPanelOpen && propertyPinned) && (
+            <PropertyPanel
+              open={false}
+              highlighted={propertyPanelOpen}
+              onClose={() => setPropertyPanelOpen(false)}
+              onOpen={() => setPropertyPanelOpen(true)}
             />
           )}
         </Box>
@@ -255,6 +374,8 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
 type WebsiteBuilderProps = {
   tenantSlug: string
   tenantName: string
+  builderScope?: BuilderScope
+  libraryTemplateId?: string | null
   initialPageSlug: string
   initialPages: SitePageSummary[]
   initialPageTitle: string
@@ -272,6 +393,8 @@ type WebsiteBuilderProps = {
 function WebsiteBuilderContent({
   tenantSlug,
   tenantName,
+  builderScope = 'organization',
+  libraryTemplateId = null,
   initialPageSlug,
   initialPages,
   initialPageTitle,
@@ -285,29 +408,39 @@ function WebsiteBuilderContent({
   isSiteStarted,
   extraPageCount
 }: WebsiteBuilderProps) {
+  const builder = (
+    <BuilderProvider
+      tenantSlug={tenantSlug}
+      builderScope={builderScope}
+      libraryTemplateId={libraryTemplateId}
+      initialPageSlug={initialPageSlug}
+      initialPages={initialPages}
+      initialPageTitle={initialPageTitle}
+      initialDraftBlocks={initialDraftBlocks}
+      initialPublishedBlocks={initialPublishedBlocks}
+      initialDraftSiteStyles={initialDraftSiteStyles}
+      initialPublishedSiteStyles={initialPublishedSiteStyles}
+      initialSavedAt={initialSavedAt}
+      initialPublishedAt={initialPublishedAt}
+      initialVersions={initialVersions}
+    >
+      <BuilderNestTargetsProvider>
+        <WebsiteBuilderInner tenantName={tenantName} />
+      </BuilderNestTargetsProvider>
+    </BuilderProvider>
+  )
+
+  if (builderScope === 'base_template' || builderScope === 'library_template') {
+    return builder
+  }
+
   return (
     <BuilderTemplateLauncher
       tenantSlug={tenantSlug}
       isSiteStarted={isSiteStarted}
       extraPageCount={extraPageCount}
     >
-      <BuilderProvider
-        tenantSlug={tenantSlug}
-        initialPageSlug={initialPageSlug}
-        initialPages={initialPages}
-        initialPageTitle={initialPageTitle}
-        initialDraftBlocks={initialDraftBlocks}
-        initialPublishedBlocks={initialPublishedBlocks}
-        initialDraftSiteStyles={initialDraftSiteStyles}
-        initialPublishedSiteStyles={initialPublishedSiteStyles}
-        initialSavedAt={initialSavedAt}
-        initialPublishedAt={initialPublishedAt}
-        initialVersions={initialVersions}
-      >
-        <BuilderNestTargetsProvider>
-          <WebsiteBuilderInner tenantName={tenantName} />
-        </BuilderNestTargetsProvider>
-      </BuilderProvider>
+      {builder}
     </BuilderTemplateLauncher>
   )
 }

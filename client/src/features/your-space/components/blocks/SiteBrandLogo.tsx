@@ -153,3 +153,37 @@ export function getHorizontalOrder(logoPosition: LogoPosition): { logo: number; 
 
   return { logo: 1, nav: 2 }
 }
+
+/** Horizontal footer: brand and copyright occupy opposite 1fr columns; nav sits in the middle. */
+export function getFooterChromePlacement(
+  logoPosition: LogoPosition,
+  isVertical: boolean,
+  hasNav: boolean
+): {
+  stacked: boolean
+  logoColumn: number
+  navColumn: number
+  copyrightColumn: number
+} {
+  const stacked = isVertical || logoPosition === 'center'
+
+  if (stacked) {
+    return { stacked: true, logoColumn: 1, navColumn: 1, copyrightColumn: 1 }
+  }
+
+  if (logoPosition === 'right') {
+    return {
+      stacked: false,
+      logoColumn: hasNav ? 3 : 2,
+      navColumn: 2,
+      copyrightColumn: 1
+    }
+  }
+
+  return {
+    stacked: false,
+    logoColumn: 1,
+    navColumn: 2,
+    copyrightColumn: hasNav ? 3 : 2
+  }
+}

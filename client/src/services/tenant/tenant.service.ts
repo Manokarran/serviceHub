@@ -1,6 +1,7 @@
 import { AppError } from '@/lib/errors'
 import { completeRegistrationSchema, type CompleteRegistrationInput } from '@/lib/validators'
 import { slugify } from '@/lib/utils/slug'
+import { isReservedTenantSlug } from '@/lib/utils/tenant-slug'
 import { tenantRepository, userRepository } from '@/repositories'
 import { sitePageService } from '@/services/site-page'
 import { siteTemplateService } from '@/services/site-template'
@@ -31,6 +32,10 @@ export class TenantService {
       throw new AppError('Enter a valid workspace slug', 400, 'INVALID_SLUG')
     }
 
+    if (isReservedTenantSlug(slug)) {
+      throw new AppError('This workspace slug is reserved', 409, 'SLUG_RESERVED')
+    }
+
     const existingTenant = await tenantRepository.findBySlug(slug)
 
     if (existingTenant) {
@@ -50,9 +55,9 @@ export class TenantService {
       }
 
       try {
-        await sitePageService.ensureContactPage(tenant._id.toString())
+        await sitePageService.ensureBaseWebsitePages(tenant._id.toString())
       } catch (error) {
-        console.error('[TenantService] Failed to create default contact page', error)
+        console.error('[TenantService] Failed to create default website pages', error)
       }
 
       if (templateId) {

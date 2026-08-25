@@ -12,6 +12,7 @@ import { TextTypographyControls } from '../TextTypographyControls'
 import { useSiteStyles } from '../../SiteStylesScope'
 import { ChromeBlockStyleControls } from '../../ChromeBlockStyleControls'
 import { ChromeBlockBrandingFields, ChromeBlockStructureFields } from './ChromeBlockShared'
+import { normalizeNavLinks } from '../../../utils/blockMigration'
 
 type Props = {
   block: Block<'footer'>
@@ -36,7 +37,7 @@ export function FooterBlockProperties({ block, activeTab }: Props) {
           logoIconShowBackground={props.logoIconShowBackground}
           logoIconBackgroundColor={props.logoIconBackgroundColor}
           logoIconBorderRadius={props.logoIconBorderRadius}
-          navLinks={props.navLinks}
+          navLinks={normalizeNavLinks(props.navLinks)}
           onUpdate={update}
         />
         <PropertySection title='Copyright' collapsible defaultOpen>

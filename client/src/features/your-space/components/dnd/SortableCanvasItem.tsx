@@ -62,7 +62,8 @@ function SelectedBlockToolbar({
     block,
     true,
     isInlineEditing,
-    preferToolbarBelow
+    preferToolbarBelow,
+    nested
   )
 
   return (
@@ -73,6 +74,7 @@ function SelectedBlockToolbar({
         inset: 0,
         zIndex: BUILDER_Z_INDEX.blockToolbar,
         pointerEvents: 'none',
+        overflow: 'visible',
         '& > *': { pointerEvents: 'auto' }
       }}
     >
@@ -129,7 +131,7 @@ function BlockEditHost({
           }
         }
       }}
-      sx={{ position: 'relative', zIndex: 1 }}
+      sx={{ position: 'relative', zIndex: 1, overflow: 'visible' }}
     >
       <BlockRenderer block={block} />
       {isEditMode && isSelected && (
@@ -266,6 +268,10 @@ export function SortableCanvasItem({
         outline: isEditMode && isSelected ? '2px solid' : '2px solid transparent',
         outlineColor: isEditMode && isSelected ? 'primary.main' : 'transparent',
         outlineOffset: -2,
+        '&:has([data-builder-block-id]:hover) > .hover-block-toolbar': {
+          opacity: '0 !important',
+          pointerEvents: 'none !important'
+        },
         ...(isEditMode && isContainerBlock ? builderContainerOutlineSx(theme, isSelected) : {}),
         ...(isEditMode && !isSelected
           ? {
@@ -274,7 +280,7 @@ export function SortableCanvasItem({
               }
             }
           : {}),
-        '&:hover .block-inline-toolbar': isEditMode && !isSelected ? { opacity: 1, pointerEvents: 'auto' } : {}
+        '&:hover > .hover-block-toolbar': isEditMode && !isSelected ? { opacity: 1, pointerEvents: 'auto' } : {}
       }}
     >
       <CanvasBlockEditProvider block={block} updateProps={changes => updateBlock(block.id, changes)}>
@@ -291,7 +297,7 @@ export function SortableCanvasItem({
       </CanvasBlockEditProvider>
       {isEditMode && !isSelected && (
         <Box
-          className='block-inline-toolbar'
+          className='hover-block-toolbar'
           sx={{
             position: 'absolute',
             top: 0,
@@ -307,16 +313,21 @@ export function SortableCanvasItem({
             sx={{
               position: 'absolute',
               left: '50%',
-              ...(preferToolbarBelow
+              ...(nested
                 ? {
-                    top: 'auto',
-                    bottom: -8,
-                    transform: 'translate(-50%, 100%)'
+                    top: 8,
+                    transform: 'translate(-50%, 0)'
                   }
-                : {
-                    top: -8,
-                    transform: 'translate(-50%, -100%)'
-                  }),
+                : preferToolbarBelow
+                  ? {
+                      top: 'auto',
+                      bottom: -8,
+                      transform: 'translate(-50%, 100%)'
+                    }
+                  : {
+                      top: -8,
+                      transform: 'translate(-50%, -100%)'
+                    }),
               zIndex: BUILDER_Z_INDEX.blockToolbar,
               display: 'flex',
               alignItems: 'center',

@@ -2,9 +2,12 @@
 
 import { useState } from 'react'
 
+import Link from 'next/link'
+
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Collapse from '@mui/material/Collapse'
+import Divider from '@mui/material/Divider'
 import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
@@ -16,18 +19,20 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
+import { getPublicPagePath } from '@/lib/utils/public-site-url'
+import { useSiteWorkspaceOptional } from '@/features/site-templates/context/SiteWorkspaceContext'
+import { usePublishedTemplates } from '@/features/site-templates/hooks/usePublishedTemplates'
+
 import {
   BUILDER_TOP_BAR_HEIGHT,
   BUILDER_TYPOGRAPHY,
-  builderIconGroupSx
+  builderToolbarDividerSx,
+  builderToolbarIconButtonSx
 } from '../constants/builderLayout'
 import { builderToolbarSx } from '../constants/builderChrome'
 import { useBuilder } from '../context/BuilderContext'
-import { getPublicPagePath } from '@/lib/utils/public-site-url'
 import { LiveSiteButton } from './LiveSiteButton'
 import { VersionHistoryDialog } from './VersionHistoryDialog'
-import { useSiteWorkspace } from '@/features/site-templates/context/SiteWorkspaceContext'
-import { usePublishedTemplates } from '@/features/site-templates/hooks/usePublishedTemplates'
 
 type Props = {
   tenantName: string
@@ -45,10 +50,12 @@ const STATUS_ICONS: Record<string, string> = {
 
 function SaveStatusIndicator({
   label,
-  tone
+  tone,
+  detail
 }: {
   label: string
   tone: 'info' | 'warning' | 'success' | 'neutral' | 'error'
+  detail?: string
 }) {
   const theme = useTheme()
 
@@ -66,52 +73,64 @@ function SaveStatusIndicator({
   const icon = STATUS_ICONS[tone]
 
   return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.5,
-        px: 1,
-        py: 0.375,
-        borderRadius: '100px',
-        border: '1px solid',
-        borderColor: alpha(palette.main, 0.18),
-        backgroundColor: palette.bg,
-        maxWidth: { xs: 140, sm: 220 }
-      }}
-    >
+    <Tooltip title={detail || label}>
       <Box
-        component='span'
         sx={{
-          display: 'flex',
+          display: 'inline-flex',
           alignItems: 'center',
-          flexShrink: 0,
-          color: palette.main,
-          fontSize: '0.7rem',
-          ...(isActive && {
-            animation: 'builderSpin 1s linear infinite',
-            '@keyframes builderSpin': {
-              from: { transform: 'rotate(0deg)' },
-              to: { transform: 'rotate(360deg)' }
-            }
-          })
+          gap: 0.75,
+          height: 32,
+          px: 1.25,
+          borderRadius: 1.25,
+          backgroundColor: palette.bg,
+          maxWidth: { xs: 132, sm: 180 }
         }}
       >
-        <i className={icon} />
+        <Box
+          component='span'
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            color: palette.main,
+            fontSize: '0.75rem',
+            ...(isActive && {
+              animation: 'builderSpin 1s linear infinite',
+              '@keyframes builderSpin': {
+                from: { transform: 'rotate(0deg)' },
+                to: { transform: 'rotate(360deg)' }
+              }
+            })
+          }}
+        >
+          {isActive || tone === 'error' ? (
+            <i className={icon} />
+          ) : (
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                backgroundColor: palette.main
+              }}
+            />
+          )}
+        </Box>
+        <Typography
+          variant='caption'
+          sx={{
+            ...BUILDER_TYPOGRAPHY.label,
+            color: palette.main,
+            lineHeight: 1,
+            display: { xs: 'none', sm: 'block' }
+          }}
+          noWrap
+        >
+          {label}
+        </Typography>
       </Box>
-      <Typography
-        variant='caption'
-        sx={{
-          ...BUILDER_TYPOGRAPHY.label,
-          color: palette.main,
-          lineHeight: 1.2,
-          display: { xs: 'none', sm: 'block' }
-        }}
-        noWrap
-      >
-        {label}
-      </Typography>
-    </Box>
+    </Tooltip>
   )
 }
 
@@ -126,21 +145,24 @@ function ToolbarIconButton({
   onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
   ariaLabel: string
 }) {
+  const theme = useTheme()
+
   return (
     <Tooltip title={title}>
-      <IconButton
-        size='small'
-        onClick={onClick}
-        aria-label={ariaLabel}
-        sx={{ width: 28, height: 28, color: 'text.secondary', fontSize: '0.95rem' }}
-      >
+      <IconButton size='small' onClick={onClick} aria-label={ariaLabel} sx={builderToolbarIconButtonSx(theme)}>
         <i className={icon} />
       </IconButton>
     </Tooltip>
   )
 }
 
-function PageSwitcher({ compact = false }: { compact?: boolean }) {
+function ToolbarDivider() {
+  const theme = useTheme()
+
+  return <Box aria-hidden sx={{ ...builderToolbarDividerSx(theme), display: { xs: 'none', sm: 'block' } }} />
+}
+
+function PageSwitcher() {
   const theme = useTheme()
   const { pages, currentPageSlug, currentPageTitle, isPageSwitching, switchPage } = useBuilder()
   const [anchor, setAnchor] = useState<null | HTMLElement>(null)
@@ -161,44 +183,32 @@ function PageSwitcher({ compact = false }: { compact?: boolean }) {
           display: 'inline-flex',
           alignItems: 'center',
           gap: 0.5,
-          maxWidth: compact ? 160 : 220,
-          px: compact ? 0.75 : 1,
-          py: 0.375,
-          border: `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+          minWidth: 0,
+          maxWidth: { xs: 128, sm: 168 },
+          height: 32,
+          px: 0.75,
+          border: 'none',
           borderRadius: 1.25,
-          backgroundColor: alpha(theme.palette.primary.main, 0.05),
+          backgroundColor: 'transparent',
           cursor: 'pointer',
           color: 'text.primary',
-          transition: 'background-color 0.15s, border-color 0.15s',
+          transition: 'background-color 0.15s',
           '&:hover': {
-            backgroundColor: alpha(theme.palette.primary.main, 0.09),
-            borderColor: alpha(theme.palette.primary.main, 0.28)
+            backgroundColor: alpha(theme.palette.text.primary, 0.05)
           }
         }}
       >
         <i
           className={currentPage?.isHome ? 'ri-home-4-fill' : 'ri-file-3-line'}
-          style={{ fontSize: '0.8rem', color: theme.palette.primary.main, flexShrink: 0 }}
+          style={{ fontSize: '0.85rem', color: theme.palette.primary.main, flexShrink: 0 }}
         />
-        <Box sx={{ minWidth: 0, textAlign: 'left' }}>
-          <Typography
-            component='span'
-            sx={{ ...BUILDER_TYPOGRAPHY.title, display: 'block', lineHeight: 1.2 }}
-            noWrap
-          >
-            {currentPageTitle}
-          </Typography>
-          {!compact && (
-            <Typography
-              component='span'
-              sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.disabled', display: 'block', lineHeight: 1.2 }}
-              noWrap
-            >
-              Editing page
-            </Typography>
-          )}
-        </Box>
-        <i className='ri-arrow-down-s-line' style={{ fontSize: '0.9rem', color: theme.palette.text.secondary, flexShrink: 0 }} />
+        <Typography component='span' sx={{ ...BUILDER_TYPOGRAPHY.title, lineHeight: 1, minWidth: 0 }} noWrap>
+          {currentPageTitle}
+        </Typography>
+        <i
+          className='ri-arrow-down-s-line'
+          style={{ fontSize: '1rem', color: theme.palette.text.disabled, flexShrink: 0 }}
+        />
       </Box>
 
       <Menu
@@ -252,7 +262,6 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
   const theme = useTheme()
   const isCompact = useMediaQuery(theme.breakpoints.down('md'))
   const isNarrow = useMediaQuery(theme.breakpoints.down('sm'))
-  const isMobileSidebar = useMediaQuery(theme.breakpoints.down('lg'))
 
   const {
     isDirty,
@@ -269,16 +278,25 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
     setAutosaveEnabled,
     restoreVersionToDraft,
     setVersions,
-    resetToStarter,
     resetToEmpty,
-    blocks,
     versions,
+    blocks,
     currentPageSlug,
     currentPageTitle,
-    tenantSlug
+    builderScope,
+    libraryTemplateId,
+    tenantSlug,
+    siteStyles
   } = useBuilder()
-  const { isSiteStarted, openTemplatePicker, openStartFreshDialog, openAiWizard } = useSiteWorkspace()
+
+  const workspace = useSiteWorkspaceOptional()
   const { hasTemplates } = usePublishedTemplates()
+
+  const isBaseTemplateBuilder = builderScope === 'base_template'
+  const isLibraryTemplateBuilder = builderScope === 'library_template'
+  const isSystemBuilder = isBaseTemplateBuilder || isLibraryTemplateBuilder
+  const canBrowseTemplates = !isSystemBuilder && Boolean(workspace) && hasTemplates
+  const canResetSite = !isSystemBuilder && Boolean(workspace?.isSiteStarted)
 
   const pagePath = getPublicPagePath(tenantSlug, currentPageSlug)
   const siteUrl = typeof window !== 'undefined' ? `${window.location.origin}${pagePath}` : pagePath
@@ -289,18 +307,31 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
   const menuOpen = Boolean(menuAnchor)
 
   const statusLabel = isPublishing
-    ? 'Publishing...'
+    ? 'Publishing'
     : isSaving
-      ? 'Saving...'
+      ? 'Saving'
       : saveError
         ? 'Save failed'
         : hasUnpublishedChanges
-          ? 'Unpublished changes'
+          ? 'Unpublished'
           : isDirty
             ? 'Unsaved'
             : lastPublishedAt
               ? 'Live'
               : 'Saved'
+
+  const formatTime = (value: string) =>
+    new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  const statusDetail = isPublishing || isSaving
+    ? statusLabel
+    : saveError
+      ? saveError
+      : lastSavedAt
+        ? `Last saved ${formatTime(lastSavedAt)}`
+        : lastPublishedAt
+          ? `Published ${formatTime(lastPublishedAt)}`
+          : statusLabel
 
   const statusTone: 'info' | 'warning' | 'success' | 'neutral' | 'error' = isPublishing || isSaving
     ? 'info'
@@ -320,7 +351,6 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
         sx={{
           flexShrink: 0,
           minHeight: BUILDER_TOP_BAR_HEIGHT,
-          height: { xs: 'auto', sm: BUILDER_TOP_BAR_HEIGHT },
           ...builderToolbarSx(theme)
         }}
       >
@@ -330,89 +360,92 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
             flexWrap: 'wrap',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 1,
+            gap: { xs: 1, sm: 1.5 },
             minHeight: BUILDER_TOP_BAR_HEIGHT,
             py: { xs: 0.75, sm: 0 },
-            px: { xs: 1.25, sm: 2 }
+            px: { xs: 1.25, sm: 2, md: 2.5 }
           }}
         >
-          {/* Left — site identity + page context */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: '1 1 140px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, flex: '1 1 160px' }}>
+            {isSystemBuilder ? (
+              <Tooltip title={isLibraryTemplateBuilder ? 'Back to template' : 'Back to design studio'}>
+                <IconButton
+                  component={Link}
+                  href={
+                    isLibraryTemplateBuilder && libraryTemplateId
+                      ? `/super-admin/templates/${libraryTemplateId}`
+                      : '/super-admin/studio'
+                  }
+                  size='small'
+                  aria-label={isLibraryTemplateBuilder ? 'Back to template' : 'Back to design studio'}
+                  sx={builderToolbarIconButtonSx(theme)}
+                >
+                  <i className='ri-arrow-left-line' />
+                </IconButton>
+              </Tooltip>
+            ) : null}
             <Box
               sx={{
-                width: 30,
-                height: 30,
+                width: 32,
+                height: 32,
                 borderRadius: 1.25,
                 display: { xs: isNarrow ? 'none' : 'flex', sm: 'flex' },
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.2)} 0%, ${alpha(theme.palette.primary.main, 0.08)} 100%)`,
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
-                color: 'primary.main',
-                boxShadow: `0 1px 4px ${alpha(theme.palette.primary.main, 0.12)}`
+                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.18)} 0%, ${alpha(theme.palette.primary.main, 0.06)} 100%)`,
+                color: 'primary.main'
               }}
             >
-              <i className='ri-global-line' style={{ fontSize: '0.875rem' }} />
+              <i className='ri-global-line' style={{ fontSize: '0.95rem' }} />
             </Box>
-            <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.375 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, minWidth: 0 }}>
               <Typography
                 variant='body2'
                 sx={{
                   ...BUILDER_TYPOGRAPHY.title,
-                  lineHeight: 1.2,
-                  display: { xs: isNarrow ? 'none' : 'block', sm: 'block' }
+                  lineHeight: 1,
+                  display: { xs: 'none', md: 'block' },
+                  maxWidth: 180
                 }}
                 noWrap
               >
                 {tenantName}
               </Typography>
-              {isMobileSidebar ? (
-                <PageSwitcher compact={isNarrow} />
-              ) : (
-                <Typography
-                  variant='caption'
-                  sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.disabled', display: 'block', lineHeight: 1.2 }}
-                  noWrap
-                >
-                  {currentPageTitle}
-                  {currentPageSlug === 'home' ? ' · Home' : ''}
-                </Typography>
-              )}
+              <Box
+                aria-hidden
+                sx={{
+                  color: 'text.disabled',
+                  px: 0.5,
+                  fontSize: '0.95rem',
+                  display: { xs: 'none', md: 'block' },
+                  userSelect: 'none'
+                }}
+              >
+                /
+              </Box>
+              <PageSwitcher />
             </Box>
           </Box>
 
-          {/* Center — save status */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, flex: '0 1 auto', order: { xs: 3, sm: 0 }, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
-            <SaveStatusIndicator label={statusLabel} tone={statusTone} />
-            {lastSavedAt && !isDirty && !isSaving && (
-              <Typography
-                variant='caption'
-                sx={{
-                  ...BUILDER_TYPOGRAPHY.label,
-                  color: 'text.disabled',
-                  display: { xs: 'none', lg: 'block' }
-                }}
-                noWrap
-              >
-                {new Date(lastSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Typography>
-            )}
-          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, sm: 1.25 }, flexShrink: 0, ml: 'auto' }}>
+            <SaveStatusIndicator label={statusLabel} tone={statusTone} detail={statusDetail} />
 
-          {/* Right — actions */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0, ml: { xs: 0, sm: 'auto' } }}>
-            <Box sx={builderIconGroupSx(theme)}>
-              <LiveSiteButton siteUrl={siteUrl} displayUrl={displayUrl} hasUnpublishedChanges={hasUnpublishedChanges} />
+            <ToolbarDivider />
 
-              {!isCompact && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.125 }}>
+              {!isSystemBuilder ? (
+                <LiveSiteButton siteUrl={siteUrl} displayUrl={displayUrl} hasUnpublishedChanges={hasUnpublishedChanges} />
+              ) : null}
+
+              {!isCompact && !isLibraryTemplateBuilder ? (
                 <ToolbarIconButton
                   title='Version history'
                   icon='ri-history-line'
                   onClick={() => setVersionsOpen(true)}
                   ariaLabel='Version history'
                 />
-              )}
+              ) : null}
 
               <ToolbarIconButton
                 title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
@@ -422,67 +455,74 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
               />
             </Box>
 
-            {!isNarrow && (
+            <ToolbarDivider />
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              {!isNarrow && (
+                <Box
+                  component='button'
+                  type='button'
+                  onClick={() => void savePage()}
+                  disabled={isSaving || isPublishing}
+                  sx={{
+                    height: 32,
+                    border: `1px solid ${alpha(theme.palette.text.primary, 0.12)}`,
+                    background: 'none',
+                    cursor: isSaving || isPublishing ? 'not-allowed' : 'pointer',
+                    opacity: isSaving || isPublishing ? 0.5 : 1,
+                    ...BUILDER_TYPOGRAPHY.action,
+                    color: 'text.secondary',
+                    px: 1.5,
+                    borderRadius: 1.25,
+                    transition: 'color 0.15s, background-color 0.15s, border-color 0.15s',
+                    '&:hover': {
+                      color: 'text.primary',
+                      backgroundColor: alpha(theme.palette.text.primary, 0.05),
+                      borderColor: alpha(theme.palette.text.primary, 0.2)
+                    }
+                  }}
+                >
+                  Save
+                </Box>
+              )}
+
               <Box
                 component='button'
                 type='button'
-                onClick={() => void savePage()}
-                disabled={isSaving || isPublishing}
+                onClick={() => void publishPage()}
+                disabled={isPublishing || isSaving || !hasUnpublishedChanges}
                 sx={{
-                  border: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
-                  background: 'none',
-                  cursor: isSaving || isPublishing ? 'not-allowed' : 'pointer',
-                  opacity: isSaving || isPublishing ? 0.5 : 1,
+                  height: 32,
+                  border: 'none',
+                  cursor: isPublishing || isSaving || !hasUnpublishedChanges ? 'not-allowed' : 'pointer',
                   ...BUILDER_TYPOGRAPHY.action,
-                  color: 'text.secondary',
-                  px: 1.125,
-                  py: 0.4375,
-                  borderRadius: '100px',
-                  transition: 'color 0.15s, background-color 0.15s, border-color 0.15s',
+                  px: 1.75,
+                  borderRadius: 1.25,
+                  backgroundColor: 'text.primary',
+                  color: 'background.paper',
+                  transition: 'opacity 0.15s',
+                  opacity: isPublishing || isSaving || !hasUnpublishedChanges ? 0.4 : 1,
                   '&:hover': {
-                    color: 'text.primary',
-                    backgroundColor: alpha(theme.palette.text.primary, 0.05),
-                    borderColor: alpha(theme.palette.text.primary, 0.18)
+                    opacity: isPublishing || isSaving || !hasUnpublishedChanges ? 0.4 : 0.86
                   }
                 }}
               >
-                Save
+                {isPublishing
+                  ? isLibraryTemplateBuilder
+                    ? 'Saving…'
+                    : 'Publishing'
+                  : isLibraryTemplateBuilder
+                    ? 'Save to library'
+                    : 'Publish'}
               </Box>
-            )}
 
-            <Box
-              component='button'
-              type='button'
-              onClick={() => void publishPage()}
-              disabled={isPublishing || isSaving || !hasUnpublishedChanges}
-              sx={{
-                border: 'none',
-                cursor: isPublishing || isSaving || !hasUnpublishedChanges ? 'not-allowed' : 'pointer',
-                ...BUILDER_TYPOGRAPHY.action,
-                px: 1.375,
-                py: 0.5,
-                borderRadius: '100px',
-                backgroundColor: 'text.primary',
-                color: 'background.paper',
-                transition: 'opacity 0.15s, box-shadow 0.15s',
-                opacity: isPublishing || isSaving || !hasUnpublishedChanges ? 0.4 : 1,
-                boxShadow: isPublishing || isSaving || !hasUnpublishedChanges
-                  ? 'none'
-                  : `0 2px 8px ${alpha(theme.palette.common.black, 0.2)}, 0 1px 2px ${alpha(theme.palette.common.black, 0.12)}`,
-                '&:hover': {
-                  opacity: isPublishing || isSaving || !hasUnpublishedChanges ? 0.4 : 0.88
-                }
-              }}
-            >
-              {isPublishing ? 'Publishing...' : 'Publish site'}
+              <ToolbarIconButton
+                title='More actions'
+                icon='ri-more-2-fill'
+                onClick={e => setMenuAnchor(e.currentTarget)}
+                ariaLabel='More actions'
+              />
             </Box>
-
-            <ToolbarIconButton
-              title='More actions'
-              icon='ri-more-2-fill'
-              onClick={e => setMenuAnchor(e.currentTarget)}
-              ariaLabel='More actions'
-            />
           </Box>
         </Box>
 
@@ -503,7 +543,7 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         slotProps={{ paper: { sx: { minWidth: 200, mt: 0.5 } } }}
       >
-        {isNarrow && (
+        {isNarrow ? (
           <MenuItem
             onClick={() => {
               handleMenuClose()
@@ -516,7 +556,7 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
             </ListItemIcon>
             <ListItemText>Save draft</ListItemText>
           </MenuItem>
-        )}
+        ) : undefined}
         <MenuItem
           onClick={e => {
             e.preventDefault()
@@ -546,97 +586,95 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
           </ListItemIcon>
           <ListItemText>{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</ListItemText>
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleMenuClose()
-            setVersionsOpen(true)
-          }}
-        >
-          <ListItemIcon>
-            <i className='ri-history-line' />
-          </ListItemIcon>
-          <ListItemText
-            primary='Restore published version'
-            secondary='Current page only'
-          />
-        </MenuItem>
-        {hasTemplates ? (
+        {!isLibraryTemplateBuilder ? (
           <MenuItem
             onClick={() => {
               handleMenuClose()
-              openAiWizard()
+              setVersionsOpen(true)
             }}
           >
             <ListItemIcon>
-              <i className='ri-magic-line' />
+              <i className='ri-history-line' />
             </ListItemIcon>
             <ListItemText
-              primary='Start with AI…'
-              secondary='Guided setup with auto-written copy'
+              primary='Restore published version'
+              secondary='Current page only'
             />
           </MenuItem>
         ) : null}
-        {isSiteStarted ? (
+        {canBrowseTemplates || workspace ? (
           <>
+            <Divider sx={{ my: 0.5 }} />
+            {canBrowseTemplates ? (
+              <MenuItem
+                onClick={() => {
+                  handleMenuClose()
+                  workspace!.openTemplatePicker(workspace!.isSiteStarted ? 'replace' : 'onboarding')
+                }}
+              >
+                <ListItemIcon>
+                  <i className='ri-layout-grid-line' />
+                </ListItemIcon>
+                <ListItemText
+                  primary='Browse template library'
+                  secondary='Apply a published layout to your draft'
+                />
+              </MenuItem>
+            ) : null}
+            {workspace ? (
+              <MenuItem
+                onClick={() => {
+                  handleMenuClose()
+                  workspace.openAiWizard()
+                }}
+              >
+                <ListItemIcon>
+                  <i className='ri-sparkling-line' />
+                </ListItemIcon>
+                <ListItemText
+                  primary='Generate website'
+                  secondary='Build from your brand using our master layout'
+                />
+              </MenuItem>
+            ) : null}
+          </>
+        ) : null}
+        {!isSystemBuilder ? (
+          <>
+            <Divider sx={{ my: 0.5 }} />
+            {canResetSite ? (
+              <MenuItem
+                onClick={() => {
+                  handleMenuClose()
+                  workspace!.openStartFreshDialog()
+                }}
+              >
+                <ListItemIcon>
+                  <i className='ri-refresh-line' />
+                </ListItemIcon>
+                <ListItemText
+                  primary='Start from scratch…'
+                  secondary='Reset draft site to blank or starter'
+                />
+              </MenuItem>
+            ) : null}
             <MenuItem
               onClick={() => {
                 handleMenuClose()
-                openTemplatePicker('replace')
+                resetToEmpty()
               }}
+              disabled={blocks.length === 0}
             >
               <ListItemIcon>
-                <i className='ri-exchange-line' />
+                <i className='ri-layout-line' />
               </ListItemIcon>
               <ListItemText
-                primary='Replace site with template…'
-                secondary='Overwrites draft pages'
-              />
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                handleMenuClose()
-                openStartFreshDialog()
-              }}
-            >
-              <ListItemIcon>
-                <i className='ri-refresh-line' />
-              </ListItemIcon>
-              <ListItemText
-                primary='Start fresh…'
-                secondary='Reset draft site to blank or starter'
+                primary='Clear current page'
+                secondary='Draft only, this page'
               />
             </MenuItem>
           </>
         ) : null}
-        <MenuItem
-          onClick={() => {
-            handleMenuClose()
-            resetToEmpty()
-          }}
-          disabled={blocks.length === 0}
-        >
-          <ListItemIcon>
-            <i className='ri-layout-line' />
-          </ListItemIcon>
-          <ListItemText
-            primary='Clear current page'
-            secondary='Draft only, this page'
-          />
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleMenuClose()
-            resetToStarter()
-          }}
-        >
-          <ListItemIcon>
-            <i className='ri-layout-masonry-line' />
-          </ListItemIcon>
-          <ListItemText
-            primary='Reset current page to starter'
-            secondary='Draft only, this page'
-          />
-        </MenuItem>
       </Menu>
 
       <VersionHistoryDialog
@@ -644,7 +682,11 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
         onClose={() => setVersionsOpen(false)}
         pageSlug={currentPageSlug}
         pageTitle={currentPageTitle}
+        builderScope={builderScope}
+        libraryTemplateId={libraryTemplateId}
         versions={versions}
+        siteStyles={siteStyles}
+        isDirty={isDirty}
         onRestore={restoreVersionToDraft}
         onVersionsChange={setVersions}
       />

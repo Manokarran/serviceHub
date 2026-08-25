@@ -31,7 +31,8 @@ export default async function SuperAdminPage() {
           Super Admin
         </Typography>
         <Typography color='text.secondary'>
-          Manage platform-wide website templates and starter experiences for new organizations.
+          Design the base website, generate branded variations, and publish keepers to the template library. Users can
+          pick a library site or generate one from their own details.
         </Typography>
       </Grid>
 
@@ -39,12 +40,34 @@ export default async function SuperAdminPage() {
         <Card sx={{ height: '100%' }}>
           <CardContent className='flex flex-col gap-4 h-full'>
             <Box className='flex items-center gap-2'>
-              <i className='ri-layout-grid-line text-primary text-2xl' />
-              <Typography variant='h6'>Website templates</Typography>
+              <i className='ri-palette-line text-secondary text-2xl' />
+              <Typography variant='h6'>Design studio</Typography>
             </Box>
             <Typography color='text.secondary'>
-              Create ready-made websites with thumbnails. Users pick a template when registering or from their
-              dashboard to jump-start their site.
+              Step 1: design Home, About, and Contact in Your Space. Step 2: generate branded websites from that base.
+              Step 3: preview, then save the ones you like to the library.
+            </Typography>
+            <Box className='mt-auto'>
+              <Link href='/super-admin/studio' style={{ textDecoration: 'none' }}>
+                <Button variant='contained' color='secondary' startIcon={<i className='ri-sparkling-line' />}>
+                  Open studio
+                </Button>
+              </Link>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      <Grid size={{ xs: 12, md: 6 }}>
+        <Card sx={{ height: '100%' }}>
+          <CardContent className='flex flex-col gap-4 h-full'>
+            <Box className='flex items-center gap-2'>
+              <i className='ri-layout-grid-line text-primary text-2xl' />
+              <Typography variant='h6'>Template library</Typography>
+            </Box>
+            <Typography color='text.secondary'>
+              Saved websites appear here. Publish a draft so organizations can choose it, or they can generate a unique
+              site from the same engine.
             </Typography>
             <Box className='flex gap-4'>
               <Typography variant='body2'>
@@ -56,31 +79,11 @@ export default async function SuperAdminPage() {
             </Box>
             <Box className='mt-auto'>
               <Link href='/super-admin/templates' style={{ textDecoration: 'none' }}>
-                <Button variant='contained' startIcon={<i className='ri-arrow-right-line' />}>
-                  Manage templates
+                <Button variant='outlined' startIcon={<i className='ri-arrow-right-line' />}>
+                  Open library
                 </Button>
               </Link>
             </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-
-      <Grid size={{ xs: 12, md: 6 }}>
-        <Card sx={{ height: '100%', bgcolor: 'action.hover' }}>
-          <CardContent className='flex flex-col gap-3'>
-            <Typography variant='h6'>How it works</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              1. Create a template with name and thumbnail
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              2. Build the site in Your Space using the drag-and-drop builder
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              3. Capture your workspace into the template snapshot
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              4. Publish — it appears in the gallery for all users
-            </Typography>
           </CardContent>
         </Card>
       </Grid>

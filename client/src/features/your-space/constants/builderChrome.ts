@@ -1,5 +1,4 @@
-import type { Theme } from '@mui/material/styles'
-import type { SxProps } from '@mui/material/styles'
+import type { SxProps, Theme } from '@mui/material/styles'
 import { alpha } from '@mui/material/styles'
 
 /** Soft tint used across builder edges — adapts to light/dark */
@@ -74,14 +73,21 @@ export function builderShellSx(theme: Theme, isFullscreen: boolean): SxProps<The
   return builderEdgeSx(theme, 'top')
 }
 
-/** Top toolbar / canvas toolbar bottom */
+/** Top app chrome */
 export function builderToolbarSx(theme: Theme): SxProps<Theme> {
   return {
     ...builderEdgeSx(theme, 'bottom'),
-    backgroundColor: alpha(theme.palette.background.paper, 0.88),
+    backgroundColor: alpha(theme.palette.background.paper, 0.92),
     backdropFilter: 'blur(20px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-    boxShadow: `0 1px 0 ${alpha(theme.palette.divider, 0.1)}, 0 2px 12px ${alpha(theme.palette.common.black, 0.05)}`
+    WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+  }
+}
+
+/** Quieter canvas instrument bar — sits under the app chrome */
+export function builderCanvasToolbarSx(theme: Theme): SxProps<Theme> {
+  return {
+    ...builderEdgeSx(theme, 'bottom'),
+    backgroundColor: alpha(theme.palette.background.paper, 0.64)
   }
 }
 
@@ -133,6 +139,22 @@ export function builderSoftCardSx(theme: Theme, selected = false): SxProps<Theme
     '&:hover': {
       boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.2)}, 0 4px 16px ${alpha(theme.palette.primary.main, 0.08)}`
     }
+  }
+}
+
+/** Floating overlay card that sits on the canvas instead of shrinking it */
+export function builderFloatingCardSx(theme: Theme): SxProps<Theme> {
+  return {
+    backgroundColor: alpha(theme.palette.background.paper, 0.97),
+    backdropFilter: 'blur(20px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    borderRadius: 2.5,
+    boxShadow: `
+      0 0 0 1px ${alpha(theme.palette.primary.main, 0.12)},
+      0 16px 48px ${alpha(theme.palette.common.black, 0.16)},
+      0 4px 12px ${alpha(theme.palette.common.black, 0.06)}
+    `,
+    overflow: 'hidden'
   }
 }
 

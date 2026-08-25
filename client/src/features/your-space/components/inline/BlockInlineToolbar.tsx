@@ -20,6 +20,8 @@ import type {
   LogoBlockProps,
   ShapeBlockProps,
   SectionBlockProps,
+  ShowcaseBlockProps,
+  PricingBlockProps,
   TextBlockProps,
   VideoBlockProps
 } from '../../types'
@@ -43,13 +45,15 @@ import { HeroBackgroundPopover, HeroLayoutPopover, HeroSpacingPopover } from './
 import { SectionLayoutPopover } from './SectionLayoutPopover'
 import { HERO_LAYOUT_OPTIONS } from '../../constants/heroLayout'
 import { SECTION_LAYOUT_OPTIONS } from '../../constants/sectionLayout'
+import { SHOWCASE_COLUMN_OPTIONS, SHOWCASE_LAYOUT_OPTIONS, SHOWCASE_MEDIA_SIDE_OPTIONS } from '../../constants/showcaseLayout'
+import { PRICING_CARD_STYLE_OPTIONS, PRICING_LAYOUT_OPTIONS } from '../../constants/pricingLayout'
 import { ARTISTIC_LINE_STYLE_OPTIONS, CLASSIC_LINE_STYLE_OPTIONS, SHAPE_VARIANT_OPTIONS } from '../../constants/shapeBlock'
 import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
   block: Block
   nested?: boolean
-  toolbarPlacement?: 'above' | 'below'
+  toolbarPlacement?: 'above' | 'below' | 'inside'
   onDelete: () => void
   dragHandleProps?: Record<string, unknown>
 }
@@ -382,6 +386,83 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
               label='Layout controls'
               onClick={e => setHeroLayoutAnchor(e.currentTarget as HTMLElement)}
             />
+          </>
+        )
+      }
+      case 'showcase': {
+        const props = block.props as ShowcaseBlockProps
+
+        return (
+          <>
+            {SHOWCASE_LAYOUT_OPTIONS.map(layout => (
+              <InlineToolbarButton
+                key={layout.value}
+                icon={layout.icon}
+                label={layout.label}
+                active={props.layout === layout.value}
+                onClick={() => update({ layout: layout.value, columns: layout.value === 'cards' ? props.columns || 3 : 1 })}
+              />
+            ))}
+            {props.layout === 'cards' && (
+              <>
+                <InlineToolbarDivider />
+                {SHOWCASE_COLUMN_OPTIONS.map(option => (
+                  <InlineToolbarButton
+                    key={option.value}
+                    icon={option.icon}
+                    label={`${option.label} column`}
+                    active={String(props.columns) === option.value}
+                    onClick={() =>
+                      update({
+                        columns: Number(option.value) as ShowcaseBlockProps['columns'],
+                        layout: option.value === '1' ? 'stack' : 'cards'
+                      })
+                    }
+                  />
+                ))}
+              </>
+            )}
+            {props.layout === 'split' && (
+              <>
+                <InlineToolbarDivider />
+                {SHOWCASE_MEDIA_SIDE_OPTIONS.map(option => (
+                  <InlineToolbarButton
+                    key={option.value}
+                    icon={option.icon}
+                    label={option.label}
+                    active={props.mediaSide === option.value}
+                    onClick={() => update({ mediaSide: option.value })}
+                  />
+                ))}
+              </>
+            )}
+          </>
+        )
+      }
+      case 'pricing': {
+        const props = block.props as PricingBlockProps
+
+        return (
+          <>
+            {PRICING_LAYOUT_OPTIONS.map(layout => (
+              <InlineToolbarButton
+                key={layout.value}
+                icon={layout.icon}
+                label={layout.label}
+                active={props.layout === layout.value}
+                onClick={() => update({ layout: layout.value })}
+              />
+            ))}
+            <InlineToolbarDivider />
+            {PRICING_CARD_STYLE_OPTIONS.map(style => (
+              <InlineToolbarButton
+                key={style.value}
+                icon={style.icon}
+                label={style.label}
+                active={props.cardStyle === style.value}
+                onClick={() => update({ cardStyle: style.value })}
+              />
+            ))}
           </>
         )
       }
@@ -729,7 +810,9 @@ function getInlineBlockLabel(type: Block['type']): string {
     logo: 'Logo',
     shape: 'Shape',
     icon: 'Icon',
-    contactForm: 'Contact Form'
+    contactForm: 'Contact Form',
+    showcase: 'Showcase',
+    pricing: 'Pricing'
   }
 
   return labels[type]

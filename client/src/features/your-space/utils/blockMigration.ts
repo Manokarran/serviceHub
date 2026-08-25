@@ -13,6 +13,10 @@ import type {
   ContactFormBlockProps,
   SplitVisualConfig,
   TabsBlockProps,
+  ShowcaseBlockProps,
+  ShowcaseItem,
+  PricingBlockProps,
+  PricingPlan,
   NavLinkItem,
   VideoBlockProps,
   TextBlockProps,
@@ -23,6 +27,8 @@ import { DEFAULT_SHAPE_PROPS } from '../constants/shapeBlock'
 import { DEFAULT_ICON_BLOCK_PROPS } from '../constants/iconBlock'
 import { DEFAULT_LOGO_ICON_STYLE } from '@/components/iconPickerStyle'
 import { DEFAULT_SECTION_STYLE, isPhotoBackground, isVideoBackground, isValidMediaUrl, normalizeStoredMediaUrl, parseMediaUrl } from './sectionStyleHelpers'
+import { DEFAULT_SHOWCASE_ITEMS } from '../constants/showcaseLayout'
+import { DEFAULT_PRICING_PLANS, createPricingDefaultProps } from '../constants/pricingLayout'
 
 export function normalizeNavLinks(links: unknown): NavLinkItem[] {
   if (!Array.isArray(links)) {
@@ -36,7 +42,7 @@ export function normalizeNavLinks(links: unknown): NavLinkItem[] {
       return label ? { label, href: `#${label.toLowerCase().replace(/\s+/g, '-')}` } : null
     }
 
-    if (link && typeof link === 'object' && 'label' in link) {
+    if (link && typeof link === 'object' && !Array.isArray(link) && 'label' in link) {
       const item = link as NavLinkItem & { children?: unknown }
       const label = item.label?.trim()
 
@@ -414,6 +420,88 @@ export function normalizeBlock(block: Block): Block {
     return {
       ...block,
       props: nextProps
+    }
+  }
+
+  if (block.type === 'showcase') {
+    const props = block.props as ShowcaseBlockProps
+    const rawItems = Array.isArray(props.items) ? props.items : []
+    const items: ShowcaseItem[] = (rawItems.length > 0 ? rawItems : []).map((item, index) => ({
+      id: item.id || `showcase-item-${index + 1}`,
+      logoSrc: item.logoSrc ?? '',
+      logoAlt: item.logoAlt ?? '',
+      logoText: item.logoText ?? '',
+      imageSrc: item.imageSrc ?? '',
+      imageAlt: item.imageAlt ?? '',
+      visualKind: item.visualKind ?? (item.imageSrc ? 'image' : 'animation'),
+      splitVisualAnimation: item.splitVisualAnimation ?? 'aurora',
+      splitVisualColorStart: item.splitVisualColorStart ?? '',
+      splitVisualColorEnd: item.splitVisualColorEnd ?? '',
+      eyebrow: item.eyebrow ?? '',
+      title: item.title ?? '',
+      body: item.body ?? '',
+      buttonText: item.buttonText ?? '',
+      buttonLink: item.buttonLink ?? '#'
+    }))
+
+    return {
+      ...block,
+      props: {
+        ...props,
+        layout: props.layout ?? 'split',
+        columns: props.columns ?? (props.layout === 'cards' ? 3 : 1),
+        mediaSide: props.mediaSide ?? 'start',
+        cardStyle: props.cardStyle ?? 'layered',
+        alignment: props.alignment ?? 'left',
+        textColor: props.textColor ?? '#0f172a',
+        minHeight: props.minHeight ?? 520,
+        paddingY: props.paddingY ?? 80,
+        paddingX: props.paddingX ?? 32,
+        maxWidth: props.maxWidth ?? 'lg',
+        splitRatio: props.splitRatio ?? 48,
+        gap: props.gap ?? 28,
+        mediaRadius: props.mediaRadius ?? 28,
+        mediaOverlay: props.mediaOverlay ?? 'gradient',
+        buttonStyle: props.buttonStyle ?? 'theme',
+        titleStyle: props.titleStyle ?? 'solid',
+        background: props.background ?? 'transparent',
+        backgroundType: props.backgroundType ?? 'color',
+        backgroundOpacity: props.backgroundOpacity ?? 0,
+        splitVisualAnimation: props.splitVisualAnimation ?? 'static',
+        splitVisualColorStart: props.splitVisualColorStart ?? '',
+        splitVisualColorEnd: props.splitVisualColorEnd ?? '',
+        items: items.length > 0 ? items : DEFAULT_SHOWCASE_ITEMS.map(item => ({ ...item }))
+      }
+    }
+  }
+
+  if (block.type === 'pricing') {
+    const props = block.props as PricingBlockProps
+    const defaults = createPricingDefaultProps({ layout: 'cards', columns: 3, cardStyle: 'elevated' })
+    const rawPlans = Array.isArray(props.plans) ? props.plans : []
+    const plans: PricingPlan[] = (rawPlans.length > 0 ? rawPlans : DEFAULT_PRICING_PLANS).map((plan, index) => ({
+      ...DEFAULT_PRICING_PLANS[index % DEFAULT_PRICING_PLANS.length],
+      ...plan,
+      id: plan.id || `pricing-plan-${index + 1}`,
+      accentColor: plan.accentColor ?? '',
+      cardBackground: plan.cardBackground ?? '',
+      features: Array.isArray(plan.features)
+        ? plan.features.map((feature, featureIndex) => ({
+            id: feature.id || `pricing-feature-${index + 1}-${featureIndex + 1}`,
+            text: feature.text ?? '',
+            state: feature.state ?? 'included',
+            hint: feature.hint ?? ''
+          }))
+        : DEFAULT_PRICING_PLANS[index % DEFAULT_PRICING_PLANS.length].features
+    }))
+
+    return {
+      ...block,
+      props: {
+        ...defaults,
+        ...props,
+        plans
+      }
     }
   }
 

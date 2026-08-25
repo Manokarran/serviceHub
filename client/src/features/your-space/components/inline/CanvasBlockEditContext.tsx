@@ -35,6 +35,10 @@ export function getPrimaryInlineEditField(type: BlockType): string | null {
       return 'logoText'
     case 'logo':
       return 'text'
+    case 'showcase':
+      return 'title'
+    case 'pricing':
+      return 'title'
     default:
       return null
   }

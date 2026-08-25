@@ -1,98 +1,151 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
-import FormControl from '@mui/material/FormControl'
 import IconButton from '@mui/material/IconButton'
-import InputLabel from '@mui/material/InputLabel'
-import MenuItem from '@mui/material/MenuItem'
-import Select from '@mui/material/Select'
 import Step from '@mui/material/Step'
 import StepLabel from '@mui/material/StepLabel'
 import Stepper from '@mui/material/Stepper'
-import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import {
   applyAiGeneratedSiteAction,
-  generateAiSitePreviewAction
+  generateAiSiteFromWorkspaceAction,
+  generateAiSitePreviewAction,
+  saveAiGeneratedSiteToLibraryAction
 } from '@/app/actions/ai-site-wizard.actions'
-import {
-  SITE_TEMPLATE_CATEGORIES,
-  SITE_TEMPLATE_CATEGORY_LABELS,
-  type SiteTemplateCategory
-} from '@/lib/constants/site-template'
-import {
-  AI_ANIMATION_LEVEL_LABELS,
-  AI_ANIMATION_LEVELS,
-  AI_COLOR_MOOD_LABELS,
-  AI_COLOR_MOODS,
-  AI_INDUSTRY_LABELS,
-  AI_INDUSTRY_OPTIONS,
-  AI_SITE_PURPOSE_LABELS,
-  AI_SITE_PURPOSES,
-  AI_STYLE_PERSONALITY_LABELS,
-  AI_STYLE_PERSONALITIES,
-  type AiSiteWizardProfile
-} from '@/lib/validators/ai-site-wizard.validator'
 import type { AiSiteGenerationPreview } from '@/lib/ai-site-wizard/types'
+import type { AiSiteWizardProfile } from '@/lib/validators/ai-site-wizard.validator'
 import type { SiteTemplateSummary } from '@/models/site-template'
 
-import { TemplateLivePreview } from '../TemplateLivePreview'
+import { TemplateWebsitePreviewDialog } from '../TemplateWebsitePreviewDialog'
+import { BrandStep } from './BrandStep'
+import { GoalsStep } from './GoalsStep'
+import { LookFeelStep } from './LookFeelStep'
+import { ReviewStep } from './ReviewStep'
 
-const STEPS = ['Your brand', 'Business goals', 'Look & feel', 'Your website'] as const
+const STEPS = ['Your brand', 'Business goals', 'Look & feel', 'Review'] as const
+
+const GENERATING_MESSAGES = [
+  'Reading your brand details…',
+  'Choosing a colour story and type pairing…',
+  'Writing headlines and stories…',
+  'Sourcing photography that fits the palette…',
+  'Setting spacing, corners, and motion…',
+  'Harmonising every section…'
+]
 
 const DEFAULT_PROFILE: AiSiteWizardProfile = {
   companyName: '',
   slogan: '',
   description: '',
+  logoUrl: '',
+  siteTitle: '',
+  audience: '',
+  keyOfferings: '',
+  differentiators: '',
   category: 'business',
   industry: 'technology',
   purpose: 'get_leads',
   stylePersonality: 'professional',
   colorMood: 'ai_pick',
-  animationLevel: 'moderate'
+  colorMode: 'ai_pick',
+  animationLevel: 'moderate',
+  fontChoice: 'ai_pick',
+  layoutDensity: 'ai_pick',
+  cornerStyle: 'ai_pick',
+  brandVoice: 'ai_pick',
+  heroStyle: 'ai_pick',
+  generationNonce: ''
 }
 
 type Props = {
   open: boolean
-  templates: SiteTemplateSummary[]
+
+  /** Accepted for call-site compatibility; generation always starts from the master base template. */
+  templates?: SiteTemplateSummary[]
+  mode?: 'user' | 'library'
   onClose: () => void
-  onCreated?: () => void
+  onCreated?: (templateId?: string) => void
 }
 
-export function AiSiteWizardDialog({ open, templates: _templates, onClose, onCreated }: Props) {
+const GENERATE_TIMEOUT_MS = 60_000
+
+function nextGenerationNonce() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+async function runWithTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), ms)
+      })
+    ])
+  } finally {
+    if (timer) {
+      clearTimeout(timer)
+    }
+  }
+}
+
+export function AiSiteWizardDialog({ open, mode = 'user', onClose, onCreated }: Props) {
   const theme = useTheme()
+  const isLibraryMode = mode === 'library'
   const [step, setStep] = useState(0)
   const [profile, setProfile] = useState<AiSiteWizardProfile>(DEFAULT_PROFILE)
   const [preview, setPreview] = useState<AiSiteGenerationPreview | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [previewPageSlug, setPreviewPageSlug] = useState('home')
+  const [fullPreviewOpen, setFullPreviewOpen] = useState(false)
+  const [libraryName, setLibraryName] = useState('')
+  const [progressIndex, setProgressIndex] = useState(0)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
-  const homePreview = useMemo(() => {
+  const previewPage = useMemo(() => {
     if (!preview) {
       return null
     }
 
-    const homePage = preview.pages.find(page => page.slug === 'home') ?? preview.pages[0]
+    const page = preview.pages.find(entry => entry.slug === previewPageSlug) ?? preview.pages[0] ?? null
 
-    if (!homePage) {
+    if (!page) {
       return null
     }
 
+    const sharedStyles =
+      preview.pages.find(entry => entry.slug === 'home')?.siteStyles ?? preview.pages[0]?.siteStyles ?? null
+
     return {
-      blocks: homePage.blocks,
-      siteStyles: homePage.siteStyles
+      ...page,
+      siteStyles: page.siteStyles ?? sharedStyles
     }
-  }, [preview])
+  }, [preview, previewPageSlug])
+
+  useEffect(() => {
+    if (busy !== 'generate') {
+      setProgressIndex(0)
+
+      return
+    }
+
+    const timer = window.setInterval(() => {
+      setProgressIndex(current => (current + 1) % GENERATING_MESSAGES.length)
+    }, 1800)
+
+    return () => window.clearInterval(timer)
+  }, [busy])
 
   const reset = () => {
     setStep(0)
@@ -100,10 +153,13 @@ export function AiSiteWizardDialog({ open, templates: _templates, onClose, onCre
     setPreview(null)
     setBusy(null)
     setError(null)
+    setPreviewPageSlug('home')
+    setFullPreviewOpen(false)
+    setLibraryName('')
   }
 
   const handleClose = () => {
-    if (busy) {
+    if (busy === 'apply' || busy === 'save') {
       return
     }
 
@@ -116,31 +172,43 @@ export function AiSiteWizardDialog({ open, templates: _templates, onClose, onCre
     setError(null)
   }
 
-  const canContinue = () => {
-    if (step === 0) {
-      return profile.companyName.trim().length > 0
-    }
-
-    return true
-  }
+  const canContinue = () => step !== 0 || profile.companyName.trim().length > 0
 
   const generatePreview = async () => {
     setBusy('generate')
     setError(null)
     setStep(3)
 
-    const result = await generateAiSitePreviewAction(profile)
+    const nextProfile = { ...profile, generationNonce: nextGenerationNonce() }
 
-    if (!result.success) {
-      setError(result.error)
+    setProfile(nextProfile)
+
+    try {
+      const result = await runWithTimeout(
+        isLibraryMode ? generateAiSiteFromWorkspaceAction(nextProfile) : generateAiSitePreviewAction(nextProfile),
+        GENERATE_TIMEOUT_MS,
+        'Generation is taking too long. Check your OpenAI key, then try again.'
+      )
+
+      if (!result.success) {
+        setError(result.error)
+        setBusy(null)
+        setStep(2)
+
+        return
+      }
+
+      setPreview(result.preview)
+      setPreviewPageSlug(result.preview.pages[0]?.slug ?? 'home')
+      setLibraryName(nextProfile.siteTitle.trim() || nextProfile.companyName.trim())
+      setBusy(null)
+    } catch (generateError) {
+      setError(
+        generateError instanceof Error ? generateError.message : 'Failed to generate your website. Please try again.'
+      )
       setBusy(null)
       setStep(2)
-
-      return
     }
-
-    setPreview(result.preview)
-    setBusy(null)
   }
 
   const applySite = async () => {
@@ -165,6 +233,41 @@ export function AiSiteWizardDialog({ open, templates: _templates, onClose, onCre
     handleClose()
   }
 
+  const saveToLibrary = async () => {
+    if (!preview) {
+      return
+    }
+
+    const name = libraryName.trim() || profile.companyName.trim()
+
+    if (!name) {
+      setError('Give this website a library name before saving.')
+
+      return
+    }
+
+    setBusy('save')
+    setError(null)
+
+    const result = await saveAiGeneratedSiteToLibraryAction(preview, {
+      name,
+      description: profile.description || preview.pages[0]?.description,
+      category: profile.category,
+      logoUrl: profile.logoUrl
+    })
+
+    if (!result.success) {
+      setError(result.error)
+      setBusy(null)
+
+      return
+    }
+
+    setBusy(null)
+    onCreated?.(result.templateId)
+    handleClose()
+  }
+
   const handleNext = async () => {
     if (step === 2) {
       await generatePreview()
@@ -180,207 +283,71 @@ export function AiSiteWizardDialog({ open, templates: _templates, onClose, onCre
     setStep(current => Math.max(current - 1, 0))
   }
 
-  const renderBrandStep = () => (
-    <Box className='flex flex-col gap-4'>
-      <Typography color='text.secondary'>
-        Tell us about your brand — like Wix ADI or Squarespace Blueprint, we&apos;ll tailor your site copy and style.
-      </Typography>
-      <TextField
-        label='Company or brand name'
-        value={profile.companyName}
-        onChange={event => updateProfile('companyName', event.target.value)}
-        required
-        fullWidth
-        autoFocus
-      />
-      <TextField
-        label='Tagline or slogan (optional)'
-        value={profile.slogan}
-        onChange={event => updateProfile('slogan', event.target.value)}
-        fullWidth
-        placeholder='e.g. Fresh coffee, crafted daily'
-      />
-      <TextField
-        label='Short description (optional)'
-        value={profile.description}
-        onChange={event => updateProfile('description', event.target.value)}
-        fullWidth
-        multiline
-        minRows={3}
-        placeholder='What do you do, and who do you serve?'
-      />
-    </Box>
-  )
+  const uploadLogo = async (file: File) => {
+    setUploadingLogo(true)
+    setError(null)
 
-  const renderBusinessStep = () => (
-    <Box className='flex flex-col gap-4'>
-      <FormControl fullWidth>
-        <InputLabel>Website type</InputLabel>
-        <Select
-          label='Website type'
-          value={profile.category}
-          onChange={event => updateProfile('category', event.target.value as SiteTemplateCategory)}
-        >
-          {SITE_TEMPLATE_CATEGORIES.map(item => (
-            <MenuItem key={item} value={item}>
-              {SITE_TEMPLATE_CATEGORY_LABELS[item]}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      <FormControl fullWidth>
-        <InputLabel>Industry</InputLabel>
-        <Select
-          label='Industry'
-          value={profile.industry}
-          onChange={event => updateProfile('industry', event.target.value as AiSiteWizardProfile['industry'])}
-        >
-          {AI_INDUSTRY_OPTIONS.map(item => (
-            <MenuItem key={item} value={item}>
-              {AI_INDUSTRY_LABELS[item]}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      <FormControl fullWidth>
-        <InputLabel>Primary goal</InputLabel>
-        <Select
-          label='Primary goal'
-          value={profile.purpose}
-          onChange={event => updateProfile('purpose', event.target.value as AiSiteWizardProfile['purpose'])}
-        >
-          {AI_SITE_PURPOSES.map(item => (
-            <MenuItem key={item} value={item}>
-              {AI_SITE_PURPOSE_LABELS[item]}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </Box>
-  )
+    try {
+      const formData = new FormData()
 
-  const renderStyleStep = () => (
-    <Box className='flex flex-col gap-4'>
-      <FormControl fullWidth>
-        <InputLabel>Style personality</InputLabel>
-        <Select
-          label='Style personality'
-          value={profile.stylePersonality}
-          onChange={event =>
-            updateProfile('stylePersonality', event.target.value as AiSiteWizardProfile['stylePersonality'])
-          }
-        >
-          {AI_STYLE_PERSONALITIES.map(item => (
-            <MenuItem key={item} value={item}>
-              {AI_STYLE_PERSONALITY_LABELS[item]}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      <FormControl fullWidth>
-        <InputLabel>Color mood</InputLabel>
-        <Select
-          label='Color mood'
-          value={profile.colorMood}
-          onChange={event => updateProfile('colorMood', event.target.value as AiSiteWizardProfile['colorMood'])}
-        >
-          {AI_COLOR_MOODS.map(item => (
-            <MenuItem key={item} value={item}>
-              {AI_COLOR_MOOD_LABELS[item]}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      <FormControl fullWidth>
-        <InputLabel>Animation level</InputLabel>
-        <Select
-          label='Animation level'
-          value={profile.animationLevel}
-          onChange={event =>
-            updateProfile('animationLevel', event.target.value as AiSiteWizardProfile['animationLevel'])
-          }
-        >
-          {AI_ANIMATION_LEVELS.map(item => (
-            <MenuItem key={item} value={item}>
-              {AI_ANIMATION_LEVEL_LABELS[item]}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      <Alert severity='info' variant='outlined'>
-        We&apos;ll pick the best layout automatically and apply fonts, colors, and animations from your choices — no
-        extra steps needed.
-      </Alert>
-    </Box>
-  )
+      formData.append('file', file)
+      formData.append('mediaType', 'image')
 
-  const renderBuildStep = () => (
-    <Box className='flex flex-col gap-4'>
-      {busy === 'generate' ? (
-        <Box className='flex flex-col items-center gap-3 py-16'>
-          <i className='ri-magic-line text-4xl text-primary animate-pulse' />
-          <Typography variant='h6'>Building your website…</Typography>
-          <Typography color='text.secondary' className='text-center max-is-[420px]'>
-            Picking the best layout, applying your style, and writing copy for {profile.companyName}.
-          </Typography>
-        </Box>
-      ) : preview && homePreview ? (
-        <>
-          <Alert severity='success' variant='outlined'>
-            Your draft is ready. We auto-selected <strong>{preview.templateName}</strong> ({preview.layoutMatchScore}%
-            match) — {preview.layoutReason}
-          </Alert>
-          <Box sx={{ borderRadius: 2, overflow: 'hidden', border: `1px solid ${theme.palette.divider}` }}>
-            <TemplateLivePreview blocks={homePreview.blocks} siteStyles={homePreview.siteStyles} height={360} />
-          </Box>
-          <Box className='flex flex-wrap gap-2'>
-            <Chip label={preview.templateName} size='small' color='primary' variant='tonal' />
-            <Chip
-              label={`${preview.pages.length} page${preview.pages.length === 1 ? '' : 's'}`}
-              size='small'
-              variant='outlined'
-            />
-            {preview.usedOpenAi ? (
-              <Chip label='AI copy applied' size='small' color='secondary' variant='tonal' />
-            ) : (
-              <Chip label='Style applied locally' size='small' variant='outlined' />
-            )}
-            <Chip label={`Theme: ${preview.styleThemeId}`} size='small' variant='outlined' />
-            <Chip label={`Bg: ${preview.stylePageAnimation}`} size='small' variant='outlined' />
-          </Box>
-        </>
-      ) : null}
-    </Box>
-  )
+      const response = await fetch('/api/media/upload', { method: 'POST', body: formData })
+      const payload = (await response.json()) as { url?: string; error?: string }
 
-  const stepContent = [renderBrandStep, renderBusinessStep, renderStyleStep, renderBuildStep][step]()
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error ?? 'Could not upload the logo.')
+      }
+
+      updateProfile('logoUrl', payload.url)
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : 'Could not upload the logo.')
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
+
+  const fillReviewLayout = step === 3 && Boolean(preview) && busy !== 'generate'
 
   return (
     <Dialog
       open={open}
       onClose={handleClose}
       fullWidth
-      maxWidth='md'
+      maxWidth='lg'
       scroll='paper'
       slotProps={{
         paper: {
-          sx: { borderRadius: 3, overflow: 'hidden', maxHeight: 'min(92vh, 900px)' }
+          sx: {
+            borderRadius: 3,
+            overflow: 'hidden',
+            maxHeight: 'min(94vh, 960px)',
+            display: 'flex',
+            flexDirection: 'column',
+            ...(fillReviewLayout ? { height: 'min(94vh, 960px)' } : {})
+          }
         }
       }}
     >
       <Box
         sx={{
           px: { xs: 3, sm: 4 },
-          py: { xs: 3, sm: 3.5 },
+          py: { xs: 2.5, sm: 3 },
           background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.14)} 0%, ${alpha(theme.palette.primary.main, 0.04)} 100%)`,
           borderBottom: `1px solid ${theme.palette.divider}`,
           position: 'relative'
         }}
       >
-        <IconButton aria-label='Close' onClick={handleClose} disabled={Boolean(busy)} sx={{ position: 'absolute', top: 12, right: 12 }}>
+        <IconButton
+          aria-label='Close'
+          onClick={handleClose}
+          disabled={Boolean(busy)}
+          sx={{ position: 'absolute', top: 12, insetInlineEnd: 12 }}
+        >
           <i className='ri-close-line' />
         </IconButton>
-        <Box className='flex items-start gap-3'>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
           <Box
             sx={{
               width: 48,
@@ -394,21 +361,33 @@ export function AiSiteWizardDialog({ open, templates: _templates, onClose, onCre
               flexShrink: 0
             }}
           >
-            <i className='ri-magic-line' style={{ fontSize: '1.5rem' }} />
+            <i className='ri-sparkling-line' style={{ fontSize: '1.5rem' }} />
           </Box>
           <div>
-            <Typography variant='h5' className='font-semibold mbe-1'>
-              Start with AI
+            <Typography variant='h5' sx={{ fontWeight: 600, mb: 0.25 }}>
+              {isLibraryMode ? 'Generate a library website' : 'Generate your website'}
             </Typography>
             <Typography color='text.secondary'>
-              Answer a few questions — we&apos;ll choose the best layout, style your site, and write your copy.
+              {isLibraryMode
+                ? 'Use your designed base, then generate a branded variation to verify and save.'
+                : 'Answer a few questions and our AI art director designs the whole site — copy, colour, type, and photography.'}
             </Typography>
           </div>
         </Box>
       </Box>
 
-      <DialogContent sx={{ px: { xs: 3, sm: 4 }, py: 3 }}>
-        <Stepper activeStep={step} alternativeLabel className='mbe-6'>
+      <DialogContent
+        sx={{
+          px: { xs: 2.5, sm: 4 },
+          py: fillReviewLayout ? 2 : 3,
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: fillReviewLayout ? 'hidden' : 'auto'
+        }}
+      >
+        <Stepper activeStep={step} alternativeLabel sx={{ mb: fillReviewLayout ? 2 : 4, flexShrink: 0 }}>
           {STEPS.map(label => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
@@ -417,17 +396,53 @@ export function AiSiteWizardDialog({ open, templates: _templates, onClose, onCre
         </Stepper>
 
         {error ? (
-          <Alert severity='error' className='mbe-4'>
+          <Alert severity='error' sx={{ mb: 3, flexShrink: 0 }}>
             {error}
           </Alert>
         ) : null}
 
-        {stepContent}
+        {step === 0 ? (
+          <BrandStep
+            profile={profile}
+            update={updateProfile}
+            isLibraryMode={isLibraryMode}
+            uploadingLogo={uploadingLogo}
+            onUploadLogo={file => void uploadLogo(file)}
+          />
+        ) : null}
+
+        {step === 1 ? <GoalsStep profile={profile} update={updateProfile} /> : null}
+
+        {step === 2 ? <LookFeelStep profile={profile} update={updateProfile} /> : null}
+
+        {step === 3 ? (
+          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <ReviewStep
+              generating={busy === 'generate'}
+              progressMessage={GENERATING_MESSAGES[progressIndex]}
+              preview={preview}
+              previewPage={previewPage}
+              onSelectPage={setPreviewPageSlug}
+              onOpenFullPreview={() => setFullPreviewOpen(true)}
+              isLibraryMode={isLibraryMode}
+              libraryName={libraryName}
+              onLibraryNameChange={setLibraryName}
+            />
+          </Box>
+        ) : null}
       </DialogContent>
 
-      <DialogActions sx={{ px: { xs: 3, sm: 4 }, py: 2.5, borderTop: `1px solid ${theme.palette.divider}`, gap: 1.5 }}>
-        <Button onClick={handleClose} disabled={Boolean(busy)}>
-          Cancel
+      <DialogActions
+        sx={{
+          px: { xs: 2.5, sm: 4 },
+          py: 2.5,
+          borderTop: `1px solid ${theme.palette.divider}`,
+          gap: 1.5,
+          flexShrink: 0
+        }}
+      >
+        <Button onClick={handleClose} disabled={busy === 'apply' || busy === 'save'}>
+          {busy === 'generate' ? 'Stop' : 'Cancel'}
         </Button>
         <Box sx={{ flex: 1 }} />
         {step > 0 && step < 3 ? (
@@ -435,14 +450,41 @@ export function AiSiteWizardDialog({ open, templates: _templates, onClose, onCre
             Back
           </Button>
         ) : null}
+        {step === 3 && preview ? (
+          <Button
+            onClick={() => void generatePreview()}
+            disabled={Boolean(busy)}
+            startIcon={<i className='ri-refresh-line' />}
+          >
+            Try another direction
+          </Button>
+        ) : null}
         {step < 3 ? (
           <Button
             variant='contained'
             disabled={!canContinue() || Boolean(busy)}
             onClick={() => void handleNext()}
-            endIcon={busy ? <i className='ri-loader-4-line animate-spin' /> : <i className='ri-arrow-right-line' />}
+            endIcon={
+              busy ? (
+                <i className='ri-loader-4-line animate-spin' />
+              ) : step === 2 ? (
+                <i className='ri-sparkling-line' />
+              ) : (
+                <i className='ri-arrow-right-line' />
+              )
+            }
           >
-            {step === 2 ? 'Build my website' : 'Continue'}
+            {step === 2 ? 'Generate website' : 'Continue'}
+          </Button>
+        ) : preview && isLibraryMode ? (
+          <Button
+            variant='contained'
+            color='success'
+            disabled={Boolean(busy)}
+            onClick={() => void saveToLibrary()}
+            startIcon={busy === 'save' ? <i className='ri-loader-4-line animate-spin' /> : <i className='ri-save-line' />}
+          >
+            {busy === 'save' ? 'Saving…' : 'Save to library'}
           </Button>
         ) : preview ? (
           <Button
@@ -450,12 +492,29 @@ export function AiSiteWizardDialog({ open, templates: _templates, onClose, onCre
             color='success'
             disabled={Boolean(busy)}
             onClick={() => void applySite()}
-            startIcon={busy === 'apply' ? <i className='ri-loader-4-line animate-spin' /> : <i className='ri-rocket-line' />}
+            startIcon={
+              busy === 'apply' ? <i className='ri-loader-4-line animate-spin' /> : <i className='ri-rocket-line' />
+            }
           >
-            {busy === 'apply' ? 'Creating…' : 'Create my website'}
+            {busy === 'apply' ? 'Creating…' : 'Use this website'}
           </Button>
         ) : null}
       </DialogActions>
+
+      {preview ? (
+        <TemplateWebsitePreviewDialog
+          open={fullPreviewOpen}
+          onClose={() => setFullPreviewOpen(false)}
+          title={preview.designConcept || preview.templateName}
+          pages={preview.pages.map(page => ({
+            slug: page.slug,
+            title: page.title,
+            blocks: page.blocks,
+            siteStyles: page.siteStyles ?? null
+          }))}
+          initialPageSlug={previewPageSlug}
+        />
+      ) : null}
     </Dialog>
   )
 }

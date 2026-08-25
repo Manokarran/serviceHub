@@ -4,6 +4,8 @@ import type {
   HeroBlockProps,
   ImageBlockProps,
   SectionBlockProps,
+  ShowcaseBlockProps,
+  PricingBlockProps,
   TabsBlockProps
 } from '@/features/your-space/types'
 
@@ -38,6 +40,34 @@ function collectFromBlocks(blocks: Block[], urls: string[]) {
 
       if (isHttpUrl(props.src)) {
         urls.push(props.src)
+      }
+    }
+
+    if (block.type === 'showcase') {
+      const props = block.props as ShowcaseBlockProps
+      const photo = photoBackgroundFromProps(props)
+
+      if (photo) {
+        urls.push(photo)
+      }
+
+      for (const item of props.items ?? []) {
+        if (isHttpUrl(item.imageSrc)) {
+          urls.push(item.imageSrc)
+        }
+
+        if (isHttpUrl(item.logoSrc)) {
+          urls.push(item.logoSrc)
+        }
+      }
+    }
+
+    if (block.type === 'pricing') {
+      const props = block.props as PricingBlockProps
+      const photo = photoBackgroundFromProps(props)
+
+      if (photo) {
+        urls.push(photo)
       }
     }
 

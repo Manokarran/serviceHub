@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const slugSchema = z
+export const tenantSlugSchema = z
   .string()
   .min(3, 'Workspace slug must be at least 3 characters')
   .max(63, 'Workspace slug must be at most 63 characters')
@@ -8,7 +8,7 @@ const slugSchema = z
 
 export const completeRegistrationSchema = z.object({
   companyName: z.string().trim().min(2, 'Company name is required').max(120),
-  slug: slugSchema,
+  slug: tenantSlugSchema,
   templateId: z.string().trim().optional()
 })
 

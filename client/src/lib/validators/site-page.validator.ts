@@ -1,24 +1,9 @@
 import { z } from 'zod'
 
 import { HERO_SPLIT_VISUAL_ANIMATION_OPTIONS } from '@/features/your-space/constants/heroVisual'
+import { BLOCK_TYPES } from '@/features/your-space/types'
 
-const blockTypeSchema = z.enum([
-  'section',
-  'carousel',
-  'tabs',
-  'header',
-  'footer',
-  'hero',
-  'heading',
-  'text',
-  'button',
-  'image',
-  'video',
-  'logo',
-  'shape',
-  'icon',
-  'contactForm'
-])
+const blockTypeSchema = z.enum(BLOCK_TYPES)
 
 const heroSplitVisualAnimationSchema = z.enum(
   HERO_SPLIT_VISUAL_ANIMATION_OPTIONS.map(option => option.value) as [

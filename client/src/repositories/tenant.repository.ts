@@ -14,6 +14,35 @@ export class TenantRepository {
     return TenantModel.findOne({ slug: slug.toLowerCase() }).exec()
   }
 
+  async isSlugTaken(slug: string, excludeTenantId?: string): Promise<boolean> {
+    await connectDB()
+
+    const existing = await TenantModel.findOne({ slug: slug.toLowerCase() }).select('_id').exec()
+
+    if (!existing) {
+      return false
+    }
+
+    if (excludeTenantId && existing._id.toString() === excludeTenantId) {
+      return false
+    }
+
+    return true
+  }
+
+  async updateNameAndSlug(
+    id: string,
+    data: { name: string; slug: string }
+  ): Promise<ITenantDocument | null> {
+    await connectDB()
+
+    return TenantModel.findByIdAndUpdate(
+      id,
+      { $set: { name: data.name, slug: data.slug } },
+      { returnDocument: 'after', runValidators: true }
+    ).exec()
+  }
+
   async create(data: Pick<ITenantDocument, 'name' | 'slug'>): Promise<ITenantDocument> {
     await connectDB()
 

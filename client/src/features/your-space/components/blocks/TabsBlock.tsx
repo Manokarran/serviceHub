@@ -408,7 +408,11 @@ function TabsShell({ block, preview }: Props) {
   const theme = useTheme()
   const builder = useBuilderOptional()
   const nestTargets = useBuilderNestTargetsOptional()
-  const props = block.props as TabsBlockProps
+  const rawProps = block.props as TabsBlockProps
+  const props = {
+    ...rawProps,
+    tabs: (rawProps.tabs ?? []).filter(tab => Boolean(tab && typeof tab === 'object' && tab.id))
+  }
   const editMode = !preview
   const maxWidth = getTabsMaxWidth(props.maxWidth)
   const [activeTabIndex, setActiveTabIndex] = useState(0)

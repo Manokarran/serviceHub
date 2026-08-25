@@ -28,6 +28,7 @@ type Props = {
   showCategoryFilter?: boolean
   variant?: 'default' | 'featured'
   getTemplateHref?: (templateId: string) => string
+  onPreviewTemplate?: (templateId: string) => void
   loading?: boolean
   applying?: boolean
   onApply?: (templateId: string) => void
@@ -42,6 +43,7 @@ export function TemplateGallery({
   showCategoryFilter = false,
   variant = 'default',
   getTemplateHref,
+  onPreviewTemplate,
   loading = false,
   applying = false,
   onApply
@@ -179,6 +181,7 @@ export function TemplateGallery({
               template={template}
               selected={selectedId === template.id}
               onSelect={onSelect}
+              onPreview={onPreviewTemplate}
               showStatus={showStatus}
               href={getTemplateHref?.(template.id)}
               variant={variant}

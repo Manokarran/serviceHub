@@ -7,6 +7,7 @@ import { AppError } from '@/lib/errors'
 import type { CreateSiteTemplateInput, UpdateSiteTemplateInput } from '@/lib/validators/site-template.validator'
 import type { SiteTemplateDetail, SiteTemplateSummary } from '@/models/site-template'
 import { siteTemplateService } from '@/services/site-template'
+import { getOrCreateBaseTemplateTenantId } from '@/lib/site-template/base-template-tenant'
 
 type TemplatesResult =
   | { success: true; templates: SiteTemplateSummary[] }
@@ -51,6 +52,31 @@ export async function getSiteTemplateAction(id: string): Promise<TemplateResult>
     const template = await siteTemplateService.getTemplate(id)
 
     if (!template) {
+      return { success: false, error: 'Template not found.' }
+    }
+
+    return { success: true, template }
+  } catch (error) {
+    if (error instanceof AppError) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: false, error: 'Failed to load template.' }
+  }
+}
+
+/** Signed-in users can preview published templates before applying them. */
+export async function getPublishedSiteTemplateAction(id: string): Promise<TemplateResult> {
+  try {
+    const session = await auth()
+
+    if (!session?.user?.id) {
+      return { success: false, error: 'You must be signed in to preview templates.' }
+    }
+
+    const template = await siteTemplateService.getTemplate(id)
+
+    if (!template || template.status !== 'published') {
       return { success: false, error: 'Template not found.' }
     }
 
@@ -143,13 +169,9 @@ export async function archiveSiteTemplateAction(id: string): Promise<SimpleResul
 
 export async function captureSiteTemplateFromWorkspaceAction(id: string): Promise<TemplateResult> {
   try {
-    const session = await requireSuperAdminSession()
-
-    if (!session.user.tenantId) {
-      return { success: false, error: 'Link a workspace to your account before capturing a site.' }
-    }
-
-    const template = await siteTemplateService.captureFromTenant(id, session.user.tenantId)
+    await requireSuperAdminSession()
+    const tenantId = await getOrCreateBaseTemplateTenantId()
+    const template = await siteTemplateService.captureFromTenant(id, tenantId)
 
     return { success: true, template }
   } catch (error) {

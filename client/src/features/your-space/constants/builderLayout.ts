@@ -11,16 +11,19 @@ export const VIEWPORT_WIDTHS: Record<BuilderViewport, number | null> = {
   mobile: 390
 }
 
-export const BUILDER_ICON_RAIL_WIDTH = 48
+export const BUILDER_ICON_RAIL_WIDTH = 64
 export const BUILDER_PAGE_NAV_WIDTH = 168
-export const BUILDER_CONTENT_PANEL_WIDTH = 272
+export const BUILDER_CONTENT_PANEL_WIDTH = 236
+
 /** @deprecated Use BUILDER_PAGE_NAV_WIDTH + BUILDER_CONTENT_PANEL_WIDTH */
 export const BUILDER_SIDEBAR_RAIL_WIDTH = 52
+
 /** @deprecated Use BUILDER_CONTENT_PANEL_WIDTH */
 export const BUILDER_SIDEBAR_PANEL_WIDTH = 300
 export const BUILDER_PROPERTY_PANEL_WIDTH = 320
-export const BUILDER_TOP_BAR_HEIGHT = 52
-export const BUILDER_CANVAS_TOOLBAR_HEIGHT = 44
+export const BUILDER_TOP_BAR_HEIGHT = 56
+export const BUILDER_CANVAS_TOOLBAR_HEIGHT = 40
+export const BUILDER_TOOLBAR_CONTROL_SIZE = 32
 
 /** Stacking order for canvas blocks and inline editing chrome */
 export const BUILDER_Z_INDEX = {
@@ -29,33 +32,38 @@ export const BUILDER_Z_INDEX = {
   canvasBlockHover: 50,
   canvasBlockSelected: 100,
   canvasBlockDragging: 110,
-  blockToolbar: 120
+  blockToolbar: 120,
+  dockOverlay: 24,
+  propertyOverlay: 25
 } as const
 
 export const BUILDER_CONTENT_TABS = [
-  { id: 'pages' as const, icon: 'ri-pages-line', label: 'Pages' },
-  { id: 'blocks' as const, icon: 'ri-layout-grid-line', label: 'Blocks' },
-  { id: 'design' as const, icon: 'ri-palette-line', label: 'Site styles' }
+  { id: 'pages' as const, icon: 'ri-pages-line', label: 'Pages', shortcut: 'P' },
+  { id: 'blocks' as const, icon: 'ri-layout-grid-line', label: 'Blocks', shortcut: 'B' },
+  { id: 'design' as const, icon: 'ri-palette-line', label: 'Styles', shortcut: 'S' }
 ]
 
-export const FLOATING_PANEL_WIDTH = 240
+export const FLOATING_PANEL_WIDTH = 264
+export const FLOATING_PANEL_EXPANDED_WIDTH = 400
 export const FLOATING_PROPERTY_PANEL_WIDTH = 280
+export const BUILDER_FLOATING_PANEL_INSET = 8
+export const BUILDER_FLOATING_PANEL_MIN_HEIGHT = 320
 
-/** Typography tokens for builder chrome — thin, sharp UI labels */
+/** Typography tokens for builder chrome — readable UI labels */
 export const BUILDER_TYPOGRAPHY = {
-  title: { fontWeight: 700, letterSpacing: '-0.025em', fontSize: '0.8125rem', lineHeight: 1.3 },
+  title: { fontWeight: 700, letterSpacing: '-0.02em', fontSize: '0.875rem', lineHeight: 1.3 },
   sectionLabel: {
     fontWeight: 700,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.055em',
-    fontSize: '0.625rem',
-    lineHeight: 1.4
+    letterSpacing: '0.05em',
+    fontSize: '0.6875rem',
+    lineHeight: 1.35
   },
-  label: { fontWeight: 500, fontSize: '0.6875rem', lineHeight: 1.4, letterSpacing: '0.005em' },
-  subtle: { fontWeight: 400, fontSize: '0.75rem', lineHeight: 1.5, letterSpacing: '-0.01em' },
-  action: { fontWeight: 500, fontSize: '0.75rem', lineHeight: 1.4, letterSpacing: '-0.015em' },
-  input: { fontWeight: 400, fontSize: '0.75rem', lineHeight: 1.5, letterSpacing: '-0.01em' },
-  tab: { fontWeight: 600, fontSize: '0.6875rem', lineHeight: 1.4, letterSpacing: '0.01em' }
+  label: { fontWeight: 600, fontSize: '0.75rem', lineHeight: 1.4, letterSpacing: '0.01em' },
+  subtle: { fontWeight: 400, fontSize: '0.8125rem', lineHeight: 1.5, letterSpacing: '-0.01em' },
+  action: { fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.4, letterSpacing: '-0.01em' },
+  input: { fontWeight: 500, fontSize: '0.8125rem', lineHeight: 1.5, letterSpacing: '-0.01em' },
+  tab: { fontWeight: 700, fontSize: '0.75rem', lineHeight: 1.4, letterSpacing: '0.01em' }
 } as const
 
 /** Compact pill-style segmented control — used in canvas toolbar, tabs, etc. */
@@ -120,6 +128,27 @@ export const builderIconGroupSx = (theme: Theme) => ({
   gap: 0.25,
   p: '3px',
   ...builderControlTrackSx(theme)
+})
+
+export const builderToolbarIconButtonSx = (theme: Theme) => ({
+  position: 'relative' as const,
+  width: BUILDER_TOOLBAR_CONTROL_SIZE,
+  height: BUILDER_TOOLBAR_CONTROL_SIZE,
+  color: 'text.secondary',
+  fontSize: '1.05rem',
+  borderRadius: 1.25,
+  '&:hover': {
+    backgroundColor: alpha(theme.palette.text.primary, 0.06),
+    color: 'text.primary'
+  }
+})
+
+export const builderToolbarDividerSx = (theme: Theme) => ({
+  width: '1px',
+  height: 18,
+  flexShrink: 0,
+  alignSelf: 'center',
+  backgroundColor: alpha(theme.palette.divider, 0.95)
 })
 
 export const BUILDER_FONT_SMOOTHING = {

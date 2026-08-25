@@ -10,6 +10,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 import { PALETTE_CATEGORIES } from '../../constants'
 import { BUILDER_TYPOGRAPHY, BUILDER_Z_INDEX } from '../../constants/builderLayout'
 import { useBuilder } from '../../context/BuilderContext'
+import { useFrequentPaletteItems } from '../../hooks/useFrequentPaletteItems'
 import type { PaletteItem } from '../../types'
 import { getQuickAddPaletteItems, toBlockLocation, type QuickAddLocation } from '../../utils/quickAddHelpers'
 
@@ -33,6 +34,7 @@ export function BlockQuickAddPicker({
   const theme = useTheme()
   const { addBlock } = useBuilder()
   const [query, setQuery] = useState('')
+  const frequentItems = useFrequentPaletteItems(4)
 
   const items = useMemo(() => {
     const all = getQuickAddPaletteItems(location)
@@ -56,6 +58,16 @@ export function BlockQuickAddPicker({
       items: items.filter(item => item.category === category.id)
     })).filter(group => group.items.length > 0)
   }, [items])
+
+  const frequentForLocation = useMemo(() => {
+    if (query.trim()) {
+      return []
+    }
+
+    const allowedIds = new Set(items.map(item => item.id))
+
+    return frequentItems.filter(item => allowedIds.has(item.id))
+  }, [frequentItems, items, query])
 
   const handlePick = (item: PaletteItem) => {
     addBlock(item.type, toBlockLocation(location, index), item.id)
@@ -119,7 +131,69 @@ export function BlockQuickAddPicker({
             No blocks match
           </Typography>
         ) : (
-          grouped.map(({ category, items: groupItems }) => (
+          <>
+            {frequentForLocation.length > 0 && (
+              <Box sx={{ mb: 0.75 }}>
+                <Typography
+                  sx={{
+                    ...BUILDER_TYPOGRAPHY.sectionLabel,
+                    px: 1.5,
+                    py: 0.5,
+                    color: 'text.disabled',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5
+                  }}
+                >
+                  <i className='ri-sparkling-line' style={{ fontSize: '0.75rem' }} />
+                  Frequently used
+                </Typography>
+                {frequentForLocation.map(item => (
+                  <Box
+                    key={`frequent-${item.id}`}
+                    component='button'
+                    type='button'
+                    onClick={() => handlePick(item)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      width: '100%',
+                      border: 'none',
+                      background: 'none',
+                      textAlign: 'left',
+                      px: 1.5,
+                      py: 0.75,
+                      cursor: 'pointer',
+                      color: 'text.primary',
+                      '&:hover': {
+                        backgroundColor: alpha(theme.palette.primary.main, 0.08)
+                      }
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 0.75,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                        color: 'primary.main'
+                      }}
+                    >
+                      <i className={item.icon} style={{ fontSize: '0.9rem' }} />
+                    </Box>
+                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.2 }}>
+                      {item.label}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
+            {grouped.map(({ category, items: groupItems }) => (
             <Box key={category.id} sx={{ mb: 0.75 }}>
               <Typography
                 sx={{
@@ -189,7 +263,8 @@ export function BlockQuickAddPicker({
                 </Box>
               ))}
             </Box>
-          ))
+          ))}
+          </>
         )}
       </Box>
     </Popover>

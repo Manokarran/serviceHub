@@ -115,6 +115,25 @@ export class SitePageRepository {
     return SitePageModel.find({ tenantId }).sort({ sortOrder: 1, createdAt: 1 }).exec()
   }
 
+  async replaceBlockSets(
+    tenantId: string,
+    slug: string,
+    draftBlocks: ISitePageBlock[],
+    publishedBlocks: ISitePageBlock[]
+  ): Promise<void> {
+    await connectDB()
+
+    await SitePageModel.updateOne(
+      { tenantId, slug },
+      {
+        $set: {
+          draftBlocks,
+          publishedBlocks
+        }
+      }
+    ).exec()
+  }
+
   async createPage(
     tenantId: string,
     slug: string,

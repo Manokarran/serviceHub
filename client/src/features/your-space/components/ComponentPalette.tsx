@@ -11,7 +11,8 @@ import { alpha, useTheme } from '@mui/material/styles'
 import { PALETTE_CATEGORIES, PALETTE_ITEMS } from '../constants'
 import { BUILDER_TYPOGRAPHY } from '../constants/builderLayout'
 import { builderControlTrackSx, builderHairlineHorizontal } from '../constants/builderChrome'
-import type { PaletteItem } from '../types'
+import { useFrequentPaletteItems } from '../hooks/useFrequentPaletteItems'
+import type { PaletteCategory, PaletteItem } from '../types'
 import { PropertyPanelHeader } from './property/PropertyPanelUi'
 import { DraggablePaletteItem } from './dnd/DraggablePaletteItem'
 
@@ -22,6 +23,16 @@ type PaletteContentProps = {
 }
 
 type PaletteCategoryConfig = (typeof PALETTE_CATEGORIES)[number]
+type CategoryFilter = 'all' | PaletteCategory
+
+const PALETTE_TILE_MIN = 112
+const paletteTileGridSx = {
+  display: 'grid',
+  gridTemplateColumns: `repeat(auto-fill, minmax(${PALETTE_TILE_MIN}px, 1fr))`,
+  gap: 1,
+  width: '100%',
+  minWidth: 0
+} as const
 
 function PaletteCategorySection({
   category,
@@ -33,30 +44,33 @@ function PaletteCategorySection({
   forceExpanded: boolean
 }) {
   const theme = useTheme()
-  const [expanded, setExpanded] = useState(category.defaultExpanded ?? true)
-  const isExpanded = forceExpanded || expanded
+  const [open, setOpen] = useState(category.defaultExpanded ?? true)
+  const isExpanded = forceExpanded || open
+  const isRow = category.itemLayout === 'row'
 
   return (
     <Box>
       <Box
         component='button'
         type='button'
-        onClick={() => setExpanded(v => !v)}
+        onClick={() => setOpen(v => !v)}
         aria-expanded={isExpanded}
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 0.75,
+          gap: 1,
           width: '100%',
-          p: 0,
+          px: 0.5,
+          py: 0.75,
           mb: isExpanded ? 1 : 0,
           border: 'none',
+          borderRadius: 1.25,
           background: 'none',
           cursor: 'pointer',
           textAlign: 'left',
-          color: 'text.disabled',
+          color: 'text.primary',
           '&:hover': {
-            color: 'text.secondary'
+            backgroundColor: alpha(theme.palette.text.primary, 0.04)
           }
         }}
       >
@@ -66,18 +80,19 @@ function PaletteCategorySection({
             display: 'inline-flex',
             flexShrink: 0,
             transition: 'transform 0.15s',
-            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)'
+            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            color: 'text.secondary'
           }}
         >
-          <i className='ri-arrow-right-s-line' style={{ fontSize: '0.8rem' }} />
+          <i className='ri-arrow-right-s-line' style={{ fontSize: '1rem' }} />
         </Box>
-        <i className={category.icon} style={{ fontSize: '0.8rem', flexShrink: 0, opacity: 0.85 }} />
+        <i className={category.icon} style={{ fontSize: '0.95rem', flexShrink: 0, color: theme.palette.primary.main }} />
         <Typography
           component='span'
           sx={{
             flex: 1,
             ...BUILDER_TYPOGRAPHY.sectionLabel,
-            color: 'inherit',
+            color: 'text.primary',
             m: 0
           }}
         >
@@ -86,13 +101,13 @@ function PaletteCategorySection({
         <Typography
           component='span'
           sx={{
-            fontSize: '0.65rem',
-            fontWeight: 600,
-            color: 'text.disabled',
-            px: 0.625,
-            py: 0.125,
-            borderRadius: 0.75,
-            backgroundColor: alpha(theme.palette.text.primary, 0.05),
+            fontSize: '0.6875rem',
+            fontWeight: 700,
+            color: 'text.secondary',
+            px: 0.75,
+            py: 0.25,
+            borderRadius: 1,
+            backgroundColor: alpha(theme.palette.text.primary, 0.08),
             lineHeight: 1.4
           }}
         >
@@ -101,9 +116,15 @@ function PaletteCategorySection({
       </Box>
 
       {isExpanded && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.75, pl: 0.25 }}>
+        <Box
+          sx={
+            isRow
+              ? { display: 'flex', flexDirection: 'column', gap: 0.75 }
+              : paletteTileGridSx
+          }
+        >
           {items.map(item => (
-            <DraggablePaletteItem key={item.id} item={item} compact />
+            <DraggablePaletteItem key={item.id} item={item} layout={isRow ? 'row' : 'tile'} comfortable />
           ))}
         </Box>
       )}
@@ -114,14 +135,21 @@ function PaletteCategorySection({
 export function ComponentPaletteContent({ onClose, embedded = false }: PaletteContentProps) {
   const theme = useTheme()
   const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState<CategoryFilter>('all')
+  const frequentItems = useFrequentPaletteItems(6)
+
+  const query = search.trim().toLowerCase()
+  const isSearching = query.length > 0
 
   const grouped = useMemo(() => {
-    const query = search.trim().toLowerCase()
-
     return PALETTE_CATEGORIES.map(category => ({
       ...category,
       items: PALETTE_ITEMS.filter(item => {
         if (item.category !== category.id) {
+          return false
+        }
+
+        if (filter !== 'all' && item.category !== filter) {
           return false
         }
 
@@ -136,9 +164,17 @@ export function ComponentPaletteContent({ onClose, embedded = false }: PaletteCo
         )
       })
     })).filter(category => category.items.length > 0)
-  }, [search])
+  }, [filter, query])
 
-  const isSearching = search.trim().length > 0
+  const visibleFrequent = useMemo(() => {
+    if (isSearching || filter !== 'all') {
+      return []
+    }
+
+    return frequentItems
+  }, [filter, frequentItems, isSearching])
+
+  const showGroupedAccordion = filter === 'all' || isSearching
 
   return (
     <>
@@ -149,7 +185,9 @@ export function ComponentPaletteContent({ onClose, embedded = false }: PaletteCo
       <Box
         sx={{
           px: 1.75,
-          py: 1.25,
+          pt: 1.5,
+          pb: 1.25,
+          flexShrink: 0,
           borderBottom: 'none',
           position: 'relative',
           '&::after': {
@@ -174,21 +212,101 @@ export function ComponentPaletteContent({ onClose, embedded = false }: PaletteCo
             input: {
               startAdornment: (
                 <InputAdornment position='start'>
-                  <i className='ri-search-line' style={{ fontSize: '0.875rem', opacity: 0.45 }} />
+                  <i className='ri-search-line' style={{ fontSize: '1rem', opacity: 0.55 }} />
                 </InputAdornment>
               ),
-              sx: { borderRadius: 1, fontSize: '0.75rem', py: 0.125, ...builderControlTrackSx(theme), boxShadow: 'none' }
+              sx: {
+                borderRadius: 1.25,
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                py: 0.375,
+                ...builderControlTrackSx(theme),
+                boxShadow: 'none'
+              }
             }
           }}
         />
+
+        {!isSearching && (
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 0.75,
+              mt: 1.25,
+              pb: 0.25
+            }}
+          >
+            {[{ id: 'all' as const, chipLabel: 'All' }, ...PALETTE_CATEGORIES].map(chip => {
+              const id = chip.id
+              const selected = filter === id
+
+              return (
+                <Box
+                  key={id}
+                  component='button'
+                  type='button'
+                  onClick={() => setFilter(id)}
+                  aria-pressed={selected}
+                  sx={{
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                    border: 'none',
+                    cursor: 'pointer',
+                    px: 1.25,
+                    py: 0.625,
+                    borderRadius: 5,
+                    ...BUILDER_TYPOGRAPHY.label,
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.02em',
+                    backgroundColor: selected ? alpha(theme.palette.primary.main, 0.16) : alpha(theme.palette.text.primary, 0.06),
+                    color: selected ? 'primary.main' : 'text.primary',
+                    boxShadow: selected ? `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.35)}` : 'none',
+                    '&:hover': {
+                      color: selected ? 'primary.main' : 'text.primary',
+                      backgroundColor: selected
+                        ? alpha(theme.palette.primary.main, 0.22)
+                        : alpha(theme.palette.text.primary, 0.1)
+                    }
+                  }}
+                >
+                  {chip.chipLabel}
+                </Box>
+              )
+            })}
+          </Box>
+        )}
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', p: 1.75, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <Box sx={{ flex: 1, overflowY: 'auto', p: 1.75, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {visibleFrequent.length > 0 && (
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: 'text.primary' }}>
+              <i className='ri-sparkling-line' style={{ fontSize: '0.95rem', color: theme.palette.primary.main }} />
+              <Typography component='span' sx={{ ...BUILDER_TYPOGRAPHY.sectionLabel, color: 'text.primary', m: 0, flex: 1 }}>
+                Frequently used
+              </Typography>
+            </Box>
+            <Box sx={paletteTileGridSx}>
+              {visibleFrequent.map(item => (
+                <DraggablePaletteItem
+                  key={`frequent-${item.id}`}
+                  item={item}
+                  layout='tile'
+                  comfortable
+                  dragId={`palette-frequent-${item.id}`}
+                />
+              ))}
+            </Box>
+          </Box>
+        )}
+
         {grouped.length === 0 ? (
-          <Typography variant='body2' color='text.secondary' sx={{ py: 2, textAlign: 'center' }}>
+          <Typography variant='body2' color='text.secondary' sx={{ py: 2, textAlign: 'center', fontWeight: 600 }}>
             No blocks match your search
           </Typography>
-        ) : (
+        ) : showGroupedAccordion ? (
           grouped.map(category => (
             <PaletteCategorySection
               key={category.id}
@@ -197,6 +315,26 @@ export function ComponentPaletteContent({ onClose, embedded = false }: PaletteCo
               forceExpanded={isSearching}
             />
           ))
+        ) : (
+          grouped.map(category => {
+            const isRow = category.itemLayout === 'row'
+
+            return (
+              <Box
+                key={category.id}
+                sx={isRow ? { display: 'flex', flexDirection: 'column', gap: 0.75 } : paletteTileGridSx}
+              >
+                {category.items.map(item => (
+                  <DraggablePaletteItem
+                    key={item.id}
+                    item={item}
+                    layout={isRow ? 'row' : 'tile'}
+                    comfortable
+                  />
+                ))}
+              </Box>
+            )
+          })
         )}
       </Box>
     </>

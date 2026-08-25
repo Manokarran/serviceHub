@@ -47,12 +47,14 @@ import { SitePageBackgroundPanel } from './SitePageBackgroundPanel'
 
 type Props = {
   onClose?: () => void
+  embedded?: boolean
 }
 
-export function SiteStylesPanel({ onClose }: Props) {
+export function SiteStylesPanel({ onClose, embedded = false }: Props) {
   const theme = useTheme()
   const { siteStyles, updateSiteStyles, applyThemePreset } = useBuilder()
   const [view, setView] = useState<SiteStylesView>('home')
+  const headerClose = embedded ? undefined : onClose
 
   const swatches = [
     siteStyles.colors.swatch1,
@@ -71,7 +73,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'home') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Site Styles' onClose={onClose} />
+        {!embedded && <StylePanelHeader title='Site Styles' onClose={headerClose} />}
         <Box sx={{ flex: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
           <StyleSectionCard label='Themes' onClick={() => setView('themes')}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -191,7 +193,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'themes') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Themes' onBack={() => setView('home')} onClose={onClose} />
+        <StylePanelHeader title='Themes' onBack={() => setView('home')} onClose={headerClose} />
         <StylePanelBody>
           <PropertyBodyText>Apply a preset that updates fonts, colors, and buttons together — like Squarespace theme packs.</PropertyBodyText>
           {SITE_THEME_PRESETS.map(preset => (
@@ -253,7 +255,7 @@ export function SiteStylesPanel({ onClose }: Props) {
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Recommended Font Packs' onBack={() => setView('home')} onClose={onClose} />
+        <StylePanelHeader title='Recommended Font Packs' onBack={() => setView('home')} onClose={headerClose} />
         <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
           <StylePackGrid>
             {FONT_PACK_PRESETS.map(pack => (
@@ -275,7 +277,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'fonts-customize') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Fonts' onBack={() => setView('fonts')} onClose={onClose} />
+        <StylePanelHeader title='Fonts' onBack={() => setView('fonts')} onClose={headerClose} />
         <StylePanelBody>
           <PropertySection title='Global text styles'>
           <FormControl size='small' fullWidth>
@@ -424,7 +426,7 @@ export function SiteStylesPanel({ onClose }: Props) {
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Colors' onBack={() => setView('home')} onClose={onClose} />
+        <StylePanelHeader title='Colors' onBack={() => setView('home')} onClose={headerClose} />
         <StylePanelBody>
           <PropertyBodyText>Edit your palette — Squarespace generates section themes from these base colors.</PropertyBodyText>
           <ColorSwatchRow colors={swatches} />
@@ -460,7 +462,7 @@ export function SiteStylesPanel({ onClose }: Props) {
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Recommended Button Styles' onBack={() => setView('home')} onClose={onClose} />
+        <StylePanelHeader title='Recommended Button Styles' onBack={() => setView('home')} onClose={headerClose} />
         <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
           <StylePackGrid>
             {BUTTON_PACK_PRESETS.map(pack => (
@@ -482,7 +484,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'buttons-customize') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Buttons' onBack={() => setView('buttons')} onClose={onClose} />
+        <StylePanelHeader title='Buttons' onBack={() => setView('buttons')} onClose={headerClose} />
         <StylePanelBody>
           <PropertySection title='Typography'>
             <Box>
@@ -548,7 +550,7 @@ export function SiteStylesPanel({ onClose }: Props) {
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Recommended Form Styles' onBack={() => setView('home')} onClose={onClose} />
+        <StylePanelHeader title='Recommended Form Styles' onBack={() => setView('home')} onClose={headerClose} />
         <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
           <StylePackGrid>
             {FORM_PACK_PRESETS.map(pack => (
@@ -570,7 +572,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'forms-customize') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Forms' onBack={() => setView('forms')} onClose={onClose} />
+        <StylePanelHeader title='Forms' onBack={() => setView('forms')} onClose={headerClose} />
         <StylePanelBody>
           <FormControl size='small' fullWidth>
             <InputLabel>Field shape</InputLabel>
@@ -634,7 +636,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'misc') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Miscellaneous' onBack={() => setView('home')} onClose={onClose} />
+        <StylePanelHeader title='Miscellaneous' onBack={() => setView('home')} onClose={headerClose} />
         <Box sx={{ flex: 1, overflowY: 'auto', px: 2 }}>
           <StyleNavRow label='Animations' onClick={() => setView('misc-animations')} />
           <StyleNavRow label='Spacing' onClick={() => setView('misc-spacing')} />
@@ -647,7 +649,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'misc-animations') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Animations' onBack={() => setView('misc')} onClose={onClose} />
+        <StylePanelHeader title='Animations' onBack={() => setView('misc')} onClose={headerClose} />
         <StylePanelBody>
           <PropertyBodyText>Site-wide default animation when blocks enter the viewport.</PropertyBodyText>
           <FormControl size='small' fullWidth>
@@ -673,7 +675,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'misc-page-background') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Background animation' onBack={() => setView('home')} onClose={onClose} />
+        <StylePanelHeader title='Background animation' onBack={() => setView('home')} onClose={headerClose} />
         <StylePanelBody>
           <SitePageBackgroundPanel />
         </StylePanelBody>
@@ -684,7 +686,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'misc-spacing') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Spacing' onBack={() => setView('misc')} onClose={onClose} />
+        <StylePanelHeader title='Spacing' onBack={() => setView('misc')} onClose={headerClose} />
         <StylePanelBody>
           <PropertyBodyText>Adjust default vertical spacing between sections across your site.</PropertyBodyText>
           <FormControl size='small' fullWidth>
@@ -709,7 +711,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'misc-canvas') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Page canvas' onBack={() => setView('home')} onClose={onClose} />
+        <StylePanelHeader title='Page canvas' onBack={() => setView('home')} onClose={headerClose} />
         <StylePanelBody>
           <PropertyBodyText>
             Corner radius of the page preview frame in the builder. Set to 0 for sharp square corners.
@@ -736,7 +738,7 @@ export function SiteStylesPanel({ onClose }: Props) {
   if (view === 'misc-image-blocks') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <StylePanelHeader title='Image Blocks' onBack={() => setView('misc')} onClose={onClose} />
+        <StylePanelHeader title='Image Blocks' onBack={() => setView('misc')} onClose={headerClose} />
         <StylePanelBody>
           <Box>
             <PropertyFieldLabel>Corner radius: {siteStyles.misc.imageCornerRadius}px</PropertyFieldLabel>

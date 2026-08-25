@@ -47,6 +47,7 @@ export const authConfig = {
         pathname.startsWith('/your-space') ||
         pathname.startsWith('/leads') ||
         pathname.startsWith('/about') ||
+        pathname.startsWith('/profile') ||
         isSuperAdminRoute
       const isRegisterRoute = pathname.startsWith('/register')
       const isLoginRoute = pathname.startsWith('/login')

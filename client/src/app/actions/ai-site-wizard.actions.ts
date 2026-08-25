@@ -1,7 +1,8 @@
 'use server'
 
 import { auth } from '@/lib/auth'
-import { formatActionError } from '@/lib/auth/resolve-session-user-id'
+import { requireSuperAdminSession } from '@/lib/auth/require-super-admin'
+import { formatActionError, resolveSessionUserId } from '@/lib/auth/resolve-session-user-id'
 import { AppError } from '@/lib/errors'
 import { pickBestTemplate } from '@/lib/ai-site-wizard/template-matcher'
 import type { AiSiteGenerationPreview, AiTemplateRecommendation } from '@/lib/ai-site-wizard/types'
@@ -10,6 +11,8 @@ import {
   type AiSiteWizardProfile
 } from '@/lib/validators/ai-site-wizard.validator'
 import { aiSiteWizardService } from '@/services/ai-site-wizard/ai-site-wizard.service'
+import { getOrCreateBaseTemplateTenantId } from '@/lib/site-template/base-template-tenant'
+import { sitePageService } from '@/services/site-page'
 import { siteTemplateService } from '@/services/site-template'
 
 type RecommendResult =
@@ -57,9 +60,15 @@ export async function generateAiSitePreviewAction(
   profileInput: AiSiteWizardProfile
 ): Promise<GenerateResult> {
   try {
+    const session = await auth()
+
+    if (!session?.user?.tenantId) {
+      return { success: false, error: 'You must be signed in with an organization.' }
+    }
+
     const profile = aiSiteWizardProfileSchema.parse(profileInput)
-    const templates = await siteTemplateService.listPublishedTemplates()
-    const preview = await aiSiteWizardService.generateCustomizedSite(profile, templates)
+    const baseTenantId = await getOrCreateBaseTemplateTenantId()
+    const preview = await aiSiteWizardService.generateFromWorkspace(profile, baseTenantId)
 
     return { success: true, preview }
   } catch (error) {
@@ -91,5 +100,54 @@ export async function applyAiGeneratedSiteAction(
     console.error('[applyAiGeneratedSiteAction]', error)
 
     return { success: false, error: 'Failed to create your website.' }
+  }
+}
+
+export async function generateAiSiteFromWorkspaceAction(
+  profileInput: AiSiteWizardProfile
+): Promise<GenerateResult> {
+  try {
+    await requireSuperAdminSession()
+
+    const profile = aiSiteWizardProfileSchema.parse(profileInput)
+    const tenantId = await getOrCreateBaseTemplateTenantId()
+    const preview = await aiSiteWizardService.generateFromWorkspace(profile, tenantId)
+
+    return { success: true, preview }
+  } catch (error) {
+    console.error('[generateAiSiteFromWorkspaceAction]', error)
+
+    return { success: false, error: formatActionError(error, 'Failed to generate a website from your design.') }
+  }
+}
+
+export async function saveAiGeneratedSiteToLibraryAction(
+  preview: AiSiteGenerationPreview,
+  input: { name: string; description?: string; category?: AiSiteWizardProfile['category']; logoUrl?: string }
+): Promise<{ success: true; templateId: string } | { success: false; error: string }> {
+  try {
+    const session = await requireSuperAdminSession()
+    const userId = await resolveSessionUserId(session)
+    const template = await aiSiteWizardService.saveGeneratedSiteToLibrary(userId, preview, input)
+
+    return { success: true, templateId: template.id }
+  } catch (error) {
+    console.error('[saveAiGeneratedSiteToLibraryAction]', error)
+
+    return { success: false, error: formatActionError(error, 'Failed to save this website to the library.') }
+  }
+}
+
+export async function ensureBaseWebsitePagesAction(): Promise<
+  { success: true } | { success: false; error: string }
+> {
+  try {
+    await requireSuperAdminSession()
+    const tenantId = await getOrCreateBaseTemplateTenantId()
+    await sitePageService.ensureBaseWebsitePages(tenantId)
+
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: formatActionError(error, 'Failed to prepare Home, About, and Contact pages.') }
   }
 }

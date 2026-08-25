@@ -17,13 +17,21 @@ export function buildProfileVarietySeed(profile: AiSiteWizardProfile): string {
     profile.companyName.trim().toLowerCase(),
     profile.slogan.trim().toLowerCase(),
     profile.description.trim().toLowerCase(),
+    profile.logoUrl?.trim() ?? '',
+    profile.siteTitle?.trim().toLowerCase() ?? '',
     profile.category,
     profile.industry,
     profile.purpose,
     profile.stylePersonality,
     profile.colorMood,
-    profile.animationLevel
+    profile.animationLevel,
+    profile.fontChoice ?? 'ai_pick',
+    profile.generationNonce?.trim() ?? ''
   ].join('|')
+}
+
+export function createGenerationNonce(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 }
 
 export function pickFromPool<T>(items: readonly T[], seed: string, salt = ''): T {

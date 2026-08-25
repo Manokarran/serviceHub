@@ -8,16 +8,22 @@ import { alpha, useTheme } from '@mui/material/styles'
 import type { MouseEvent } from 'react'
 
 import { BUILDER_TYPOGRAPHY, BUILDER_Z_INDEX } from '../../constants/builderLayout'
-import { INLINE_TOOLBAR_GAP_PX } from './useSmartInlineToolbarPlacement'
+import { INLINE_TOOLBAR_GAP_PX, type InlineToolbarPlacement } from './useSmartInlineToolbarPlacement'
 
 export function InlineToolbarShell({
   children,
   placement = 'above'
 }: {
   children: React.ReactNode
-  placement?: 'above' | 'below'
+  placement?: InlineToolbarPlacement
 }) {
   const theme = useTheme()
+  const placementSx =
+    placement === 'inside'
+      ? { top: 8, bottom: 'auto', transform: 'translate(-50%, 0)' }
+      : placement === 'below'
+        ? { top: 'auto', bottom: -INLINE_TOOLBAR_GAP_PX, transform: 'translate(-50%, 100%)' }
+        : { top: -INLINE_TOOLBAR_GAP_PX, bottom: 'auto', transform: 'translate(-50%, -100%)' }
 
   return (
     <Box
@@ -26,17 +32,7 @@ export function InlineToolbarShell({
       sx={{
         position: 'absolute',
         left: '50%',
-        ...(placement === 'below'
-          ? {
-              top: 'auto',
-              bottom: -INLINE_TOOLBAR_GAP_PX,
-              transform: 'translate(-50%, 100%)'
-            }
-          : {
-              top: -INLINE_TOOLBAR_GAP_PX,
-              bottom: 'auto',
-              transform: 'translate(-50%, -100%)'
-            }),
+        ...placementSx,
         zIndex: BUILDER_Z_INDEX.blockToolbar,
         display: 'flex',
         alignItems: 'center',
@@ -46,10 +42,10 @@ export function InlineToolbarShell({
         borderRadius: 1.25,
         backgroundColor: 'background.paper',
         boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.12)}, 0 0 0 1px ${alpha(theme.palette.divider, 0.6)}`,
-        maxWidth: 'min(100%, calc(100vw - 48px))',
-        flexWrap: 'wrap',
+        maxWidth: 'calc(100vw - 48px)',
+        width: 'max-content',
+        flexWrap: 'nowrap',
         justifyContent: 'center',
-        rowGap: 0.375,
         pointerEvents: 'auto'
       }}
     >

@@ -1,12 +1,17 @@
 'use server'
 
-import { auth } from '@/lib/auth'
-import { AppError } from '@/lib/errors'
 import { toPlainJson } from '@/lib/utils/plain-json'
+import { AppError } from '@/lib/errors'
+import {
+  requireLibraryTemplateEditor,
+  resolveBuilderTenant,
+  type BuilderScope
+} from '@/lib/site-template/resolve-builder-tenant'
 import type { Block } from '@/features/your-space/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
 import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-page'
 import { sitePageService } from '@/services/site-page'
+import { siteTemplateService } from '@/services/site-template'
 
 type SaveDraftResult = { success: true; savedAt: string } | { success: false; error: string }
 
@@ -20,6 +25,10 @@ type VersionsResult =
 
 type RestoreVersionResult =
   | { success: true; blocks: Block[]; savedAt: string }
+  | { success: false; error: string }
+
+type GetVersionResult =
+  | { success: true; blocks: Block[]; publishedAt: string }
   | { success: false; error: string }
 
 type PagesResult = { success: true; pages: SitePageSummary[] } | { success: false; error: string }
@@ -46,35 +55,58 @@ type CreatePageResult = { success: true; page: SitePageSummary } | { success: fa
 
 type SimpleResult = { success: true } | { success: false; error: string }
 
-export async function listSitePagesAction(): Promise<PagesResult> {
-  try {
-    const session = await auth()
+function formatScopeError(error: unknown, fallback: string) {
+  if (error instanceof AppError) {
+    return { success: false as const, error: error.message }
+  }
 
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in to view pages.' }
+  return { success: false as const, error: fallback }
+}
+
+function requireTemplateId(libraryTemplateId?: string) {
+  if (!libraryTemplateId) {
+    throw new AppError('Template id is required.', 400, 'TEMPLATE_REQUIRED')
+  }
+
+  return libraryTemplateId
+}
+
+export async function listSitePagesAction(
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
+): Promise<PagesResult> {
+  try {
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      const pages = await siteTemplateService.listTemplatePages(requireTemplateId(libraryTemplateId))
+
+      return { success: true, pages }
     }
 
-    const pages = await sitePageService.listPages(session.user.tenantId)
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const pages = await sitePageService.listPages(tenantId)
 
     return { success: true, pages }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: false, error: 'Failed to load pages.' }
+    return formatScopeError(error, 'Failed to load pages.')
   }
 }
 
-export async function getSitePageAction(pageSlug: string): Promise<PageDataResult> {
+export async function getSitePageAction(
+  pageSlug: string,
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
+): Promise<PageDataResult> {
   try {
-    const session = await auth()
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      const page = await siteTemplateService.getTemplatePage(requireTemplateId(libraryTemplateId), pageSlug)
 
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in to view this page.' }
+      return { success: true, page }
     }
 
-    const page = await sitePageService.getPage(session.user.tenantId, pageSlug)
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const page = await sitePageService.getPage(tenantId, pageSlug)
 
     if (!page) {
       return { success: false, error: 'Page not found.' }
@@ -98,49 +130,57 @@ export async function getSitePageAction(pageSlug: string): Promise<PageDataResul
       }
     }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: false, error: 'Failed to load page.' }
+    return formatScopeError(error, 'Failed to load page.')
   }
 }
 
 export async function saveSitePageDraftAction(
   pageSlug: string,
   blocks: Block[],
-  siteStyles?: SiteStyles
+  siteStyles?: SiteStyles,
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
 ): Promise<SaveDraftResult> {
   try {
-    const session = await auth()
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      const result = await siteTemplateService.saveTemplatePageDraft(
+        requireTemplateId(libraryTemplateId),
+        pageSlug,
+        blocks,
+        siteStyles
+      )
 
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in to save your page.' }
+      return { success: true, savedAt: result.savedAt }
     }
 
-    const page = await sitePageService.saveDraft(session.user.tenantId, pageSlug, blocks, siteStyles)
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const page = await sitePageService.saveDraft(tenantId, pageSlug, blocks, siteStyles)
     const savedAt = (page.draftUpdatedAt ?? page.updatedAt).toISOString()
 
     return { success: true, savedAt }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: false, error: 'Failed to save draft. Please try again.' }
+    return formatScopeError(error, 'Failed to save draft. Please try again.')
   }
 }
 
-export async function publishAllSitePagesAction(): Promise<PublishResult> {
+export async function publishAllSitePagesAction(
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
+): Promise<PublishResult> {
   try {
-    const session = await auth()
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      const { publishedAt } = await siteTemplateService.finalizeTemplateEdits(
+        requireTemplateId(libraryTemplateId)
+      )
 
-    if (!session?.user?.tenantId || !session.user.id) {
-      return { success: false, error: 'You must be signed in to publish your site.' }
+      return { success: true, publishedAt, versions: [] }
     }
 
-    const { publishedAt } = await sitePageService.publishAll(session.user.tenantId, session.user.id)
-    const versions = await sitePageService.listPublishedVersions(session.user.tenantId, 'home')
+    const { tenantId, userId } = await resolveBuilderTenant(scope)
+    const { publishedAt } = await sitePageService.publishAll(tenantId, userId)
+    const versions = await sitePageService.listPublishedVersions(tenantId, 'home')
 
     return {
       success: true,
@@ -148,28 +188,30 @@ export async function publishAllSitePagesAction(): Promise<PublishResult> {
       versions
     }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: false, error: 'Failed to publish site. Please try again.' }
+    return formatScopeError(error, 'Failed to publish site. Please try again.')
   }
 }
 
 export async function publishSitePageAction(
   pageSlug: string,
   blocks: Block[],
-  siteStyles?: SiteStyles
+  siteStyles?: SiteStyles,
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
 ): Promise<PublishResult> {
   try {
-    const session = await auth()
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      const templateId = requireTemplateId(libraryTemplateId)
+      const saved = await siteTemplateService.saveTemplatePageDraft(templateId, pageSlug, blocks, siteStyles)
+      const { publishedAt } = await siteTemplateService.finalizeTemplateEdits(templateId)
 
-    if (!session?.user?.tenantId || !session.user.id) {
-      return { success: false, error: 'You must be signed in to publish your page.' }
+      return { success: true, publishedAt: publishedAt || saved.savedAt, versions: [] }
     }
 
-    const page = await sitePageService.publish(session.user.tenantId, session.user.id, pageSlug, blocks, siteStyles)
-    const versions = await sitePageService.listPublishedVersions(session.user.tenantId, pageSlug)
+    const { tenantId, userId } = await resolveBuilderTenant(scope)
+    const page = await sitePageService.publish(tenantId, userId, pageSlug, blocks, siteStyles)
+    const versions = await sitePageService.listPublishedVersions(tenantId, pageSlug)
 
     return {
       success: true,
@@ -177,46 +219,68 @@ export async function publishSitePageAction(
       versions
     }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: false, error: 'Failed to publish page. Please try again.' }
+    return formatScopeError(error, 'Failed to publish page. Please try again.')
   }
 }
 
-export async function listSitePageVersionsAction(pageSlug: string): Promise<VersionsResult> {
+export async function listSitePageVersionsAction(
+  pageSlug: string,
+  scope: BuilderScope = 'organization',
+  _libraryTemplateId?: string
+): Promise<VersionsResult> {
   try {
-    const session = await auth()
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
 
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in to view versions.' }
+      return { success: true, versions: [] }
     }
 
-    const versions = await sitePageService.listPublishedVersions(session.user.tenantId, pageSlug)
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const versions = await sitePageService.listPublishedVersions(tenantId, pageSlug)
 
     return { success: true, versions }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
+    return formatScopeError(error, 'Failed to load versions.')
+  }
+}
+
+export async function getSitePageVersionAction(
+  pageSlug: string,
+  versionId: string,
+  scope: BuilderScope = 'organization',
+  _libraryTemplateId?: string
+): Promise<GetVersionResult> {
+  try {
+    if (scope === 'library_template') {
+      return { success: false, error: 'Version history is not available while editing library templates.' }
     }
 
-    return { success: false, error: 'Failed to load versions.' }
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const result = await sitePageService.getPublishedVersion(tenantId, pageSlug, versionId)
+
+    return {
+      success: true,
+      blocks: toPlainJson(result.blocks) as Block[],
+      publishedAt: result.publishedAt
+    }
+  } catch (error) {
+    return formatScopeError(error, 'Failed to load version.')
   }
 }
 
 export async function restoreSitePageVersionAction(
   pageSlug: string,
-  versionId: string
+  versionId: string,
+  scope: BuilderScope = 'organization',
+  _libraryTemplateId?: string
 ): Promise<RestoreVersionResult> {
   try {
-    const session = await auth()
-
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in to restore a version.' }
+    if (scope === 'library_template') {
+      return { success: false, error: 'Version history is not available while editing library templates.' }
     }
 
-    const result = await sitePageService.restoreVersionToDraft(session.user.tenantId, pageSlug, versionId)
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const result = await sitePageService.restoreVersionToDraft(tenantId, pageSlug, versionId)
 
     return {
       success: true,
@@ -224,132 +288,144 @@ export async function restoreSitePageVersionAction(
       savedAt: result.draftUpdatedAt.toISOString()
     }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: false, error: 'Failed to restore version.' }
+    return formatScopeError(error, 'Failed to restore version.')
   }
 }
 
-export async function createSitePageAction(input: {
-  title: string
-  slug?: string
-}): Promise<CreatePageResult> {
+export async function createSitePageAction(
+  input: {
+    title: string
+    slug?: string
+  },
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
+): Promise<CreatePageResult> {
   try {
-    const session = await auth()
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      const page = await siteTemplateService.createTemplatePage(requireTemplateId(libraryTemplateId), input)
 
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in to create a page.' }
+      return { success: true, page }
     }
 
-    const page = await sitePageService.createPage(session.user.tenantId, input)
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const page = await sitePageService.createPage(tenantId, input)
 
     return { success: true, page }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: false, error: 'Failed to create page.' }
+    return formatScopeError(error, 'Failed to create page.')
   }
 }
 
 export async function updateSitePageMetaAction(
   pageSlug: string,
-  input: { title?: string; description?: string }
+  input: { title?: string; description?: string },
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
 ): Promise<CreatePageResult> {
   try {
-    const session = await auth()
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      const page = await siteTemplateService.updateTemplatePageMeta(
+        requireTemplateId(libraryTemplateId),
+        pageSlug,
+        input
+      )
 
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in to update this page.' }
+      return { success: true, page }
     }
 
-    const page = await sitePageService.updatePageMeta(session.user.tenantId, pageSlug, input)
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const page = await sitePageService.updatePageMeta(tenantId, pageSlug, input)
 
     return { success: true, page }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: false, error: 'Failed to update page.' }
+    return formatScopeError(error, 'Failed to update page.')
   }
 }
 
-export async function deleteSitePageAction(pageSlug: string): Promise<SimpleResult> {
+export async function deleteSitePageAction(
+  pageSlug: string,
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
+): Promise<SimpleResult> {
   try {
-    const session = await auth()
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      await siteTemplateService.deleteTemplatePage(requireTemplateId(libraryTemplateId), pageSlug)
 
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in to delete this page.' }
+      return { success: true }
     }
 
-    await sitePageService.deletePage(session.user.tenantId, pageSlug)
+    const { tenantId } = await resolveBuilderTenant(scope)
+    await sitePageService.deletePage(tenantId, pageSlug)
 
     return { success: true }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: false, error: 'Failed to delete page.' }
+    return formatScopeError(error, 'Failed to delete page.')
   }
 }
 
-export async function reorderSitePagesAction(orderedSlugs: string[]): Promise<SimpleResult> {
+export async function reorderSitePagesAction(
+  orderedSlugs: string[],
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
+): Promise<SimpleResult> {
   try {
-    const session = await auth()
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      await siteTemplateService.reorderTemplatePages(requireTemplateId(libraryTemplateId), orderedSlugs)
 
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in to reorder pages.' }
+      return { success: true }
     }
 
-    await sitePageService.reorderPages(session.user.tenantId, orderedSlugs)
+    const { tenantId } = await resolveBuilderTenant(scope)
+    await sitePageService.reorderPages(tenantId, orderedSlugs)
 
     return { success: true }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: false, error: 'Failed to reorder pages.' }
+    return formatScopeError(error, 'Failed to reorder pages.')
   }
 }
 
 type DuplicatePageResult = { success: true; page: SitePageSummary } | { success: false; error: string }
 
-export async function duplicateSitePageAction(sourceSlug: string, newTitle: string): Promise<DuplicatePageResult> {
+export async function duplicateSitePageAction(
+  sourceSlug: string,
+  newTitle: string,
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
+): Promise<DuplicatePageResult> {
   try {
-    const session = await auth()
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      const page = await siteTemplateService.duplicateTemplatePage(
+        requireTemplateId(libraryTemplateId),
+        sourceSlug,
+        newTitle
+      )
 
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in to duplicate a page.' }
+      return { success: true, page }
     }
 
-    const tenantId = session.user.tenantId
-
-    // Fetch the source page draft
+    const { tenantId } = await resolveBuilderTenant(scope)
     const sourcePage = await sitePageService.getPage(tenantId, sourceSlug)
 
     if (!sourcePage) {
       return { success: false, error: 'Source page not found.' }
     }
 
-    // Create new page
     const newPage = await sitePageService.createPage(tenantId, { title: newTitle })
-
-    // Copy the draft blocks into the new page
-    await sitePageService.saveDraft(tenantId, newPage.slug, toPlainJson(sourcePage.draftBlocks) as Block[], sourcePage.draftSiteStyles ?? undefined)
+    await sitePageService.saveDraft(
+      tenantId,
+      newPage.slug,
+      toPlainJson(sourcePage.draftBlocks) as Block[],
+      sourcePage.draftSiteStyles ?? undefined
+    )
 
     return { success: true, page: newPage }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: false, error: 'Failed to duplicate page.' }
+    return formatScopeError(error, 'Failed to duplicate page.')
   }
 }
 
