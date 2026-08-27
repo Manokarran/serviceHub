@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import sharp from 'sharp'
 
 import { auth } from '@/lib/auth'
 import { isImageKitConfigured } from '@/lib/imagekit/config'
 import { uploadToImageKit, ImageKitUploadError } from '@/lib/imagekit/server'
 import { buildImageKitFolder } from '@/lib/imagekit/urls'
+import { loadSharp, SharpUnavailableError } from '@/lib/media/load-sharp'
 import { MAX_VIDEO_BYTES } from '@/lib/media/validate-video'
 
 export const runtime = 'nodejs'
@@ -20,6 +20,12 @@ async function optimizeImageBuffer(
   buffer: Buffer,
   contentType: string
 ): Promise<{ buffer: Buffer; fileName: string }> {
+  const sharp = await loadSharp()
+
+  if (!sharp) {
+    throw new SharpUnavailableError()
+  }
+
   const metadata = await sharp(buffer).metadata()
   const width = metadata.width ?? 0
   const height = metadata.height ?? 0
@@ -135,6 +141,10 @@ export async function POST(request: Request) {
       size: upload.size ?? buffer.length
     })
   } catch (error) {
+    if (error instanceof SharpUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 })
+    }
+
     if (error instanceof ImageKitUploadError) {
       console.error('[media/upload]', error.message)
 

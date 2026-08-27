@@ -8,7 +8,6 @@ import { AppError } from '@/lib/errors'
 import { ensureUniqueSlug, isHomePageSlug, slugifyPageTitle } from '@/lib/utils/page-slug'
 import { toPlainJson } from '@/lib/utils/plain-json'
 import { slugify } from '@/lib/utils/slug'
-import { generateTemplatePreviewThumbnail } from '@/lib/site-template/generate-template-preview'
 import {
   createSiteTemplateSchema,
   updateSiteTemplateSchema,
@@ -28,6 +27,22 @@ import { siteTemplateRepository } from '@/repositories/site-template.repository'
 import { tenantRepository } from '@/repositories/tenant.repository'
 import { sitePageService } from '@/services/site-page'
 import { siteWorkspaceService } from '@/services/site-workspace'
+
+async function maybeGenerateTemplatePreviewThumbnail(params: {
+  templateName: string
+  homeBlocks: Block[]
+  siteStyles?: SiteStyles | null
+}): Promise<string | null> {
+  try {
+    const { generateTemplatePreviewThumbnail } = await import('@/lib/site-template/generate-template-preview')
+
+    return await generateTemplatePreviewThumbnail(params)
+  } catch (error) {
+    console.error('[site-template] Failed to generate preview thumbnail', error)
+
+    return null
+  }
+}
 
 function extractHomePreview(doc: ISiteTemplateDocument): SiteTemplateHomePreview | null {
   const homePage =
@@ -186,7 +201,7 @@ export class SiteTemplateService {
     let generatedThumbnailUrl: string | null = null
 
     if (homePage?.blocks?.length) {
-      generatedThumbnailUrl = await generateTemplatePreviewThumbnail({
+      generatedThumbnailUrl = await maybeGenerateTemplatePreviewThumbnail({
         templateName: template.name,
         homeBlocks: homePage.blocks as Block[],
         siteStyles: homePage.siteStyles
@@ -322,7 +337,7 @@ export class SiteTemplateService {
     let generatedThumbnailUrl: string | null = null
 
     if (homeSnapshot?.blocks?.length) {
-      generatedThumbnailUrl = await generateTemplatePreviewThumbnail({
+      generatedThumbnailUrl = await maybeGenerateTemplatePreviewThumbnail({
         templateName: template.name,
         homeBlocks: homeSnapshot.blocks as Block[],
         siteStyles: homeSnapshot.siteStyles
@@ -506,7 +521,7 @@ export class SiteTemplateService {
     let generatedThumbnailUrl: string | null | undefined
 
     if (home?.blocks?.length) {
-      generatedThumbnailUrl = await generateTemplatePreviewThumbnail({
+      generatedThumbnailUrl = await maybeGenerateTemplatePreviewThumbnail({
         templateName: template.name,
         homeBlocks: home.blocks as Block[],
         siteStyles: home.siteStyles
@@ -674,7 +689,7 @@ export class SiteTemplateService {
     let generatedThumbnailUrl: string | null | undefined
 
     if (home?.blocks?.length) {
-      generatedThumbnailUrl = await generateTemplatePreviewThumbnail({
+      generatedThumbnailUrl = await maybeGenerateTemplatePreviewThumbnail({
         templateName: template.name,
         homeBlocks: home.blocks as Block[],
         siteStyles: home.siteStyles

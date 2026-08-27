@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import sharp from 'sharp'
 
 import { isSuperAdminEmail } from '@/lib/auth/super-admin'
 import { auth } from '@/lib/auth'
 import { isImageKitConfigured } from '@/lib/imagekit/config'
 import { uploadToImageKit, ImageKitUploadError } from '@/lib/imagekit/server'
 import { buildPlatformTemplateThumbnailFolder } from '@/lib/imagekit/urls'
+import { loadSharp, SharpUnavailableError } from '@/lib/media/load-sharp'
 
 export const runtime = 'nodejs'
 
@@ -13,6 +13,12 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 
 async function optimizeThumbnail(buffer: Buffer): Promise<{ buffer: Buffer; fileName: string }> {
+  const sharp = await loadSharp()
+
+  if (!sharp) {
+    throw new SharpUnavailableError()
+  }
+
   const optimized = await sharp(buffer)
     .rotate()
     .resize(800, 600, { fit: 'cover', position: 'centre' })
@@ -74,6 +80,10 @@ export async function POST(request: Request) {
       size: upload.size ?? buffer.length
     })
   } catch (error) {
+    if (error instanceof SharpUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 })
+    }
+
     if (error instanceof ImageKitUploadError) {
       console.error('[media/template-thumbnail]', error.message)
 

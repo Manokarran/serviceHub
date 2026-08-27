@@ -1,10 +1,9 @@
-import sharp from 'sharp'
-
 import type { Block } from '@/features/your-space/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
 import { isImageKitConfigured } from '@/lib/imagekit/config'
 import { uploadToImageKit } from '@/lib/imagekit/server'
 import { buildPlatformTemplateThumbnailFolder } from '@/lib/imagekit/urls'
+import { loadSharp } from '@/lib/media/load-sharp'
 import { extractHomePagePreviewImageUrl, findHeroBlock } from '@/lib/site-template/extract-home-preview'
 
 function escapeXml(value: string): string {
@@ -86,6 +85,12 @@ async function createThumbnailFromImageUrl(imageUrl: string): Promise<string | n
       return null
     }
 
+    const sharp = await loadSharp()
+
+    if (!sharp) {
+      return null
+    }
+
     const input = Buffer.from(await response.arrayBuffer())
     const buffer = await sharp(input)
       .rotate()
@@ -103,6 +108,12 @@ async function createThumbnailFromImageUrl(imageUrl: string): Promise<string | n
 
 async function createThumbnailFromSvg(svg: string): Promise<string | null> {
   try {
+    const sharp = await loadSharp()
+
+    if (!sharp) {
+      return null
+    }
+
     const buffer = await sharp(Buffer.from(svg)).resize(800, 600).webp({ quality: 85, effort: 4 }).toBuffer()
 
     return uploadPreviewBuffer(buffer, `template-home-preview-${Date.now()}.webp`)
