@@ -5,7 +5,6 @@ import { toPlainJson } from '@/lib/utils/plain-json'
 import type { ISitePageBlock } from '@/models/site-page'
 import { sitePageRepository } from '@/repositories/site-page.repository'
 import { tenantRepository } from '@/repositories/tenant.repository'
-import { sitePageService } from '@/services/site-page'
 
 export type SiteWorkspaceStatus = {
   isSiteStarted: boolean
@@ -74,6 +73,8 @@ export class SiteWorkspaceService {
     tenantId: string,
     options: { mode: ResetSiteDraftsMode; removeExtraPages: boolean }
   ): Promise<{ homeSlug: string }> {
+    const { sitePageService } = await import('@/services/site-page')
+
     await sitePageService.ensureHomePage(tenantId)
 
     const pages = await sitePageRepository.listByTenant(tenantId)

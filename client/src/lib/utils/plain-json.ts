@@ -12,7 +12,7 @@ export function toPlainJson<T>(value: T): T {
     }
 
     if (input instanceof Date) {
-      return input.toISOString()
+      return Number.isNaN(input.getTime()) ? null : input.toISOString()
     }
 
     if (ancestors.has(input)) {
@@ -25,10 +25,14 @@ export function toPlainJson<T>(value: T): T {
       const maybeToJson = input as { toJSON?: () => unknown }
 
       if (typeof maybeToJson.toJSON === 'function') {
-        const json = maybeToJson.toJSON()
+        try {
+          const json = maybeToJson.toJSON()
 
-        if (json !== input) {
-          return walk(json)
+          if (json !== input) {
+            return walk(json)
+          }
+        } catch {
+          // Fall through to a field-by-field walk when toJSON() throws.
         }
       }
 
@@ -57,4 +61,61 @@ export function toPlainJson<T>(value: T): T {
   }
 
   return walk(value) as T
+}
+
+/** Convert Date / ISO string values without throwing on missing or invalid dates. */
+export function toIsoString(value: unknown): string | null {
+  if (value == null || value === '') {
+    return null
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString()
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = new Date(value)
+
+    return Number.isNaN(parsed.getTime()) ? value.trim() : parsed.toISOString()
+  }
+
+  if (typeof value === 'object' && typeof (value as { toISOString?: unknown }).toISOString === 'function') {
+    try {
+      const iso = (value as Date).toISOString()
+
+      return typeof iso === 'string' ? iso : null
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
+export function requireIsoString(value: unknown): string {
+  return toIsoString(value) ?? new Date().toISOString()
+}
+
+/**
+ * Produce JSON-only data safe to pass from Server Components / actions into Client Components.
+ * Mongoose documents, Dates, and circular refs will crash production RSC otherwise.
+ */
+export function serializeForClient<T>(value: T): T {
+  try {
+    const plain = toPlainJson(value)
+
+    if (plain === undefined) {
+      return plain
+    }
+
+    return JSON.parse(JSON.stringify(plain)) as T
+  } catch (error) {
+    console.error('[serializeForClient] value is not JSON-serializable', error)
+
+    try {
+      return JSON.parse(JSON.stringify(value)) as T
+    } catch {
+      return value
+    }
+  }
 }

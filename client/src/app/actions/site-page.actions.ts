@@ -1,6 +1,6 @@
 'use server'
 
-import { toPlainJson } from '@/lib/utils/plain-json'
+import { toPlainJson, requireIsoString, toIsoString } from '@/lib/utils/plain-json'
 import { AppError } from '@/lib/errors'
 import {
   requireLibraryTemplateEditor,
@@ -125,8 +125,8 @@ export async function getSitePageAction(
         publishedSiteStyles: page.publishedSiteStyles
           ? (toPlainJson(page.publishedSiteStyles) as SiteStyles)
           : null,
-        draftUpdatedAt: page.draftUpdatedAt.toISOString(),
-        publishedAt: page.publishedAt?.toISOString() ?? null
+        draftUpdatedAt: requireIsoString(page.draftUpdatedAt),
+        publishedAt: toIsoString(page.publishedAt)
       }
     }
   } catch (error) {
@@ -156,7 +156,7 @@ export async function saveSitePageDraftAction(
 
     const { tenantId } = await resolveBuilderTenant(scope)
     const page = await sitePageService.saveDraft(tenantId, pageSlug, blocks, siteStyles)
-    const savedAt = (page.draftUpdatedAt ?? page.updatedAt).toISOString()
+    const savedAt = requireIsoString(page.draftUpdatedAt ?? page.updatedAt)
 
     return { success: true, savedAt }
   } catch (error) {
@@ -215,7 +215,7 @@ export async function publishSitePageAction(
 
     return {
       success: true,
-      publishedAt: (page.publishedAt ?? page.updatedAt).toISOString(),
+      publishedAt: requireIsoString(page.publishedAt ?? page.updatedAt),
       versions
     }
   } catch (error) {
@@ -285,7 +285,7 @@ export async function restoreSitePageVersionAction(
     return {
       success: true,
       blocks: toPlainJson(result.blocks) as Block[],
-      savedAt: result.draftUpdatedAt.toISOString()
+      savedAt: requireIsoString(result.draftUpdatedAt)
     }
   } catch (error) {
     return formatScopeError(error, 'Failed to restore version.')

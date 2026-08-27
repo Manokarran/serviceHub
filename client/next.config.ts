@@ -4,6 +4,7 @@ const basePath = process.env.BASEPATH?.replace(/\/$/, '') ?? ''
 
 const nextConfig: NextConfig = {
   ...(basePath ? { basePath } : {}),
+  serverExternalPackages: ['mongoose', 'mongodb', 'sharp'],
   experimental: {
     serverActions: {
       bodySizeLimit: '8mb'

@@ -13,7 +13,7 @@ import {
   updateSitePageMetaAction
 } from '@/app/actions/site-page.actions'
 import type { BuilderScope } from '@/lib/site-template/resolve-builder-tenant'
-import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-page'
+import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-page/site-page.types'
 import { toPlainJson } from '@/lib/utils/plain-json'
 import { isHomePageSlug } from '@/lib/utils/page-slug'
 

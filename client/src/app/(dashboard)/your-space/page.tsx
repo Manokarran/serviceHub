@@ -2,10 +2,14 @@ import { redirect } from 'next/navigation'
 
 import type { Block } from '@/features/your-space/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
-import { WebsiteBuilder } from '@/features/your-space/components/WebsiteBuilder'
+import { WebsiteBuilderLoader } from '@/features/your-space/components/WebsiteBuilderLoader'
 import { auth } from '@/lib/auth'
+import { requireIsoString, serializeForClient, toIsoString } from '@/lib/utils/plain-json'
 import { sitePageService } from '@/services/site-page'
 import { siteWorkspaceService } from '@/services/site-workspace'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 type PageProps = {
   searchParams: Promise<{ p?: string }>
@@ -23,8 +27,8 @@ export default async function YourSpacePage({ searchParams }: PageProps) {
   }
 
   const { user } = session
-  const { p: pageParam } = await searchParams
-  const initialPageSlug = pageParam?.trim() || 'home'
+  const resolvedSearchParams = (await searchParams) ?? {}
+  const initialPageSlug = resolvedSearchParams.p?.trim() || 'home'
 
   let initialDraftBlocks: Block[] | null = null
   let initialPublishedBlocks: Block[] = []
@@ -35,58 +39,55 @@ export default async function YourSpacePage({ searchParams }: PageProps) {
   let initialPublishedSiteStyles: SiteStyles | null = null
   let initialVersions: Awaited<ReturnType<typeof sitePageService.listPublishedVersions>> = []
   let initialPages: Awaited<ReturnType<typeof sitePageService.listPages>> = []
+  let isSiteStarted = false
+  let extraPageCount = 0
 
   if (user.tenantId) {
-    initialPages = await sitePageService.listPages(user.tenantId)
+    try {
+      initialPages = await sitePageService.listPages(user.tenantId)
 
-    const resolvedSlug = initialPages.some(page => page.slug === initialPageSlug) ? initialPageSlug : 'home'
-    const sitePage = await sitePageService.getPage(user.tenantId, resolvedSlug)
+      const resolvedSlug = initialPages.some(page => page.slug === initialPageSlug) ? initialPageSlug : 'home'
+      const sitePage = await sitePageService.getPage(user.tenantId, resolvedSlug)
 
-    if (sitePage) {
-      initialDraftBlocks = JSON.parse(JSON.stringify(sitePage.draftBlocks)) as Block[]
-      initialPublishedBlocks = JSON.parse(JSON.stringify(sitePage.publishedBlocks)) as Block[]
-      initialPageTitle = sitePage.title
-      initialDraftSiteStyles = sitePage.draftSiteStyles
-        ? (JSON.parse(JSON.stringify(sitePage.draftSiteStyles)) as SiteStyles)
-        : null
-      initialPublishedSiteStyles = sitePage.publishedSiteStyles
-        ? (JSON.parse(JSON.stringify(sitePage.publishedSiteStyles)) as SiteStyles)
-        : null
-      initialSavedAt = sitePage.draftUpdatedAt.toISOString()
-      initialPublishedAt = sitePage.publishedAt?.toISOString() ?? null
-      initialVersions = await sitePageService.listPublishedVersions(user.tenantId, resolvedSlug)
+      if (sitePage) {
+        initialDraftBlocks = sitePage.draftBlocks
+        initialPublishedBlocks = sitePage.publishedBlocks
+        initialPageTitle = sitePage.title
+        initialDraftSiteStyles = sitePage.draftSiteStyles
+        initialPublishedSiteStyles = sitePage.publishedSiteStyles
+        initialSavedAt = requireIsoString(sitePage.draftUpdatedAt)
+        initialPublishedAt = toIsoString(sitePage.publishedAt)
+        initialVersions = await sitePageService.listPublishedVersions(user.tenantId, resolvedSlug)
+      }
+
+      const workspaceStatus = await siteWorkspaceService.getStatus(user.tenantId)
+
+      isSiteStarted = workspaceStatus.isSiteStarted
+      extraPageCount = initialPages.filter(page => page.slug !== 'home').length
+    } catch (error) {
+      console.error('[YourSpacePage] Failed to load workspace', error)
     }
   }
 
   const tenantSlug = user.tenantSlug ?? 'default'
   const activeSlug = initialPages.some(page => page.slug === initialPageSlug) ? initialPageSlug : 'home'
 
-  let isSiteStarted = false
-  let extraPageCount = 0
+  const builderProps = serializeForClient({
+    tenantSlug,
+    tenantName: user.tenantName ?? 'Your Workspace',
+    initialPageSlug: activeSlug,
+    initialPages,
+    initialPageTitle,
+    initialDraftBlocks,
+    initialPublishedBlocks,
+    initialSavedAt,
+    initialPublishedAt,
+    initialDraftSiteStyles,
+    initialPublishedSiteStyles,
+    initialVersions,
+    isSiteStarted,
+    extraPageCount
+  })
 
-  if (user.tenantId) {
-    const workspaceStatus = await siteWorkspaceService.getStatus(user.tenantId)
-
-    isSiteStarted = workspaceStatus.isSiteStarted
-    extraPageCount = initialPages.filter(page => page.slug !== 'home').length
-  }
-
-  return (
-    <WebsiteBuilder
-      tenantSlug={tenantSlug}
-      tenantName={user.tenantName ?? 'Your Workspace'}
-      initialPageSlug={activeSlug}
-      initialPages={initialPages}
-      initialPageTitle={initialPageTitle}
-      initialDraftBlocks={initialDraftBlocks}
-      initialPublishedBlocks={initialPublishedBlocks}
-      initialSavedAt={initialSavedAt}
-      initialPublishedAt={initialPublishedAt}
-      initialDraftSiteStyles={initialDraftSiteStyles}
-      initialPublishedSiteStyles={initialPublishedSiteStyles}
-      initialVersions={initialVersions}
-      isSiteStarted={isSiteStarted}
-      extraPageCount={extraPageCount}
-    />
-  )
+  return <WebsiteBuilderLoader {...builderProps} />
 }

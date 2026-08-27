@@ -4,11 +4,14 @@ import { STARTER_BLOCKS } from '@/features/your-space/constants'
 import { createAboutPageBlocks, createContactPageBlocks, createPricingPageBlocks } from '@/features/your-space/constants/pageTemplates'
 import type { Block } from '@/features/your-space/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
-import { WebsiteBuilder } from '@/features/your-space/components/WebsiteBuilder'
+import { WebsiteBuilderLoader } from '@/features/your-space/components/WebsiteBuilderLoader'
 import { auth } from '@/lib/auth'
 import { isSuperAdminEmail } from '@/lib/auth/super-admin'
 import { isHomePageSlug } from '@/lib/utils/page-slug'
+import { serializeForClient } from '@/lib/utils/plain-json'
 import { siteTemplateService } from '@/services/site-template'
+
+export const dynamic = 'force-dynamic'
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -52,23 +55,25 @@ export default async function LibraryTemplateEditPage({ params, searchParams }: 
   const sitePage = await siteTemplateService.getTemplatePage(id, activeSlug)
 
   return (
-    <WebsiteBuilder
-      tenantSlug={`library-template-${id}`}
-      tenantName={template.name}
-      builderScope='library_template'
-      libraryTemplateId={id}
-      initialPageSlug={activeSlug}
-      initialPages={pages}
-      initialPageTitle={sitePage.title}
-      initialDraftBlocks={sitePage.draftBlocks as Block[]}
-      initialPublishedBlocks={sitePage.publishedBlocks as Block[]}
-      initialSavedAt={sitePage.draftUpdatedAt}
-      initialPublishedAt={sitePage.publishedAt}
-      initialDraftSiteStyles={sitePage.draftSiteStyles as SiteStyles | null}
-      initialPublishedSiteStyles={sitePage.publishedSiteStyles as SiteStyles | null}
-      initialVersions={[]}
-      isSiteStarted
-      extraPageCount={pages.filter(page => !isHomePageSlug(page.slug)).length}
+    <WebsiteBuilderLoader
+      {...serializeForClient({
+        tenantSlug: `library-template-${id}`,
+        tenantName: template.name,
+        builderScope: 'library_template' as const,
+        libraryTemplateId: id,
+        initialPageSlug: activeSlug,
+        initialPages: pages,
+        initialPageTitle: sitePage.title,
+        initialDraftBlocks: sitePage.draftBlocks as Block[],
+        initialPublishedBlocks: sitePage.publishedBlocks as Block[],
+        initialSavedAt: sitePage.draftUpdatedAt,
+        initialPublishedAt: sitePage.publishedAt,
+        initialDraftSiteStyles: sitePage.draftSiteStyles as SiteStyles | null,
+        initialPublishedSiteStyles: sitePage.publishedSiteStyles as SiteStyles | null,
+        initialVersions: [],
+        isSiteStarted: true,
+        extraPageCount: pages.filter(page => !isHomePageSlug(page.slug)).length
+      })}
     />
   )
 }

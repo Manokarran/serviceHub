@@ -19,12 +19,11 @@ import Box from '@mui/material/Box'
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
-import type { SiteStyles } from '../types/siteStyles'
 import { BUILDER_FONT_SMOOTHING } from '../constants/builderLayout'
 import { builderShellSx } from '../constants/builderChrome'
 import { BuilderProvider, useBuilder } from '../context/BuilderContext'
 import { BuilderNestTargetsProvider, useBuilderNestTargets } from '../context/BuilderNestTargetsContext'
-import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-page'
+import type { WebsiteBuilderProps } from '../websiteBuilder.types'
 import type { ActiveDragItem, Block, BlockType } from '../types'
 import { resolveDropTarget } from '../utils/blockTreeUtils'
 import { builderCollisionDetection, pickPreferredDropTargetId } from '../utils/builderCollisionDetection'
@@ -43,7 +42,6 @@ import { useBuilderPropertyChrome } from '../hooks/useBuilderPropertyChrome'
 import { useFloatingPanelRect } from '../hooks/useFloatingPanelRect'
 import { BUILDER_LEFT_FRAME_KEY } from '../utils/builderPanelFrame'
 import { BuilderTemplateLauncher } from '@/features/site-templates/components/BuilderTemplateLauncher'
-import type { BuilderScope } from '@/lib/site-template/resolve-builder-tenant'
 
 type WebsiteBuilderInnerProps = {
   tenantName: string
@@ -369,25 +367,6 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
     </DndContext>
     </BuilderShellProvider>
   )
-}
-
-type WebsiteBuilderProps = {
-  tenantSlug: string
-  tenantName: string
-  builderScope?: BuilderScope
-  libraryTemplateId?: string | null
-  initialPageSlug: string
-  initialPages: SitePageSummary[]
-  initialPageTitle: string
-  initialDraftBlocks: Block[] | null
-  initialPublishedBlocks: Block[]
-  initialSavedAt: string | null
-  initialPublishedAt: string | null
-  initialDraftSiteStyles: SiteStyles | null
-  initialPublishedSiteStyles: SiteStyles | null
-  initialVersions: PublishedVersionSummary[]
-  isSiteStarted: boolean
-  extraPageCount: number
 }
 
 function WebsiteBuilderContent({

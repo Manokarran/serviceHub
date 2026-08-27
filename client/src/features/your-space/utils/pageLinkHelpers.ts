@@ -1,6 +1,6 @@
 import { getPublicPagePath } from '@/lib/utils/public-site-url'
 import { isHomePageSlug } from '@/lib/utils/page-slug'
-import type { SitePageSummary } from '@/models/site-page'
+import type { SitePageSummary } from '@/models/site-page/site-page.types'
 
 export type LinkTargetType = 'page' | 'url' | 'anchor'
 

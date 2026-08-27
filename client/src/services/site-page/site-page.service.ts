@@ -3,12 +3,27 @@ import type { SiteStyles } from '@/features/your-space/types/siteStyles'
 import { createAboutPageBlocks, createContactPageBlocks } from '@/features/your-space/constants/pageTemplates'
 import { AppError } from '@/lib/errors'
 import { ensureUniqueSlug, isHomePageSlug, isReservedPageSlug, slugifyPageTitle } from '@/lib/utils/page-slug'
-import { toPlainJson } from '@/lib/utils/plain-json'
+import { requireIsoString, serializeForClient, toIsoString, toPlainJson } from '@/lib/utils/plain-json'
 import { createPageSchema, saveSitePageSchema, updatePageMetaSchema } from '@/lib/validators/site-page.validator'
 import type { PublishedVersionSummary, SitePageSummary, ISitePageBlock } from '@/models/site-page'
 import { sitePageRepository, sitePageVersionRepository } from '@/repositories/site-page.repository'
 import { tenantRepository } from '@/repositories/tenant.repository'
-import { siteWorkspaceService } from '@/services/site-workspace'
+
+async function markSiteStarted(tenantId: string) {
+  const { siteWorkspaceService } = await import('@/services/site-workspace')
+
+  await siteWorkspaceService.markSiteStarted(tenantId)
+}
+
+function blocksSignature(blocks: unknown): string {
+  try {
+    return JSON.stringify(serializeForClient(blocks ?? []))
+  } catch (error) {
+    console.error('[site-page] Failed to serialize blocks for comparison', error)
+
+    return 'unserializable'
+  }
+}
 
 function parsePagePayload(blocks: Block[], siteStyles?: SiteStyles) {
   const parsed = saveSitePageSchema.safeParse({ blocks, siteStyles })
@@ -38,16 +53,16 @@ function mapPageToSummary(page: {
   const draftBlocks = page.draftBlocks ?? []
   const publishedBlocks = page.publishedBlocks ?? []
 
-  return {
+  return serializeForClient({
     slug: page.slug,
     title: page.title ?? (isHomePageSlug(page.slug) ? 'Home' : page.slug),
     description: page.description ?? '',
     sortOrder: page.sortOrder ?? 0,
     isHome: isHomePageSlug(page.slug),
-    publishedAt: page.publishedAt?.toISOString() ?? null,
-    hasUnpublishedChanges: JSON.stringify(draftBlocks) !== JSON.stringify(publishedBlocks),
+    publishedAt: toIsoString(page.publishedAt),
+    hasUnpublishedChanges: blocksSignature(draftBlocks) !== blocksSignature(publishedBlocks),
     blockCount: draftBlocks.length
-  }
+  })
 }
 
 function formatPageData(page: NonNullable<Awaited<ReturnType<typeof sitePageRepository.findByTenantAndSlug>>>) {
@@ -57,10 +72,12 @@ function formatPageData(page: NonNullable<Awaited<ReturnType<typeof sitePageRepo
     description: page.description ?? '',
     sortOrder: page.sortOrder ?? 0,
     isHome: isHomePageSlug(page.slug),
-    draftBlocks: (page.draftBlocks ?? []) as unknown as Block[],
-    publishedBlocks: (page.publishedBlocks ?? []) as unknown as Block[],
-    draftSiteStyles: (page.draftSiteStyles ?? null) as SiteStyles | null,
-    publishedSiteStyles: (page.publishedSiteStyles ?? null) as SiteStyles | null,
+    draftBlocks: serializeForClient((page.draftBlocks ?? []) as unknown as Block[]),
+    publishedBlocks: serializeForClient((page.publishedBlocks ?? []) as unknown as Block[]),
+    draftSiteStyles: page.draftSiteStyles ? serializeForClient(page.draftSiteStyles as SiteStyles) : null,
+    publishedSiteStyles: page.publishedSiteStyles
+      ? serializeForClient(page.publishedSiteStyles as SiteStyles)
+      : null,
     draftUpdatedAt: page.draftUpdatedAt ?? page.updatedAt,
     publishedAt: page.publishedAt ?? null,
     updatedAt: page.updatedAt
@@ -188,7 +205,7 @@ export class SitePageService {
       throw new AppError('Failed to publish page', 500, 'PUBLISH_FAILED')
     }
 
-    await siteWorkspaceService.markSiteStarted(tenantId)
+    await markSiteStarted(tenantId)
 
     return page
   }
@@ -220,7 +237,7 @@ export class SitePageService {
       publishedAt = page.publishedAt ?? page.updatedAt ?? publishedAt
     }
 
-    return { publishedAt: publishedAt.toISOString() }
+    return { publishedAt: requireIsoString(publishedAt) }
   }
 
   async listPublishedVersions(tenantId: string, pageSlug = 'home'): Promise<PublishedVersionSummary[]> {
@@ -228,11 +245,13 @@ export class SitePageService {
 
     const versions = await sitePageVersionRepository.listVersions(tenantId, pageSlug)
 
-    return versions.map(version => ({
-      id: version._id.toString(),
-      publishedAt: version.publishedAt.toISOString(),
-      blockCount: version.blocks.length
-    }))
+    return versions.map(version =>
+      serializeForClient({
+        id: version._id.toString(),
+        publishedAt: requireIsoString(version.publishedAt),
+        blockCount: version.blocks?.length ?? 0
+      })
+    )
   }
 
   async getPublishedVersion(tenantId: string, pageSlug: string, versionId: string) {
@@ -240,7 +259,7 @@ export class SitePageService {
 
     return {
       blocks: toPlainJson(version.blocks) as unknown as Block[],
-      publishedAt: version.publishedAt.toISOString()
+      publishedAt: requireIsoString(version.publishedAt)
     }
   }
 
@@ -309,7 +328,7 @@ export class SitePageService {
     const existingCount = existingPages.length
 
     if (options?.markSiteStarted !== false && existingCount > 0) {
-      await siteWorkspaceService.markSiteStarted(tenantId)
+      await markSiteStarted(tenantId)
     }
 
     return mapPageToSummary(page)

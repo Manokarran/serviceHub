@@ -41,9 +41,13 @@ export class SitePageRepository {
       (!page.draftBlocks?.length && draftBlocks.length) ||
       (!page.publishedBlocks?.length && publishedBlocks.length)
     ) {
-      page.draftBlocks = draftBlocks
-      page.publishedBlocks = publishedBlocks
-      await page.save()
+      try {
+        page.draftBlocks = draftBlocks
+        page.publishedBlocks = publishedBlocks
+        await page.save()
+      } catch (error) {
+        console.error('[SitePageRepository] Failed to migrate legacy blocks', error)
+      }
     }
 
     return page

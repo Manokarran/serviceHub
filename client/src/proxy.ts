@@ -11,7 +11,9 @@ export { auth as proxy }
 
 export const config = {
   matcher: [
+    '/home',
     '/home/:path*',
+    '/your-space',
     '/your-space/:path*',
     '/leads',
     '/leads/:path*',

@@ -8,7 +8,7 @@ import {
   restoreSitePageVersionAction
 } from '@/app/actions/site-page.actions'
 import type { BuilderScope } from '@/lib/site-template/resolve-builder-tenant'
-import type { PublishedVersionSummary } from '@/models/site-page'
+import type { PublishedVersionSummary } from '@/models/site-page/site-page.types'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'

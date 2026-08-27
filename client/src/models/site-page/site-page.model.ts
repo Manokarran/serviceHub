@@ -2,12 +2,10 @@ import mongoose, { Schema, type Model } from 'mongoose'
 
 import type { ISitePageDocument, ISitePageVersionDocument } from './site-page.types'
 
-import { BLOCK_TYPES } from '@/features/your-space/types'
-
 const sitePageBlockSchema = new Schema(
   {
     id: { type: String, required: true },
-    type: { type: String, required: true, enum: BLOCK_TYPES },
+    type: { type: String, required: true },
     props: { type: Schema.Types.Mixed, required: true }
   },
   { _id: false }

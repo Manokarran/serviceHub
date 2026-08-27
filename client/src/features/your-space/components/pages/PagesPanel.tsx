@@ -25,7 +25,7 @@ import {
 import { builderSoftCardSx } from '../../constants/builderChrome'
 import { useBuilder } from '../../context/BuilderContext'
 import { getPagePathLabel } from '../../utils/pageLinkHelpers'
-import type { SitePageSummary } from '@/models/site-page'
+import type { SitePageSummary } from '@/models/site-page/site-page.types'
 import { PropertyTextField } from '../property/PropertyTextField'
 import { CompactButton } from '../property/PropertyPanelUi'
 

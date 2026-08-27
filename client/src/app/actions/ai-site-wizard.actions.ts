@@ -14,6 +14,7 @@ import { aiSiteWizardService } from '@/services/ai-site-wizard/ai-site-wizard.se
 import { getOrCreateBaseTemplateTenantId } from '@/lib/site-template/base-template-tenant'
 import { sitePageService } from '@/services/site-page'
 import { siteTemplateService } from '@/services/site-template'
+import { serializeForClient } from '@/lib/utils/plain-json'
 
 type RecommendResult =
   | { success: true; recommendations: AiTemplateRecommendation[] }
@@ -70,7 +71,7 @@ export async function generateAiSitePreviewAction(
     const baseTenantId = await getOrCreateBaseTemplateTenantId()
     const preview = await aiSiteWizardService.generateFromWorkspace(profile, baseTenantId)
 
-    return { success: true, preview }
+    return { success: true, preview: serializeForClient(preview) }
   } catch (error) {
     console.error('[generateAiSitePreviewAction]', error)
 
@@ -113,7 +114,7 @@ export async function generateAiSiteFromWorkspaceAction(
     const tenantId = await getOrCreateBaseTemplateTenantId()
     const preview = await aiSiteWizardService.generateFromWorkspace(profile, tenantId)
 
-    return { success: true, preview }
+    return { success: true, preview: serializeForClient(preview) }
   } catch (error) {
     console.error('[generateAiSiteFromWorkspaceAction]', error)
 
