@@ -12,7 +12,9 @@ import {
   type NestTargetHints
 } from './blockTreeUtils'
 
-export type QuickAddLocation = Omit<BlockLocation, 'index'> & { index?: number }
+type WithoutIndex<T> = T extends unknown ? Omit<T, 'index'> & { index?: number } : never
+
+export type QuickAddLocation = WithoutIndex<BlockLocation>
 
 export function canAddBlockAtLocation(type: BlockType, location: QuickAddLocation): boolean {
   if (location.container === 'root') {

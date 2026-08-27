@@ -115,7 +115,7 @@ function BlockEditHost({
   return (
     <Box
       ref={node => {
-        blockRef.current = node
+        blockRef.current = node instanceof HTMLElement ? node : null
       }}
       onDoubleClick={(e: MouseEvent) => {
         // Nested children handle their own double-clicks first (stopPropagation).

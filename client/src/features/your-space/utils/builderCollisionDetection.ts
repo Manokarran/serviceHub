@@ -3,9 +3,10 @@ import {
   pointerWithin,
   type Collision,
   type CollisionDetection,
-  type CollisionDetectionArgs,
   type ClientRect
 } from '@dnd-kit/core'
+
+type CollisionDetectionArgs = Parameters<CollisionDetection>[0]
 
 const BACKDROP_DROP_IDS = new Set(['canvas-drop-zone'])
 

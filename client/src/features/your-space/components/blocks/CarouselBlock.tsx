@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import Box from '@mui/material/Box'
 import { alpha, useTheme } from '@mui/material/styles'
+import type { SxProps, Theme } from '@mui/material/styles'
 import useEmblaCarousel from 'embla-carousel-react'
 import Autoplay from 'embla-carousel-autoplay'
 import Fade from 'embla-carousel-fade'
@@ -333,13 +334,14 @@ function CarouselShell({ block, preview }: Props) {
   return (
     <Box
       component='section'
-      sx={{
-        position: 'relative',
-        ...getBlockBackgroundShellSx(props, photoAnimation, fillOpacity, '#ffffff', {
-          fillEnabled: showStaticBackgroundLayers
-        }),
-        ...getCarouselShellSx(props)
-      }}
+      sx={
+        [
+          getBlockBackgroundShellSx(props, photoAnimation, fillOpacity, '#ffffff', {
+            fillEnabled: showStaticBackgroundLayers
+          }),
+          getCarouselShellSx(props)
+        ] as SxProps<Theme>
+      }
     >
       {showBackgroundVisual && (
         <HeroVisualPanel
