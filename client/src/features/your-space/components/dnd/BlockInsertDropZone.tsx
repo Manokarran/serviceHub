@@ -8,6 +8,7 @@ import Tooltip from '@mui/material/Tooltip'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import { BUILDER_Z_INDEX } from '../../constants/builderLayout'
+import { useBuilder } from '../../context/BuilderContext'
 import { builderContainerBorderColor } from '../../utils/builderContainerChrome'
 import type { QuickAddLocation } from '../../utils/quickAddHelpers'
 import { BlockQuickAddPicker } from './BlockQuickAddPicker'
@@ -16,14 +17,17 @@ type Props = {
   id: string
   location: QuickAddLocation
   index: number
+
   /** Fill the parent column/slot so empty containers are easy drop targets. */
   fill?: boolean
 }
 
 export function BlockInsertDropZone({ id, location, index, fill = false }: Props) {
   const theme = useTheme()
+  const { mode } = useBuilder()
   const { active } = useDndContext()
-  const { setNodeRef, isOver } = useDroppable({ id })
+  const isEditMode = mode === 'edit'
+  const { setNodeRef, isOver } = useDroppable({ id, disabled: !isEditMode })
   const isDragging = Boolean(active)
   const [hovered, setHovered] = useState(false)
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
@@ -38,6 +42,10 @@ export function BlockInsertDropZone({ id, location, index, fill = false }: Props
   const closePicker = () => {
     setAnchorEl(null)
     setHovered(false)
+  }
+
+  if (!isEditMode) {
+    return null
   }
 
   if (isDragging) {

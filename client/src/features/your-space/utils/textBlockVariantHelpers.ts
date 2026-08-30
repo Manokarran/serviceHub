@@ -10,6 +10,7 @@ import type {
 } from '../types'
 import type { SiteFonts } from '../types/siteStyles'
 import { resolveTextTypographySx } from './textTypographyHelpers'
+import { siteCanvasBelow } from './siteResponsiveHelpers'
 
 export const TEXT_VARIANT_OPTIONS: { value: TextBlockVariant; label: string; icon: string }[] = [
   { value: 'paragraph', label: 'Paragraph', icon: 'ri-text' },
@@ -181,6 +182,7 @@ export function getTextVariantShellSx(
   const variant = getTextVariant(props)
   const accent = props.accentColor?.trim() || theme.palette.primary.main
   const align = props.alignment
+  const mobileSpacing = siteCanvasBelow({ px: 2 })
 
   switch (variant) {
     case 'quote':
@@ -192,7 +194,8 @@ export function getTextVariantShellSx(
         pl: { xs: 2.5, sm: 3 },
         ml: align === 'center' ? 'auto' : 0,
         mr: align === 'center' || align === 'right' ? (align === 'right' ? 0 : 'auto') : undefined,
-        maxWidth: 720
+        maxWidth: 720,
+        ...mobileSpacing
       }
     case 'pullquote':
       return {
@@ -201,7 +204,8 @@ export function getTextVariantShellSx(
         textAlign: align === 'left' ? 'center' : align,
         maxWidth: 640,
         mx: 'auto',
-        position: 'relative'
+        position: 'relative',
+        ...mobileSpacing
       }
     case 'testimonial':
       return {
@@ -212,7 +216,8 @@ export function getTextVariantShellSx(
         mx: align === 'center' ? 'auto' : undefined,
         borderRadius: 2,
         backgroundColor: alpha(accent, 0.06),
-        border: `1px solid ${alpha(accent, 0.14)}`
+        border: `1px solid ${alpha(accent, 0.14)}`,
+        ...mobileSpacing
       }
     case 'calligraphy':
       return {
@@ -220,7 +225,8 @@ export function getTextVariantShellSx(
         py: 3,
         textAlign: align === 'left' ? 'center' : align,
         maxWidth: 720,
-        mx: 'auto'
+        mx: 'auto',
+        ...mobileSpacing
       }
     case 'callout':
       return {
@@ -231,7 +237,8 @@ export function getTextVariantShellSx(
         mx: align === 'center' ? 'auto' : undefined,
         borderRadius: 1.5,
         backgroundColor: alpha(accent, 0.08),
-        borderLeft: `4px solid ${accent}`
+        borderLeft: `4px solid ${accent}`,
+        ...mobileSpacing
       }
     case 'lead':
       return {
@@ -239,7 +246,8 @@ export function getTextVariantShellSx(
         py: 1.5,
         textAlign: align,
         maxWidth: 760,
-        mx: align === 'center' ? 'auto' : undefined
+        mx: align === 'center' ? 'auto' : undefined,
+        ...mobileSpacing
       }
     case 'caption':
       return {
@@ -248,7 +256,8 @@ export function getTextVariantShellSx(
         textAlign: align,
         maxWidth: 640,
         mx: align === 'center' ? 'auto' : undefined,
-        opacity: 0.85
+        opacity: 0.85,
+        ...mobileSpacing
       }
     default:
       return {
@@ -256,7 +265,8 @@ export function getTextVariantShellSx(
         py: 1,
         textAlign: align,
         maxWidth: 720,
-        mx: align === 'center' ? 'auto' : undefined
+        mx: align === 'center' ? 'auto' : undefined,
+        ...mobileSpacing
       }
   }
 }
@@ -269,7 +279,8 @@ export function getHeadingVariantShellSx(props: HeadingBlockProps): SxProps<Them
       px: 4,
       py: 1,
       textAlign: props.alignment,
-      opacity: 0.75
+      opacity: 0.75,
+      ...siteCanvasBelow({ px: 2 })
     }
   }
 
@@ -279,13 +290,15 @@ export function getHeadingVariantShellSx(props: HeadingBlockProps): SxProps<Them
       py: 2.5,
       textAlign: props.alignment,
       maxWidth: variant === 'script' ? 800 : undefined,
-      mx: props.alignment === 'center' ? 'auto' : undefined
+      mx: props.alignment === 'center' ? 'auto' : undefined,
+      ...siteCanvasBelow({ px: 2 })
     }
   }
 
   return {
     px: 4,
     py: 2,
-    textAlign: props.alignment
+    textAlign: props.alignment,
+    ...siteCanvasBelow({ px: 2 })
   }
 }

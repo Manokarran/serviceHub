@@ -22,6 +22,7 @@ import {
   resolveBlockImageSrc,
   shouldApplyClientImageEdits
 } from '../../utils/imageEditHelpers'
+import { siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
@@ -115,6 +116,7 @@ export function ImageBlock({ props }: Props) {
             : props.alignment === 'right'
               ? 'flex-end'
               : 'flex-start',
+        ...siteCanvasBelow({ px: 2, py: 1.5 }),
         ...entranceSx
       }}
     >

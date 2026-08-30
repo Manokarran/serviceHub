@@ -1,3 +1,5 @@
+import type { LocationMapStyle } from '@/lib/location/types'
+
 export const BLOCK_TYPES = [
   'section',
   'carousel',
@@ -15,7 +17,11 @@ export const BLOCK_TYPES = [
   'icon',
   'contactForm',
   'showcase',
-  'pricing'
+  'pricing',
+  'serviceDirectory',
+  'serviceBooking',
+  'customerBookings',
+  'location'
 ] as const
 
 export type BlockType = (typeof BLOCK_TYPES)[number]
@@ -142,6 +148,7 @@ export type PaletteCategory =
   | 'typography'
   | 'forms'
   | 'pricing'
+  | 'services'
 
 export interface BlockBackgroundProps {
   background?: string
@@ -522,10 +529,64 @@ export interface TextBlockProps {
 export interface ButtonBlockProps {
   text: string
   link: string
+  action?: 'link' | 'serviceDirectory' | 'serviceBooking'
+  serviceSlug?: string
   variant: 'contained' | 'outlined' | 'text'
   alignment: TextAlign
   color: string
   borderRadius?: number
+}
+
+export type ServiceDirectoryLayout = 'cards' | 'list' | 'featured'
+
+export interface ServiceDirectoryBlockProps extends BlockBackgroundProps {
+  title: string
+  subtitle: string
+  serviceIds: string[]
+  category: string
+  layout: ServiceDirectoryLayout
+  showSearch: boolean
+  showCategory: boolean
+  showPrice: boolean
+  showDuration: boolean
+  showAvailability: boolean
+  ctaLabel: string
+  alignment: TextAlign
+}
+
+export type ServiceBookingLayout = 'inline' | 'compact'
+
+export interface ServiceBookingBlockProps extends BlockBackgroundProps {
+  serviceSlug: string
+  title: string
+  subtitle: string
+  layout: ServiceBookingLayout
+  showServiceSummary: boolean
+  showTimezone: boolean
+  ctaLabel: string
+  alignment: TextAlign
+}
+
+export interface CustomerBookingsBlockProps extends BlockBackgroundProps {
+  title: string
+  subtitle: string
+  alignment: TextAlign
+}
+
+export type LocationBlockSource = 'profile' | 'custom'
+
+export interface LocationBlockProps extends BlockBackgroundProps {
+  title: string
+  subtitle: string
+  address: string
+  latitude: number
+  longitude: number
+  source: LocationBlockSource
+  showMap: boolean
+  mapZoom: number
+  mapStyle?: LocationMapStyle
+  showMapControls?: boolean
+  alignment: TextAlign
 }
 
 export interface ImageBlockProps {
@@ -665,6 +726,10 @@ export type BlockPropsMap = {
   contactForm: ContactFormBlockProps
   showcase: ShowcaseBlockProps
   pricing: PricingBlockProps
+  serviceDirectory: ServiceDirectoryBlockProps
+  serviceBooking: ServiceBookingBlockProps
+  customerBookings: CustomerBookingsBlockProps
+  location: LocationBlockProps
 }
 
 export interface Block<T extends BlockType = BlockType> {

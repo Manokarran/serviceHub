@@ -55,7 +55,7 @@ export default async function PublicSiteHomePage({ params }: PageProps) {
   return (
     <>
       <PublicSiteAnalytics />
-      <PublicSiteRenderer blocks={blocks} siteStyles={siteStyles} />
+      <PublicSiteRenderer blocks={blocks} siteStyles={siteStyles} tenantLocation={site.tenant.location} />
     </>
   )
 }

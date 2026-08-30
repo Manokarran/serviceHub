@@ -18,18 +18,20 @@ import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import InputAdornment from '@mui/material/InputAdornment'
+import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
-import {
-  checkTenantSlugAvailabilityAction,
-  updateTenantProfileAction
-} from '@/app/actions/tenant-profile.actions'
+import { checkTenantSlugAvailabilityAction, updateTenantProfileAction } from '@/app/actions/tenant-profile.actions'
 import { migrateLocalTenantSlug } from '@/features/profile/utils/migrate-local-tenant-slug'
+import { SERVICE_CURRENCY_OPTIONS, SERVICE_TIMEZONE_OPTIONS, inferCurrencyFromTimeZone } from '@/lib/constants/service'
+import { LocationMap } from '@/components/location/LocationMap'
 import { isImageKitConfigured } from '@/lib/imagekit/config'
 import { getDisplayImageUrl } from '@/lib/imagekit/urls'
+import type { LocationContext } from '@/lib/location/types'
 import { sanitizeSlugInput, slugify } from '@/lib/utils/slug'
+import { getBrowserTimeZone } from '@/lib/utils/timezone'
 import { tenantSlugSchema } from '@/lib/validators/auth.validator'
 import type { TenantProfileView } from '@/services/tenant'
 
@@ -46,6 +48,57 @@ type Props = {
 
 type SlugStatus = 'idle' | 'checking' | 'current' | 'available' | 'taken' | 'reserved' | 'invalid'
 
+type BrowserLocation = {
+  latitude: number
+  longitude: number
+}
+
+type GeocodeLocation = {
+  address: string
+  latitude: number
+  longitude: number
+  context?: LocationContext
+}
+
+type GeocodeResponse = {
+  location?: GeocodeLocation
+  locations?: GeocodeLocation[]
+  error?: string
+}
+
+function isLocationContext(value: unknown): value is LocationContext {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const context = value as Partial<LocationContext>
+
+  return ['countryCode', 'country', 'region', 'place'].every(
+    field => !(field in context) || typeof context[field as keyof LocationContext] === 'string'
+  )
+}
+
+function isGeocodeLocation(value: unknown): value is GeocodeLocation {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const location = value as Partial<GeocodeLocation>
+
+  return (
+    typeof location.address === 'string' &&
+    typeof location.latitude === 'number' &&
+    Number.isFinite(location.latitude) &&
+    location.latitude >= -90 &&
+    location.latitude <= 90 &&
+    typeof location.longitude === 'number' &&
+    Number.isFinite(location.longitude) &&
+    location.longitude >= -180 &&
+    location.longitude <= 180 &&
+    (location.context === undefined || isLocationContext(location.context))
+  )
+}
+
 function formatRole(role: string) {
   if (!role) {
     return 'Member'
@@ -56,6 +109,14 @@ function formatRole(role: string) {
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value))
+}
+
+async function readJson<T>(response: Response): Promise<T | null> {
+  try {
+    return (await response.json()) as T
+  } catch {
+    return null
+  }
 }
 
 export function ProfilePageClient({
@@ -74,7 +135,13 @@ export function ProfilePageClient({
   const [companyName, setCompanyName] = useState(profile.companyName)
   const [slug, setSlug] = useState(profile.slug)
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl)
+  const [defaultTimezone, setDefaultTimezone] = useState(profile.defaultTimezone || 'UTC')
+  const [defaultCurrency, setDefaultCurrency] = useState(profile.defaultCurrency || 'INR')
+  const [locationAddress, setLocationAddress] = useState(profile.location?.address ?? '')
+  const [locationLatitude, setLocationLatitude] = useState<number | null>(profile.location?.latitude ?? null)
+  const [locationLongitude, setLocationLongitude] = useState<number | null>(profile.location?.longitude ?? null)
   const [savedProfile, setSavedProfile] = useState(profile)
+  const [localeTouched, setLocaleTouched] = useState(false)
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('current')
   const [slugMessage, setSlugMessage] = useState('This is your current site URL')
   const [error, setError] = useState<string | null>(null)
@@ -82,14 +149,40 @@ export function ProfilePageClient({
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [isGeocoding, setIsGeocoding] = useState(false)
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const [locationNotice, setLocationNotice] = useState<string | null>(null)
+  const [browserLocation, setBrowserLocation] = useState<BrowserLocation | null>(null)
+  const [locationContext, setLocationContext] = useState<LocationContext | null>(profile.location?.context ?? null)
+  const [browserLocationContext, setBrowserLocationContext] = useState<LocationContext | null>(null)
+  const [locationSuggestions, setLocationSuggestions] = useState<GeocodeLocation[]>([])
 
   const normalizedSlug = slugify(slug)
   const slugChanged = normalizedSlug !== savedProfile.slug
 
+  const location =
+    locationAddress.trim() && locationLatitude !== null && locationLongitude !== null
+      ? {
+          address: locationAddress.trim(),
+          latitude: locationLatitude,
+          longitude: locationLongitude,
+          ...(locationContext && Object.keys(locationContext).length > 0 ? { context: locationContext } : {})
+        }
+      : null
+
+  const locationChanged = JSON.stringify(location) !== JSON.stringify(savedProfile.location)
+
+  const locationIncomplete =
+    Boolean(locationAddress.trim() || locationLatitude !== null || locationLongitude !== null) && !location
+
   const isDirty =
     companyName.trim() !== savedProfile.companyName ||
     slugChanged ||
-    logoUrl !== savedProfile.logoUrl
+    logoUrl !== savedProfile.logoUrl ||
+    localeTouched ||
+    (Boolean(savedProfile.defaultTimezone) && defaultTimezone !== savedProfile.defaultTimezone) ||
+    (Boolean(savedProfile.defaultCurrency) && defaultCurrency !== savedProfile.defaultCurrency) ||
+    locationChanged
 
   const imageKitReady = isImageKitConfigured()
   const slugLocked = savedProfile.isSystemTenant
@@ -100,6 +193,7 @@ export function ProfilePageClient({
     !uploadingLogo &&
     !isPending &&
     companyName.trim().length >= 2 &&
+    !locationIncomplete &&
     (!slugChanged || slugStatus === 'available')
 
   const livePreviewUrl = `${siteUrlPrefix}${normalizedSlug || savedProfile.slug}`
@@ -116,6 +210,119 @@ export function ProfilePageClient({
 
     return 'error.main'
   }, [slugStatus])
+
+  useEffect(() => {
+    if (!savedProfile.defaultTimezone && !localeTouched) {
+      const browserTimezone = getBrowserTimeZone()
+
+      setDefaultTimezone(browserTimezone)
+      setDefaultCurrency(inferCurrencyFromTimeZone(browserTimezone))
+    }
+  }, [localeTouched, savedProfile.defaultTimezone])
+
+  useEffect(() => {
+    setSavedProfile(profile)
+    setCompanyName(profile.companyName)
+    setSlug(profile.slug)
+    setLogoUrl(profile.logoUrl)
+    setDefaultTimezone(profile.defaultTimezone || 'UTC')
+    setDefaultCurrency(profile.defaultCurrency || 'INR')
+    setLocationAddress(profile.location?.address ?? '')
+    setLocationLatitude(profile.location?.latitude ?? null)
+    setLocationLongitude(profile.location?.longitude ?? null)
+    setLocationContext(profile.location?.context ?? null)
+    setBrowserLocationContext(null)
+    setLocaleTouched(false)
+  }, [profile])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!navigator.geolocation) {
+      setLocationNotice(
+        profile.location
+          ? 'Browser location is unavailable. Your saved profile location remains on the map.'
+          : 'Browser location is unavailable. The map is using a world view until you select a location.'
+      )
+
+      return () => {
+        cancelled = true
+      }
+    }
+
+    setLocationNotice('Getting your current browser location…')
+
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        if (cancelled) {
+          return
+        }
+
+        const point = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        }
+
+        if (
+          !Number.isFinite(point.latitude) ||
+          !Number.isFinite(point.longitude) ||
+          point.latitude < -90 ||
+          point.latitude > 90 ||
+          point.longitude < -180 ||
+          point.longitude > 180
+        ) {
+          setLocationNotice('Browser location returned an invalid position. The map is using a world view instead.')
+
+          return
+        }
+
+        setBrowserLocation(point)
+        setLocationNotice(
+          profile.location
+            ? 'Your current browser location is used to make address searches more relevant.'
+            : 'Map centered on your current browser location. It is not saved until you choose a pin or address.'
+        )
+
+        void fetch(`/api/location/geocode?lat=${point.latitude}&lon=${point.longitude}`)
+          .then(async response => {
+            const result = await readJson<GeocodeResponse>(response)
+
+            if (
+              !cancelled &&
+              response.ok &&
+              result?.location?.context &&
+              isLocationContext(result.location.context)
+            ) {
+              setBrowserLocationContext(result.location.context)
+            }
+          })
+          .catch(() => {
+            // The map location is still useful when reverse geocoding is unavailable.
+          })
+      },
+      error => {
+        if (cancelled) {
+          return
+        }
+
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? profile.location
+              ? 'Browser location permission was denied. Your saved profile location remains on the map.'
+              : 'Browser location permission was denied. The map is using a world view; address search still works.'
+            : profile.location
+              ? 'Browser location is unavailable. Your saved profile location remains on the map.'
+              : 'Browser location is unavailable. The map is using a world view; address search still works.'
+
+        setLocationNotice(message)
+      },
+      { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 }
+    )
+
+    return () => {
+      cancelled = true
+    }
+  }, [profile.location])
 
   useEffect(() => {
     const scrollToWorkspace = () => {
@@ -227,7 +434,10 @@ export function ProfilePageClient({
       const result = await updateTenantProfileAction({
         companyName: companyName.trim(),
         slug: normalizedSlug,
-        logoUrl
+        logoUrl,
+        defaultTimezone: localeTouched ? defaultTimezone : savedProfile.defaultTimezone,
+        defaultCurrency: localeTouched ? defaultCurrency : savedProfile.defaultCurrency,
+        ...(location ? { location } : {})
       })
 
       if (!result.success) {
@@ -241,6 +451,16 @@ export function ProfilePageClient({
       setCompanyName(result.profile.companyName)
       setSlug(result.profile.slug)
       setLogoUrl(result.profile.logoUrl)
+      setDefaultTimezone(result.profile.defaultTimezone || getBrowserTimeZone())
+      setDefaultCurrency(
+        result.profile.defaultCurrency ||
+          inferCurrencyFromTimeZone(result.profile.defaultTimezone || getBrowserTimeZone())
+      )
+      setLocationAddress(result.profile.location?.address ?? '')
+      setLocationLatitude(result.profile.location?.latitude ?? null)
+      setLocationLongitude(result.profile.location?.longitude ?? null)
+      setLocationContext(result.profile.location?.context ?? null)
+      setLocaleTouched(false)
       setConfirmOpen(false)
       setMessage('Profile updated')
       await update({
@@ -249,6 +469,98 @@ export function ProfilePageClient({
       })
       router.refresh()
     })
+  }
+
+  const searchLocation = async () => {
+    const query = locationAddress.trim()
+
+    if (!query) {
+      setLocationError('Enter an address to search for.')
+
+      return
+    }
+
+    setLocationError(null)
+    setIsGeocoding(true)
+
+    try {
+      const searchParams = new URLSearchParams({ q: query })
+
+      const contextPoint =
+        browserLocation ??
+        (savedProfile.location
+          ? { latitude: savedProfile.location.latitude, longitude: savedProfile.location.longitude }
+          : null)
+
+      const searchContext = browserLocationContext ?? locationContext
+
+      if (contextPoint) {
+        searchParams.set('contextLat', String(contextPoint.latitude))
+        searchParams.set('contextLon', String(contextPoint.longitude))
+      }
+
+      if (searchContext?.countryCode) {
+        searchParams.set('countryCode', searchContext.countryCode)
+      }
+
+      if (searchContext?.place) {
+        searchParams.set('place', searchContext.place)
+      }
+
+      if (searchContext?.region) {
+        searchParams.set('region', searchContext.region)
+      }
+
+      const response = await fetch(`/api/location/geocode?${searchParams.toString()}`)
+      const result = await readJson<GeocodeResponse>(response)
+
+      if (!response.ok || !result?.location || !isGeocodeLocation(result.location)) {
+        throw new Error(result?.error ?? 'No matching address was found.')
+      }
+
+      setLocationAddress(result.location.address)
+      setLocationLatitude(result.location.latitude)
+      setLocationLongitude(result.location.longitude)
+      setLocationContext(result.location.context ?? null)
+      setLocationSuggestions(
+        (Array.isArray(result.locations) ? result.locations : []).filter(isGeocodeLocation).slice(1)
+      )
+    } catch (geocodeError) {
+      setLocationError(geocodeError instanceof Error ? geocodeError.message : 'Could not find that address.')
+      setLocationSuggestions([])
+    } finally {
+      setIsGeocoding(false)
+    }
+  }
+
+  const selectMapLocation = async (point: { latitude: number; longitude: number }) => {
+    setLocationLatitude(point.latitude)
+    setLocationLongitude(point.longitude)
+    setLocationContext(null)
+    setLocationError(null)
+    setLocationSuggestions([])
+    setIsGeocoding(true)
+
+    try {
+      const response = await fetch(`/api/location/geocode?lat=${point.latitude}&lon=${point.longitude}`)
+      const result = await readJson<GeocodeResponse>(response)
+
+      if (!response.ok || !result?.location || !isGeocodeLocation(result.location)) {
+        throw new Error(result?.error ?? 'The address could not be loaded.')
+      }
+
+      setLocationAddress(result.location.address)
+      setLocationContext(result.location.context ?? null)
+      setLocationError(null)
+      setLocationNotice(null)
+    } catch (mapError) {
+      setLocationAddress(`Selected location (${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)})`)
+      setLocationNotice(
+        `${mapError instanceof Error ? mapError.message : 'The address could not be loaded.'} The pin is still selected.`
+      )
+    } finally {
+      setIsGeocoding(false)
+    }
   }
 
   const handleSave = () => {
@@ -345,7 +657,11 @@ export function ProfilePageClient({
       </Box>
 
       {error ? <Alert severity='error'>{error}</Alert> : null}
-      {message ? <Alert severity='success' onClose={() => setMessage(null)}>{message}</Alert> : null}
+      {message ? (
+        <Alert severity='success' onClose={() => setMessage(null)}>
+          {message}
+        </Alert>
+      ) : null}
 
       <Box
         sx={{
@@ -436,7 +752,12 @@ export function ProfilePageClient({
                 }}
               >
                 {logoPreview ? (
-                  <Box component='img' src={logoPreview} alt='Company logo' sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', p: 1 }} />
+                  <Box
+                    component='img'
+                    src={logoPreview}
+                    alt='Company logo'
+                    sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', p: 1 }}
+                  />
                 ) : (
                   <i className='ri-image-line' style={{ fontSize: '1.6rem', opacity: 0.45 }} />
                 )}
@@ -466,11 +787,7 @@ export function ProfilePageClient({
                     />
                   </Button>
                   {logoUrl ? (
-                    <Button
-                      color='inherit'
-                      disabled={!canEdit || isPending}
-                      onClick={() => setLogoUrl('')}
-                    >
+                    <Button color='inherit' disabled={!canEdit || isPending} onClick={() => setLogoUrl('')}>
                       Remove
                     </Button>
                   ) : null}
@@ -519,6 +836,186 @@ export function ProfilePageClient({
             }
           />
 
+          <Box>
+            <Box className='flex items-center justify-between gap-2 flex-wrap' sx={{ mb: 0.75 }}>
+              <Box>
+                <Typography variant='subtitle2' sx={{ fontWeight: 700 }}>
+                  Business location
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                  Set the address shown in your site&apos;s Where are we section.
+                </Typography>
+              </Box>
+              {location || locationAddress || locationLatitude !== null ? (
+                <Button
+                  size='small'
+                  color='inherit'
+                  disabled={!canEdit || isPending || isGeocoding}
+                  onClick={() => {
+                    setLocationAddress('')
+                    setLocationLatitude(null)
+                    setLocationLongitude(null)
+                    setLocationContext(null)
+                    setLocationError(null)
+                    setLocationSuggestions([])
+                  }}
+                >
+                  Clear
+                </Button>
+              ) : null}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1.5 }}>
+              <TextField
+                label='Address'
+                value={locationAddress}
+                onChange={event => {
+                  setLocationAddress(event.target.value)
+                  setLocationLatitude(null)
+                  setLocationLongitude(null)
+                  setLocationContext(null)
+                  setLocationError(null)
+                  setLocationSuggestions([])
+                }}
+                disabled={!canEdit || isPending || isGeocoding}
+                fullWidth
+                multiline
+                minRows={2}
+                error={locationIncomplete}
+                helperText={
+                  locationIncomplete
+                    ? 'Search this address or select a point on the map.'
+                    : 'Enter an address, then search to place it on the map.'
+                }
+              />
+              <Button
+                variant='outlined'
+                onClick={() => void searchLocation()}
+                disabled={!canEdit || isPending || isGeocoding || !locationAddress.trim()}
+                sx={{ minWidth: 96, mt: 0.5 }}
+              >
+                {isGeocoding ? <CircularProgress size={18} /> : 'Find'}
+              </Button>
+            </Box>
+            {locationError ? (
+              <Alert severity='error' sx={{ mb: 1.5 }}>
+                {locationError}
+              </Alert>
+            ) : null}
+            {locationSuggestions.length ? (
+              <Box sx={{ mb: 1.5 }}>
+                <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 0.5 }}>
+                  Other nearby matches
+                </Typography>
+                <Box sx={{ display: 'grid', gap: 0.5 }}>
+                  {locationSuggestions.map(suggestion => (
+                    <Button
+                      key={`${suggestion.latitude}:${suggestion.longitude}`}
+                      variant='text'
+                      color='inherit'
+                      onClick={() => {
+                        setLocationAddress(suggestion.address)
+                        setLocationLatitude(suggestion.latitude)
+                        setLocationLongitude(suggestion.longitude)
+                        setLocationContext(suggestion.context ?? null)
+                        setLocationSuggestions([])
+                        setLocationError(null)
+                        setLocationNotice(null)
+                      }}
+                      sx={{ justifyContent: 'flex-start', textAlign: 'left', textTransform: 'none' }}
+                    >
+                      {suggestion.address}
+                    </Button>
+                  ))}
+                </Box>
+              </Box>
+            ) : null}
+            <LocationMap
+              latitude={
+                locationLatitude !== null && locationLongitude !== null
+                  ? locationLatitude
+                  : (browserLocation?.latitude ?? null)
+              }
+              longitude={
+                locationLatitude !== null && locationLongitude !== null
+                  ? locationLongitude
+                  : (browserLocation?.longitude ?? null)
+              }
+              interactive={canEdit && !isPending && !isGeocoding}
+              onChange={point => void selectMapLocation(point)}
+              height={240}
+            />
+            {locationNotice ? (
+              <Alert severity='info' sx={{ mt: 1.5 }}>
+                {locationNotice}
+              </Alert>
+            ) : null}
+            <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 0.75 }}>
+              {locationLatitude !== null && locationLongitude !== null
+                ? `Pin: ${locationLatitude.toFixed(5)}, ${locationLongitude.toFixed(5)}`
+                : browserLocation
+                  ? `Current browser location: ${browserLocation.latitude.toFixed(5)}, ${browserLocation.longitude.toFixed(5)}`
+                  : 'No location selected yet.'}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography variant='subtitle2' sx={{ fontWeight: 700, mb: 0.75 }}>
+              Booking defaults
+            </Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+              These defaults are used when creating new services. Leave them unset to detect the owner&apos;s location
+              automatically.
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 2,
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }
+              }}
+            >
+              <TextField
+                select
+                label='Default timezone'
+                value={defaultTimezone}
+                disabled={!canEdit || isPending}
+                onChange={event => {
+                  setLocaleTouched(true)
+                  setDefaultTimezone(event.target.value)
+                }}
+                helperText='Used for new service schedules'
+              >
+                {SERVICE_TIMEZONE_OPTIONS.map(timezone => (
+                  <MenuItem key={timezone} value={timezone}>
+                    {timezone.replaceAll('_', ' ')}
+                  </MenuItem>
+                ))}
+                {!SERVICE_TIMEZONE_OPTIONS.includes(defaultTimezone as (typeof SERVICE_TIMEZONE_OPTIONS)[number]) ? (
+                  <MenuItem value={defaultTimezone}>{defaultTimezone}</MenuItem>
+                ) : null}
+              </TextField>
+              <TextField
+                select
+                label='Default currency'
+                value={defaultCurrency}
+                disabled={!canEdit || isPending}
+                onChange={event => {
+                  setLocaleTouched(true)
+                  setDefaultCurrency(event.target.value)
+                }}
+                helperText='Used for new service prices'
+              >
+                {SERVICE_CURRENCY_OPTIONS.map(option => (
+                  <MenuItem key={option.code} value={option.code}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+                {!SERVICE_CURRENCY_OPTIONS.some(option => option.code === defaultCurrency) ? (
+                  <MenuItem value={defaultCurrency}>{defaultCurrency}</MenuItem>
+                ) : null}
+              </TextField>
+            </Box>
+          </Box>
+
           <Box className='flex items-center justify-end gap-2'>
             <Button
               variant='contained'
@@ -540,7 +1037,11 @@ export function ProfilePageClient({
             URL.
           </Alert>
           <Typography variant='body2' color='text.secondary'>
-            From <strong>{siteUrlPrefix}{savedProfile.slug}</strong>
+            From{' '}
+            <strong>
+              {siteUrlPrefix}
+              {savedProfile.slug}
+            </strong>
           </Typography>
           <Typography variant='body2' color='text.secondary'>
             To <strong>{livePreviewUrl}</strong>

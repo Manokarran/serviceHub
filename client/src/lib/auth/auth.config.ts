@@ -33,6 +33,8 @@ export const authConfig = {
         session.user.tenantPlan = token.tenantPlan as TenantPlan | undefined
         session.user.isSuperAdmin =
           Boolean(token.isSuperAdmin) || isSuperAdminEmail(session.user.email)
+        session.user.context = (token.context as 'staff' | 'customer' | undefined) ?? 'staff'
+        session.user.customerId = token.customerId as string | undefined
       }
 
       return session
@@ -42,17 +44,24 @@ export const authConfig = {
       const isRegistered = Boolean(auth?.user?.registrationComplete)
       const pathname = nextUrl.pathname
       const isSuperAdminRoute = pathname.startsWith('/super-admin')
+
       const isProtectedRoute =
         pathname.startsWith('/home') ||
         pathname.startsWith('/your-space') ||
         pathname.startsWith('/leads') ||
         pathname.startsWith('/about') ||
         pathname.startsWith('/profile') ||
+        pathname.startsWith('/services') ||
         isSuperAdminRoute
+
       const isRegisterRoute = pathname.startsWith('/register')
       const isLoginRoute = pathname.startsWith('/login')
 
       if (isProtectedRoute) {
+        if (auth?.user?.context === 'customer') {
+          return Response.redirect(new URL(`/site/${auth.user.tenantSlug ?? ''}`, nextUrl))
+        }
+
         if (!isLoggedIn) {
           return false
         }

@@ -1,6 +1,7 @@
 import type { Document } from 'mongoose'
 
 import type { TenantPlan, TenantStatus } from '@/models/shared/enums'
+import type { TenantLocation } from '@/lib/location/types'
 
 export type TenantKind = 'base_template'
 
@@ -10,6 +11,9 @@ export interface ITenantSettings {
   primaryColor?: string
   logoUrl?: string
   customDomain?: string
+  defaultTimezone?: string
+  defaultCurrency?: string
+  location?: TenantLocation
   /** When the organization moved past template onboarding. */
   siteStartedAt?: Date
   /** Last applied website template (bootstrap or replace). */

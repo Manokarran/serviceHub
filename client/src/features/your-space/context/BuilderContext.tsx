@@ -1,6 +1,16 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode
+} from 'react'
 
 import {
   createSitePageAction,
@@ -43,6 +53,7 @@ import {
 } from '../utils/builderContainerChrome'
 import { siteStylesEqual } from '../utils/siteStylesEqual'
 import { recordPaletteUse } from '../utils/paletteUsage'
+import type { TenantLocation } from '@/lib/location/types'
 
 type BuilderState = {
   blocks: Block[]
@@ -103,10 +114,25 @@ type BuilderAction =
   | { type: 'SET_SAVING'; isSaving: boolean }
   | { type: 'SET_PUBLISHING'; isPublishing: boolean }
   | { type: 'SET_PAGE_SWITCHING'; isPageSwitching: boolean }
-  | { type: 'SWITCH_PAGE'; slug: string; title: string; blocks: Block[]; publishedBlocks: Block[]; savedAt: string | null; publishedAt: string | null; versions: PublishedVersionSummary[] }
+  | {
+      type: 'SWITCH_PAGE'
+      slug: string
+      title: string
+      blocks: Block[]
+      publishedBlocks: Block[]
+      savedAt: string | null
+      publishedAt: string | null
+      versions: PublishedVersionSummary[]
+    }
   | { type: 'SET_PAGES'; pages: SitePageSummary[] }
   | { type: 'MARK_SAVED'; savedAt: string }
-  | { type: 'MARK_PUBLISHED'; publishedAt: string; publishedBlocks: Block[]; publishedSiteStyles: SiteStyles; versions: PublishedVersionSummary[] }
+  | {
+      type: 'MARK_PUBLISHED'
+      publishedAt: string
+      publishedBlocks: Block[]
+      publishedSiteStyles: SiteStyles
+      versions: PublishedVersionSummary[]
+    }
   | { type: 'SET_SAVE_ERROR'; error: string | null }
   | { type: 'SET_PUBLISH_ERROR'; error: string | null }
   | { type: 'SET_VERSIONS'; versions: PublishedVersionSummary[] }
@@ -295,6 +321,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
 
 type BuilderContextValue = BuilderState & {
   tenantSlug: string
+  tenantLocation: TenantLocation | null
   builderScope: BuilderScope
   libraryTemplateId: string | null
   selectedBlock: Block | null
@@ -325,7 +352,10 @@ type BuilderContextValue = BuilderState & {
     title: string,
     options?: { slug?: string }
   ) => Promise<{ success: true; page: SitePageSummary } | { success: false; error: string }>
-  duplicatePage: (sourceSlug: string, newTitle: string) => Promise<{ success: true; page: SitePageSummary } | { success: false; error: string }>
+  duplicatePage: (
+    sourceSlug: string,
+    newTitle: string
+  ) => Promise<{ success: true; page: SitePageSummary } | { success: false; error: string }>
   deletePage: (slug: string) => Promise<void>
   updatePageMeta: (slug: string, input: { title?: string; description?: string }) => Promise<void>
   refreshPages: () => Promise<void>
@@ -341,6 +371,7 @@ const BuilderContext = createContext<BuilderContextValue | null>(null)
 
 type BuilderProviderProps = {
   tenantSlug: string
+  tenantLocation?: TenantLocation | null
   builderScope?: BuilderScope
   libraryTemplateId?: string | null
   initialPageSlug: string
@@ -382,6 +413,7 @@ function loadBlocksFromLocalStorage(tenantSlug: string, pageSlug: string): Block
 
 export function BuilderProvider({
   tenantSlug,
+  tenantLocation = null,
   builderScope = 'organization',
   libraryTemplateId = null,
   initialPageSlug,
@@ -609,8 +641,7 @@ export function BuilderProvider({
 
   const hasUnpublishedChanges = useMemo(() => {
     const currentPageHasChanges =
-      !blocksEqual(state.blocks, state.publishedBlocks) ||
-      !siteStylesEqual(state.siteStyles, state.publishedSiteStyles)
+      !blocksEqual(state.blocks, state.publishedBlocks) || !siteStylesEqual(state.siteStyles, state.publishedSiteStyles)
 
     const otherPagesHaveChanges = state.pages.some(
       page => page.slug !== state.currentPageSlug && page.hasUnpublishedChanges
@@ -631,15 +662,18 @@ export function BuilderProvider({
     [state.blocks, state.selectedBlockId]
   )
 
-  const addBlock = useCallback((type: BlockType, target?: BlockLocation, paletteId?: string) => {
-    const block = createBlock(type, siteStylesRef.current, paletteId)
-    const dropTarget = target ?? resolveDropTarget(blocksRef.current, 'canvas-drop-zone', type)
+  const addBlock = useCallback(
+    (type: BlockType, target?: BlockLocation, paletteId?: string) => {
+      const block = createBlock(type, siteStylesRef.current, paletteId, tenantLocation)
+      const dropTarget = target ?? resolveDropTarget(blocksRef.current, 'canvas-drop-zone', type)
 
-    dispatch({ type: 'ADD_BLOCK', block, target: dropTarget })
-    recordPaletteUse(paletteId)
+      dispatch({ type: 'ADD_BLOCK', block, target: dropTarget })
+      recordPaletteUse(paletteId)
 
-    return block
-  }, [])
+      return block
+    },
+    [tenantLocation]
+  )
 
   const updateBlock = useCallback((id: string, props: Partial<Block['props']>) => {
     dispatch({ type: 'UPDATE_BLOCK', id, props })
@@ -828,12 +862,7 @@ export function BuilderProvider({
 
   const duplicatePage = useCallback(
     async (sourceSlug: string, newTitle: string) => {
-      const result = await duplicateSitePageAction(
-        sourceSlug,
-        newTitle,
-        builderScope,
-        libraryTemplateId ?? undefined
-      )
+      const result = await duplicateSitePageAction(sourceSlug, newTitle, builderScope, libraryTemplateId ?? undefined)
 
       if (result.success) {
         void refreshPages()
@@ -962,6 +991,7 @@ export function BuilderProvider({
     () => ({
       ...state,
       tenantSlug,
+      tenantLocation,
       builderScope,
       libraryTemplateId,
       hasUnpublishedChanges,
@@ -999,6 +1029,7 @@ export function BuilderProvider({
     [
       state,
       tenantSlug,
+      tenantLocation,
       builderScope,
       libraryTemplateId,
       hasUnpublishedChanges,

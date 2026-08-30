@@ -1,4 +1,13 @@
-import type { Block, PaletteItem, SectionLayout, CarouselTransition, CarouselArrowStyle, TabOrientation, TabVariant, TabsBlockProps } from './types'
+import type {
+  Block,
+  PaletteItem,
+  SectionLayout,
+  CarouselTransition,
+  CarouselArrowStyle,
+  TabOrientation,
+  TabVariant,
+  TabsBlockProps
+} from './types'
 import { DEFAULT_SECTION_STYLE } from './utils/sectionStyleHelpers'
 import { createPricingDefaultProps, SIMPLE_PRICING_PLANS } from './constants/pricingLayout'
 import { createShowcaseDefaultProps } from './constants/showcaseLayout'
@@ -256,7 +265,13 @@ function sectionPaletteItem(
 
 export const PALETTE_ITEMS: PaletteItem[] = [
   sectionPaletteItem('section-single', 'Single', 'One content column', 'ri-layout-row-line', 'default'),
-  sectionPaletteItem('section-double', 'Double', 'Two side-by-side columns', 'ri-layout-column-line', 'split-horizontal'),
+  sectionPaletteItem(
+    'section-double',
+    'Double',
+    'Two side-by-side columns',
+    'ri-layout-column-line',
+    'split-horizontal'
+  ),
   sectionPaletteItem('section-stacked', 'Stacked', 'Two stacked rows', 'ri-layout-grid-line', 'split-vertical'),
   carouselPaletteItem('carousel-slide', 'Carousel', 'Animated slides with your blocks', 'ri-carousel-view', 'slide'),
   carouselPaletteItem('carousel-fade', 'Fade carousel', 'Cross-fade between slides', 'ri-transition', 'fade', {
@@ -275,20 +290,58 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     transitionDuration: 40,
     arrowStyle: 'floating'
   }),
-  tabsPaletteItem('tabs-horizontal-underline', 'Underline tabs', 'Classic underline indicator', 'ri-layout-top-2-line', 'horizontal', 'underline'),
-  tabsPaletteItem('tabs-horizontal-pills', 'Pill tabs', 'Rounded pill-style buttons', 'ri-apps-line', 'horizontal', 'pills'),
-  tabsPaletteItem('tabs-horizontal-segmented', 'Segmented tabs', 'Joined segmented control', 'ri-layout-fill', 'horizontal', 'segmented', {
-    fullWidthTabs: true,
-    contentAnimation: 'scale'
-  }),
-  tabsPaletteItem('tabs-vertical-sidebar', 'Sidebar tabs', 'Left-rail navigation', 'ri-layout-left-2-line', 'vertical', 'underline', {
-    tabBarBorderStyle: 'subtle',
-    contentBorderStyle: 'subtle'
-  }),
-  tabsPaletteItem('tabs-vertical-elevated', 'Card sidebar', 'Elevated card-style sidebar', 'ri-layout-left-line', 'vertical', 'elevated', {
-    contentBorderStyle: 'elevated',
-    contentAnimation: 'slide-up'
-  }),
+  tabsPaletteItem(
+    'tabs-horizontal-underline',
+    'Underline tabs',
+    'Classic underline indicator',
+    'ri-layout-top-2-line',
+    'horizontal',
+    'underline'
+  ),
+  tabsPaletteItem(
+    'tabs-horizontal-pills',
+    'Pill tabs',
+    'Rounded pill-style buttons',
+    'ri-apps-line',
+    'horizontal',
+    'pills'
+  ),
+  tabsPaletteItem(
+    'tabs-horizontal-segmented',
+    'Segmented tabs',
+    'Joined segmented control',
+    'ri-layout-fill',
+    'horizontal',
+    'segmented',
+    {
+      fullWidthTabs: true,
+      contentAnimation: 'scale'
+    }
+  ),
+  tabsPaletteItem(
+    'tabs-vertical-sidebar',
+    'Sidebar tabs',
+    'Left-rail navigation',
+    'ri-layout-left-2-line',
+    'vertical',
+    'underline',
+    {
+      tabBarBorderStyle: 'subtle',
+      contentBorderStyle: 'subtle'
+    }
+  ),
+  tabsPaletteItem(
+    'tabs-vertical-elevated',
+    'Card sidebar',
+    'Elevated card-style sidebar',
+    'ri-layout-left-line',
+    'vertical',
+    'elevated',
+    {
+      contentBorderStyle: 'elevated',
+      contentAnimation: 'slide-up'
+    }
+  ),
   {
     id: 'header',
     type: 'header',
@@ -659,6 +712,8 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     defaultProps: {
       text: 'Learn More',
       link: '#',
+      action: 'link',
+      serviceSlug: '',
       variant: 'contained',
       alignment: 'left',
       color: '#6366f1'
@@ -797,6 +852,80 @@ export const PALETTE_ITEMS: PaletteItem[] = [
       borderRadius: 0,
       lineStyle: 'solid'
     }
+  },
+  {
+    id: 'services-directory',
+    type: 'serviceDirectory',
+    label: 'Services directory',
+    description: 'Live cards for your published services',
+    icon: 'ri-calendar-check-line',
+    category: 'services',
+    defaultProps: {
+      title: 'Find the right service for you',
+      subtitle: 'Choose a time that works for your schedule.',
+      serviceIds: [],
+      category: '',
+      layout: 'cards',
+      showSearch: true,
+      showCategory: true,
+      showPrice: true,
+      showDuration: true,
+      showAvailability: true,
+      ctaLabel: 'View times',
+      alignment: 'left'
+    }
+  },
+  {
+    id: 'service-booking',
+    type: 'serviceBooking',
+    label: 'Service booking',
+    description: 'Calendar and availability for one service',
+    icon: 'ri-calendar-schedule-line',
+    category: 'services',
+    defaultProps: {
+      serviceSlug: '',
+      title: 'Book your appointment',
+      subtitle: 'Choose an available time below.',
+      layout: 'inline',
+      showServiceSummary: true,
+      showTimezone: true,
+      ctaLabel: 'Continue booking',
+      alignment: 'left'
+    }
+  },
+  {
+    id: 'customer-bookings',
+    type: 'customerBookings',
+    label: 'My bookings',
+    description: 'Customer booking history and session details',
+    icon: 'ri-calendar-user-line',
+    category: 'services',
+    defaultProps: {
+      title: 'Your bookings',
+      subtitle: 'View your upcoming appointments and session details.',
+      alignment: 'left'
+    }
+  },
+  {
+    id: 'location',
+    type: 'location',
+    label: 'Where are we?',
+    description: 'Show your address and map location',
+    icon: 'ri-map-pin-line',
+    category: 'sections',
+    defaultProps: {
+      title: 'Where are we?',
+      subtitle: 'Visit us at our location.',
+      address: 'Add your address in Profile settings',
+      latitude: 20,
+      longitude: 0,
+      source: 'profile',
+      showMap: true,
+      mapZoom: 12,
+      mapStyle: 'theme',
+      showMapControls: true,
+      alignment: 'left'
+    }
   }
 ]
 
@@ -813,14 +942,78 @@ export function getPaletteItem(paletteId?: string, type?: PaletteItem['type']): 
 }
 
 export const PALETTE_CATEGORIES = [
-  { id: 'sections' as const, label: 'Sections', chipLabel: 'Sections', icon: 'ri-layout-masonry-line', defaultExpanded: true, itemLayout: 'tile' as const },
-  { id: 'layout' as const, label: 'Columns', chipLabel: 'Columns', icon: 'ri-layout-grid-line', defaultExpanded: false, itemLayout: 'tile' as const },
-  { id: 'carousel' as const, label: 'Carousels', chipLabel: 'Carousels', icon: 'ri-carousel-view', defaultExpanded: false, itemLayout: 'tile' as const },
-  { id: 'tabs' as const, label: 'Tabs', chipLabel: 'Tabs', icon: 'ri-layout-top-2-line', defaultExpanded: false, itemLayout: 'tile' as const },
-  { id: 'typography' as const, label: 'Typography', chipLabel: 'Type', icon: 'ri-font-size-2', defaultExpanded: false, itemLayout: 'row' as const },
-  { id: 'media' as const, label: 'Media', chipLabel: 'Media', icon: 'ri-image-line', defaultExpanded: false, itemLayout: 'tile' as const },
-  { id: 'forms' as const, label: 'Forms', chipLabel: 'Forms', icon: 'ri-mail-send-line', defaultExpanded: false, itemLayout: 'row' as const },
-  { id: 'pricing' as const, label: 'Pricing', chipLabel: 'Pricing', icon: 'ri-price-tag-3-line', defaultExpanded: false, itemLayout: 'tile' as const }
+  {
+    id: 'sections' as const,
+    label: 'Sections',
+    chipLabel: 'Sections',
+    icon: 'ri-layout-masonry-line',
+    defaultExpanded: true,
+    itemLayout: 'tile' as const
+  },
+  {
+    id: 'layout' as const,
+    label: 'Columns',
+    chipLabel: 'Columns',
+    icon: 'ri-layout-grid-line',
+    defaultExpanded: false,
+    itemLayout: 'tile' as const
+  },
+  {
+    id: 'carousel' as const,
+    label: 'Carousels',
+    chipLabel: 'Carousels',
+    icon: 'ri-carousel-view',
+    defaultExpanded: false,
+    itemLayout: 'tile' as const
+  },
+  {
+    id: 'tabs' as const,
+    label: 'Tabs',
+    chipLabel: 'Tabs',
+    icon: 'ri-layout-top-2-line',
+    defaultExpanded: false,
+    itemLayout: 'tile' as const
+  },
+  {
+    id: 'typography' as const,
+    label: 'Typography',
+    chipLabel: 'Type',
+    icon: 'ri-font-size-2',
+    defaultExpanded: false,
+    itemLayout: 'row' as const
+  },
+  {
+    id: 'media' as const,
+    label: 'Media',
+    chipLabel: 'Media',
+    icon: 'ri-image-line',
+    defaultExpanded: false,
+    itemLayout: 'tile' as const
+  },
+  {
+    id: 'forms' as const,
+    label: 'Forms',
+    chipLabel: 'Forms',
+    icon: 'ri-mail-send-line',
+    defaultExpanded: false,
+    itemLayout: 'row' as const
+  },
+  {
+    id: 'pricing' as const,
+    label: 'Pricing',
+    chipLabel: 'Pricing',
+    icon: 'ri-price-tag-3-line',
+    defaultExpanded: false,
+    itemLayout: 'tile' as const
+  },
+  {
+    id: 'services' as const,
+    label: 'Services',
+    chipLabel: 'Services',
+    icon: 'ri-calendar-check-line',
+    defaultExpanded: true,
+    itemLayout: 'tile' as const
+  }
 ]
 
 export const STARTER_BLOCKS: Block[] = [

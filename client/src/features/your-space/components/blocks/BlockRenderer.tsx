@@ -16,7 +16,11 @@ import type {
   TextBlockProps,
   VideoBlockProps,
   ShowcaseBlockProps,
-  PricingBlockProps
+  PricingBlockProps,
+  ServiceDirectoryBlockProps,
+  ServiceBookingBlockProps,
+  CustomerBookingsBlockProps,
+  LocationBlockProps
 } from '../../types'
 import { ContactFormBlock } from './ContactFormBlock'
 import { ButtonBlock } from './ButtonBlock'
@@ -35,6 +39,10 @@ import { TextBlock } from './TextBlock'
 import { VideoBlock } from './VideoBlock'
 import { ShowcaseBlock } from './ShowcaseBlock'
 import { PricingBlock } from './PricingBlock'
+import { ServiceDirectoryBlock } from './ServiceDirectoryBlock'
+import { ServiceBookingBlock } from './ServiceBookingBlock'
+import { CustomerBookingsBlock } from './CustomerBookingsBlock'
+import { LocationBlock } from './LocationBlock'
 
 type Props = {
   block: Block
@@ -81,6 +89,14 @@ export function BlockRenderer({ block, preview = false }: Props) {
       return <ShowcaseBlock props={block.props as ShowcaseBlockProps} />
     case 'pricing':
       return <PricingBlock props={block.props as PricingBlockProps} />
+    case 'serviceDirectory':
+      return <ServiceDirectoryBlock props={block.props as ServiceDirectoryBlockProps} />
+    case 'serviceBooking':
+      return <ServiceBookingBlock props={block.props as ServiceBookingBlockProps} />
+    case 'customerBookings':
+      return <CustomerBookingsBlock props={block.props as CustomerBookingsBlockProps} />
+    case 'location':
+      return <LocationBlock props={block.props as LocationBlockProps} />
     default:
       return null
   }
@@ -104,7 +120,11 @@ export function getBlockLabel(type: Block['type']) {
     icon: 'Icon',
     contactForm: 'Contact Form',
     showcase: 'Showcase',
-    pricing: 'Pricing'
+    pricing: 'Pricing',
+    serviceDirectory: 'Services',
+    serviceBooking: 'Booking',
+    customerBookings: 'My bookings',
+    location: 'Where are we?'
   }
 
   return labels[type]

@@ -13,6 +13,7 @@ function required(name: string, value: string | undefined): string {
 
 function optional(value: string | undefined, fallback: string): string {
   const trimmed = value?.trim()
+
   return trimmed && trimmed.length > 0 ? trimmed : fallback
 }
 
@@ -43,7 +44,7 @@ export const serverEnv = {
   imagekitPublicKey: stripEnvQuotes(optional(process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY, '')),
   imagekitUrlEndpoint: optional(process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT, ''),
   emailFromName: optional(process.env.EMAIL_FROM_NAME, 'ServiceHub'),
-  emailFromAddress: optional(process.env.EMAIL_FROM_ADDRESS, ''),
+  emailFromAddress: optional(process.env.EMAIL_FROM_ADDRESS || process.env.SMTP_FROM, ''),
   smtpHost: optional(process.env.SMTP_HOST, ''),
   smtpPort: Number(optional(process.env.SMTP_PORT, '587')),
   smtpSecure: optional(process.env.SMTP_SECURE, 'false') === 'true',

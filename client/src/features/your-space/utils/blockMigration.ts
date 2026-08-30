@@ -20,13 +20,24 @@ import type {
   NavLinkItem,
   VideoBlockProps,
   TextBlockProps,
-  HeadingBlockProps
+  HeadingBlockProps,
+  ServiceDirectoryBlockProps,
+  ServiceBookingBlockProps,
+  CustomerBookingsBlockProps,
+  LocationBlockProps
 } from '../types'
 import { createBlockId } from './blockFactory'
 import { DEFAULT_SHAPE_PROPS } from '../constants/shapeBlock'
 import { DEFAULT_ICON_BLOCK_PROPS } from '../constants/iconBlock'
 import { DEFAULT_LOGO_ICON_STYLE } from '@/components/iconPickerStyle'
-import { DEFAULT_SECTION_STYLE, isPhotoBackground, isVideoBackground, isValidMediaUrl, normalizeStoredMediaUrl, parseMediaUrl } from './sectionStyleHelpers'
+import {
+  DEFAULT_SECTION_STYLE,
+  isPhotoBackground,
+  isVideoBackground,
+  isValidMediaUrl,
+  normalizeStoredMediaUrl,
+  parseMediaUrl
+} from './sectionStyleHelpers'
 import { DEFAULT_SHOWCASE_ITEMS } from '../constants/showcaseLayout'
 import { DEFAULT_PRICING_PLANS, createPricingDefaultProps } from '../constants/pricingLayout'
 
@@ -51,9 +62,7 @@ export function normalizeNavLinks(links: unknown): NavLinkItem[] {
       }
 
       const children = Array.isArray(item.children)
-        ? item.children
-            .map(child => normalizeNavItem(child))
-            .filter((child): child is NavLinkItem => child !== null)
+        ? item.children.map(child => normalizeNavItem(child)).filter((child): child is NavLinkItem => child !== null)
         : []
 
       return {
@@ -66,9 +75,7 @@ export function normalizeNavLinks(links: unknown): NavLinkItem[] {
     return null
   }
 
-  return links
-    .map(link => normalizeNavItem(link))
-    .filter((link): link is NavLinkItem => link !== null)
+  return links.map(link => normalizeNavItem(link)).filter((link): link is NavLinkItem => link !== null)
 }
 
 function normalizeChromeBackgroundProps(
@@ -165,10 +172,7 @@ export function normalizeBlock(block: Block): Block {
   if (block.type === 'hero') {
     const props = block.props as HeroBlockProps
     let backgroundType = props.backgroundType ?? 'color'
-    let background = normalizeStoredMediaUrl(
-      props.background ?? props.backgroundColor ?? '#6366f1',
-      backgroundType
-    )
+    let background = normalizeStoredMediaUrl(props.background ?? props.backgroundColor ?? '#6366f1', backgroundType)
 
     if (
       (backgroundType === 'photo' || backgroundType === 'video') &&
@@ -303,10 +307,7 @@ export function normalizeBlock(block: Block): Block {
   if (block.type === 'section') {
     const props = block.props as SectionBlockProps
     let backgroundType = props.backgroundType ?? 'color'
-    let background = normalizeStoredMediaUrl(
-      props.background ?? props.backgroundColor ?? 'transparent',
-      backgroundType
-    )
+    let background = normalizeStoredMediaUrl(props.background ?? props.backgroundColor ?? 'transparent', backgroundType)
 
     if (
       (backgroundType === 'photo' || backgroundType === 'video') &&
@@ -335,17 +336,13 @@ export function normalizeBlock(block: Block): Block {
         backgroundType,
         backgroundPhotoOpacity: props.backgroundPhotoOpacity ?? 100,
         backgroundOpacity:
-          usesStaticVisualFill && (props.backgroundOpacity ?? 0) === 0
-            ? 100
-            : (props.backgroundOpacity ?? 100),
+          usesStaticVisualFill && (props.backgroundOpacity ?? 0) === 0 ? 100 : (props.backgroundOpacity ?? 100),
         layout: props.layout ?? 'default',
         splitRatio: props.splitRatio ?? 50,
         children: Array.isArray(props.children) ? props.children.map(normalizeBlock) : [],
         primaryChildren: Array.isArray(props.primaryChildren) ? props.primaryChildren.map(normalizeBlock) : [],
         secondaryChildren: Array.isArray(props.secondaryChildren) ? props.secondaryChildren.map(normalizeBlock) : [],
-        splitVisualAnimation: usesStaticVisualFill
-          ? 'static'
-          : (props.splitVisualAnimation ?? 'static'),
+        splitVisualAnimation: usesStaticVisualFill ? 'static' : (props.splitVisualAnimation ?? 'static'),
         splitVisualColorStart: props.splitVisualColorStart ?? '',
         splitVisualColorEnd: props.splitVisualColorEnd ?? '',
         splitVisualPlacement: props.splitVisualPlacement ?? 'background'
@@ -575,6 +572,94 @@ export function normalizeBlock(block: Block): Block {
         ...props,
         variant: props.variant ?? 'default'
       }
+    }
+  }
+
+  if (block.type === 'serviceDirectory') {
+    const props = block.props as Partial<ServiceDirectoryBlockProps>
+
+    return {
+      ...block,
+      props: {
+        title: props.title ?? 'Find the right service for you',
+        subtitle: props.subtitle ?? 'Choose a time that works for your schedule.',
+        serviceIds: Array.isArray(props.serviceIds) ? props.serviceIds : [],
+        category: props.category ?? '',
+        layout: props.layout ?? 'cards',
+        showSearch: props.showSearch ?? true,
+        showCategory: props.showCategory ?? true,
+        showPrice: props.showPrice ?? true,
+        showDuration: props.showDuration ?? true,
+        showAvailability: props.showAvailability ?? true,
+        ctaLabel: props.ctaLabel ?? 'View times',
+        alignment: props.alignment ?? 'left',
+        background: props.background ?? 'transparent',
+        backgroundType: props.backgroundType ?? 'color',
+        backgroundOpacity: props.backgroundOpacity ?? 0
+      } as ServiceDirectoryBlockProps
+    }
+  }
+
+  if (block.type === 'serviceBooking') {
+    const props = block.props as Partial<ServiceBookingBlockProps>
+
+    return {
+      ...block,
+      props: {
+        serviceSlug: props.serviceSlug ?? '',
+        title: props.title ?? 'Book your appointment',
+        subtitle: props.subtitle ?? 'Choose an available time below.',
+        layout: props.layout ?? 'inline',
+        showServiceSummary: props.showServiceSummary ?? true,
+        showTimezone: props.showTimezone ?? true,
+        ctaLabel: props.ctaLabel ?? 'Continue booking',
+        alignment: props.alignment ?? 'left',
+        background: props.background ?? 'transparent',
+        backgroundType: props.backgroundType ?? 'color',
+        backgroundOpacity: props.backgroundOpacity ?? 0
+      } as ServiceBookingBlockProps
+    }
+  }
+
+  if (block.type === 'customerBookings') {
+    const props = block.props as Partial<CustomerBookingsBlockProps>
+
+    return {
+      ...block,
+      props: {
+        title: props.title ?? 'Your bookings',
+        subtitle: props.subtitle ?? 'View your upcoming appointments and session details.',
+        alignment: props.alignment ?? 'left',
+        background: props.background ?? 'transparent',
+        backgroundType: props.backgroundType ?? 'color',
+        backgroundOpacity: props.backgroundOpacity ?? 0
+      } as CustomerBookingsBlockProps
+    }
+  }
+
+  if (block.type === 'location') {
+    const props = block.props as Partial<LocationBlockProps>
+
+    return {
+      ...block,
+      props: {
+        title: props.title ?? 'Where are we?',
+        subtitle: props.subtitle ?? 'Visit us at our location.',
+        address: props.address ?? 'Add your address in Profile settings',
+        latitude: typeof props.latitude === 'number' ? props.latitude : 20,
+        longitude: typeof props.longitude === 'number' ? props.longitude : 0,
+        source: props.source === 'custom' ? 'custom' : 'profile',
+        showMap: props.showMap ?? true,
+        mapZoom: props.mapZoom ?? 12,
+        mapStyle: ['theme', 'standard', 'muted', 'monochrome', 'warm'].includes(props.mapStyle ?? '')
+          ? props.mapStyle
+          : 'theme',
+        showMapControls: props.showMapControls ?? true,
+        alignment: props.alignment ?? 'left',
+        background: props.background ?? 'transparent',
+        backgroundType: props.backgroundType ?? 'color',
+        backgroundOpacity: props.backgroundOpacity ?? 0
+      } as LocationBlockProps
     }
   }
 

@@ -35,6 +35,7 @@ import { CarouselControls } from './CarouselControls'
 import { BlockBackgroundLayers } from './BlockBackgroundLayers'
 import { HeroVisualPanel } from './HeroVisualPanel'
 import { useSiteStyles } from '../SiteStylesScope'
+import { SITE_STACK_MAX_WIDTH, siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 
 const MAX_WIDTH_MAP = {
   sm: 640,
@@ -211,7 +212,15 @@ function CarouselShell({ block, preview }: Props) {
     {
       loop: props.loop,
       duration: props.transitionDuration,
-      align: props.slidePeek > 0 || props.slidesPerView > 1 ? 'center' : 'start',
+      align: (viewSize: number) => {
+        // Use one full-width slide on narrow canvases instead of squeezing
+        // the desktop number of slides into a phone-sized viewport.
+        if (viewSize <= SITE_STACK_MAX_WIDTH) {
+          return 0
+        }
+
+        return props.slidePeek > 0 || props.slidesPerView > 1 ? 0.5 : 0
+      },
       containScroll: props.transition === 'coverflow' ? false : 'trimSnaps',
       slidesToScroll: 1
     },
@@ -250,6 +259,8 @@ function CarouselShell({ block, preview }: Props) {
   const activeSlide = props.slides[activeSlideIndex] ?? props.slides[0]
   const activeSlideLabel = `Slide ${activeSlideIndex + 1}`
   const flexBasis = getCarouselSlideFlexBasis(props.slidesPerView, props.slideGap, props.slidePeek)
+  const mobileSlideGap = Math.min(props.slideGap, 16)
+  const mobileFlexBasis = `calc(100% - ${mobileSlideGap}px)`
   const hasPhoto = isPhotoBackground(props)
   const hasVideo = isVideoBackground(props)
   const hasMedia = hasPhoto || hasVideo
@@ -391,6 +402,7 @@ function CarouselShell({ block, preview }: Props) {
             overflow: 'visible',
             ...getCarouselViewportSx(props),
             backgroundColor: alpha(theme.palette.text.primary, editMode ? 0.03 : 0),
+            minWidth: 0,
             ...(props.showArrows && props.arrowStyle === 'floating' && !editMode
               ? { px: 0.5 }
               : {})
@@ -423,7 +435,8 @@ function CarouselShell({ block, preview }: Props) {
                     sx={{
                       display: 'flex',
                       ...(props.transition === 'fade' ? { position: 'relative' } : {}),
-                      ml: props.slidePeek > 0 ? `${props.slidePeek / 2}%` : 0
+                      ml: props.slidePeek > 0 ? `${props.slidePeek / 2}%` : 0,
+                      ...siteCanvasBelow({ ml: 0 })
                     }}
                   >
                     {props.slides.map((slide, index) => (
@@ -433,6 +446,10 @@ function CarouselShell({ block, preview }: Props) {
                         sx={{
                           ...getCarouselSlideSx(props, false),
                           flex: props.transition === 'fade' ? '0 0 100%' : `0 0 ${flexBasis}`,
+                          ...siteCanvasBelow({
+                            flex: props.transition === 'fade' ? '0 0 100%' : `0 0 ${mobileFlexBasis}`,
+                            mr: `${mobileSlideGap}px`
+                          }),
                           ...(props.transition === 'fade' && index !== selectedSnap
                             ? {
                                 opacity: 0,
@@ -444,8 +461,8 @@ function CarouselShell({ block, preview }: Props) {
                       >
                         <Box
                           sx={{
-                            minHeight: props.slideMinHeight,
-                            p: 2,
+                            minHeight: { xs: Math.min(props.slideMinHeight, 420), sm: props.slideMinHeight },
+                            p: { xs: 1.5, sm: 2 },
                             backgroundColor: alpha(theme.palette.background.paper, 0.6),
                             borderRadius: Math.max(0, props.borderRadius - 4),
                             border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,

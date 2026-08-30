@@ -2,10 +2,12 @@ import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-pag
 
 import type { Block } from './types'
 import type { SiteStyles } from './types/siteStyles'
+import type { TenantLocation } from '@/lib/location/types'
 
 export type WebsiteBuilderProps = {
   tenantSlug: string
   tenantName: string
+  tenantLocation?: TenantLocation | null
   builderScope?: 'organization' | 'base_template' | 'library_template'
   libraryTemplateId?: string | null
   initialPageSlug: string

@@ -8,6 +8,7 @@ import { getDisplayImageUrl } from '@/lib/imagekit/urls'
 import type { LogoBlockProps } from '../../types'
 import { SitePageLink } from '../SitePageLink'
 import { getSiteLogoLinkSx } from '../../utils/siteInteractiveHelpers'
+import { siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
@@ -58,7 +59,8 @@ export function LogoBlock({ props }: Props) {
         px: 4,
         py: 2,
         display: 'flex',
-        justifyContent: props.alignment === 'center' ? 'center' : props.alignment === 'right' ? 'flex-end' : 'flex-start'
+        justifyContent: props.alignment === 'center' ? 'center' : props.alignment === 'right' ? 'flex-end' : 'flex-start',
+        ...siteCanvasBelow({ px: 2, py: 1.5 })
       }}
     >
       {props.link && optimizedSrc ? (

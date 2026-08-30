@@ -99,6 +99,16 @@ const HorizontalMenu = () => {
           Your Space
         </MenuItem>
         {canManageLeads ? (
+          <MenuItem href='/services' icon={<i className='ri-calendar-check-line' />}>
+            Services
+          </MenuItem>
+        ) : null}
+        {canManageLeads ? (
+          <MenuItem href='/bookings' icon={<i className='ri-calendar-todo-line' />}>
+            Bookings
+          </MenuItem>
+        ) : null}
+        {canManageLeads ? (
           <MenuItem href='/leads' icon={<i className='ri-mail-line' />}>
             Leads
           </MenuItem>

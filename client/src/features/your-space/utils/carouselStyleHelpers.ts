@@ -1,6 +1,7 @@
 import type { SxProps, Theme } from '@mui/material/styles'
 
 import type { CarouselBlockProps, CarouselTransition } from '../types'
+import { siteCanvasBelow } from './siteResponsiveHelpers'
 
 const MAX_WIDTH_MAP = {
   sm: 640,
@@ -41,7 +42,11 @@ export function getCarouselShellSx(props: CarouselBlockProps): SxProps<Theme> {
   return {
     position: 'relative',
     py: `${props.paddingY}px`,
-    px: `${props.paddingX}px`
+    px: `${props.paddingX}px`,
+    ...siteCanvasBelow({
+      px: `${Math.min(props.paddingX, 16)}px`,
+      py: `${Math.min(props.paddingY, 32)}px`
+    })
   }
 }
 

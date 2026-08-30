@@ -12,6 +12,20 @@ export type ContactNotificationPayload = {
   wantsSignup: boolean
 }
 
+export type BookingEmailPayload = {
+  tenantName: string
+  customerName: string
+  customerEmail: string
+  serviceName: string
+  confirmationCode: string
+  startAt: string
+  endAt: string
+  timezone: string
+  quantity: number
+  priceAmountMinor: number
+  currency: string
+}
+
 function isEmailConfigured(): boolean {
   return Boolean(serverEnv.smtpHost && serverEnv.emailFromAddress)
 }
@@ -40,6 +54,7 @@ export class EmailService {
 
     if (!transporter) {
       console.warn('[EmailService] SMTP not configured — skipping contact notification email')
+
       return false
     }
 
@@ -80,6 +95,7 @@ export class EmailService {
 
     if (!transporter) {
       console.warn('[EmailService] SMTP not configured — skipping contact auto-reply email')
+
       return false
     }
 
@@ -91,6 +107,167 @@ export class EmailService {
     })
 
     return true
+  }
+
+  async sendBookingCreatedNotification(
+    to: string,
+    payload: BookingEmailPayload,
+    status: 'pending' | 'confirmed'
+  ): Promise<boolean> {
+    const statusText =
+      status === 'pending' ? 'A new booking request has been received.' : 'A new booking has been received.'
+
+    return this.sendBookingEmail(
+      to,
+      `${statusText} — ${payload.serviceName}`,
+      [
+        `A booking was created on ${payload.tenantName}'s website.`,
+        '',
+        `Customer: ${payload.customerName}`,
+        `Email: ${payload.customerEmail}`,
+        `Service: ${payload.serviceName}`,
+        `When: ${this.formatBookingTime(payload)}`,
+        `Quantity: ${payload.quantity}`,
+        `Reference: ${payload.confirmationCode}`
+      ].join('\n')
+    )
+  }
+
+  async sendBookingConfirmation(to: string, payload: BookingEmailPayload): Promise<boolean> {
+    return this.sendBookingEmail(
+      to,
+      `Booking confirmed — ${payload.serviceName}`,
+      [
+        `Hi ${payload.customerName},`,
+        '',
+        `Your booking with ${payload.tenantName} is confirmed.`,
+        '',
+        `Service: ${payload.serviceName}`,
+        `When: ${this.formatBookingTime(payload)}`,
+        `Quantity: ${payload.quantity}`,
+        `Reference: ${payload.confirmationCode}`,
+        '',
+        'Please keep this reference for your records.'
+      ].join('\n')
+    )
+  }
+
+  async sendBookingRequestReceived(to: string, payload: BookingEmailPayload): Promise<boolean> {
+    return this.sendBookingEmail(
+      to,
+      `Booking request received — ${payload.serviceName}`,
+      [
+        `Hi ${payload.customerName},`,
+        '',
+        `We received your booking request with ${payload.tenantName}.`,
+        'The business will review it and email you when it is confirmed.',
+        '',
+        `Service: ${payload.serviceName}`,
+        `When: ${this.formatBookingTime(payload)}`,
+        `Quantity: ${payload.quantity}`,
+        `Reference: ${payload.confirmationCode}`
+      ].join('\n')
+    )
+  }
+
+  async sendTermBookingNotification(
+    to: string,
+    payload: BookingEmailPayload,
+    occurrenceCount: number,
+    status: 'pending' | 'confirmed'
+  ): Promise<boolean> {
+    const statusLine =
+      status === 'pending'
+        ? 'Your term enrolment request has been received and is waiting for approval.'
+        : 'Your place in every class in the term is confirmed.'
+
+    return this.sendBookingEmail(
+      to,
+      `${status === 'pending' ? 'Term enrolment request received' : 'Term enrolment confirmed'} — ${payload.serviceName}`,
+      [
+        `Hi ${payload.customerName},`,
+        '',
+        statusLine,
+        '',
+        `Service: ${payload.serviceName}`,
+        `Classes: ${occurrenceCount}`,
+        `First class: ${this.formatBookingTime(payload)}`,
+        `Seats: ${payload.quantity}`,
+        `Reference: ${payload.confirmationCode}`
+      ].join('\n')
+    )
+  }
+
+  async sendBookingCancellation(to: string, payload: BookingEmailPayload, reason?: string): Promise<boolean> {
+    return this.sendBookingEmail(
+      to,
+      `Booking cancelled — ${payload.serviceName}`,
+      [
+        `Hi ${payload.customerName},`,
+        '',
+        `Your booking with ${payload.tenantName} has been cancelled.`,
+        reason?.trim() ? `Reason: ${reason.trim()}` : null,
+        '',
+        `Service: ${payload.serviceName}`,
+        `When: ${this.formatBookingTime(payload)}`,
+        `Reference: ${payload.confirmationCode}`
+      ]
+        .filter(Boolean)
+        .join('\n')
+    )
+  }
+
+  async sendServiceRemovedNotification(to: string, payload: BookingEmailPayload): Promise<boolean> {
+    return this.sendBookingEmail(
+      to,
+      `Service removed — ${payload.serviceName}`,
+      [
+        `Hi ${payload.customerName},`,
+        '',
+        `Unfortunately, ${payload.tenantName} has removed the service you booked.`,
+        'Your booking is no longer available and has been marked as removed.',
+        '',
+        `Service: ${payload.serviceName}`,
+        `Scheduled for: ${this.formatBookingTime(payload)}`,
+        `Reference: ${payload.confirmationCode}`,
+        '',
+        'Please contact the business if you need more information.'
+      ].join('\n')
+    )
+  }
+
+  private async sendBookingEmail(to: string, subject: string, text: string): Promise<boolean> {
+    const transporter = this.getTransporter()
+
+    if (!transporter) {
+      console.warn('[EmailService] SMTP not configured — skipping booking email')
+
+      return false
+    }
+
+    await transporter.sendMail({
+      from: `"${serverEnv.emailFromName}" <${serverEnv.emailFromAddress}>`,
+      to,
+      subject,
+      text
+    })
+
+    return true
+  }
+
+  private formatBookingTime(payload: BookingEmailPayload): string {
+    const start = new Date(payload.startAt).toLocaleString('en', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: payload.timezone
+    })
+
+    const end = new Date(payload.endAt).toLocaleTimeString('en', {
+      timeStyle: 'short',
+      timeZone: payload.timezone
+    })
+
+    return `${start}–${end} (${payload.timezone})`
   }
 }
 

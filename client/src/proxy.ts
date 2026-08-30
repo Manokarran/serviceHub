@@ -15,6 +15,8 @@ export const config = {
     '/home/:path*',
     '/your-space',
     '/your-space/:path*',
+    '/services',
+    '/services/:path*',
     '/leads',
     '/leads/:path*',
     '/about/:path*',

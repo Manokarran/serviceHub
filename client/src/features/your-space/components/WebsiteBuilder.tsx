@@ -42,6 +42,7 @@ import { useBuilderPropertyChrome } from '../hooks/useBuilderPropertyChrome'
 import { useFloatingPanelRect } from '../hooks/useFloatingPanelRect'
 import { BUILDER_LEFT_FRAME_KEY } from '../utils/builderPanelFrame'
 import { BuilderTemplateLauncher } from '@/features/site-templates/components/BuilderTemplateLauncher'
+import { TenantLocationScope } from './TenantLocationScope'
 
 type WebsiteBuilderInnerProps = {
   tenantName: string
@@ -67,17 +68,20 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   const [propertyPanelFocusTab, setPropertyPanelFocusTab] = useState<PropertyPanelTab | null>(null)
   const lastOpenedBlockId = useRef<string | null>(null)
 
-  const openPropertyPanel = useCallback((tab?: PropertyPanelTab) => {
-    setPropertyPanelOpen(true)
+  const openPropertyPanel = useCallback(
+    (tab?: PropertyPanelTab) => {
+      setPropertyPanelOpen(true)
 
-    if (isMobileLayout) {
-      setPropertiesOpen(true)
-    }
+      if (isMobileLayout) {
+        setPropertiesOpen(true)
+      }
 
-    if (tab) {
-      setPropertyPanelFocusTab(tab)
-    }
-  }, [isMobileLayout])
+      if (tab) {
+        setPropertyPanelFocusTab(tab)
+      }
+    },
+    [isMobileLayout]
+  )
 
   const isEditMode = mode === 'edit'
 
@@ -174,14 +178,17 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const data = event.active.data.current as ActiveDragItem | undefined
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const data = event.active.data.current as ActiveDragItem | undefined
 
-    if (data) {
-      setActiveDrag(data)
-      setCanvasDragging(true)
-    }
-  }, [setCanvasDragging])
+      if (data) {
+        setActiveDrag(data)
+        setCanvasDragging(true)
+      }
+    },
+    [setCanvasDragging]
+  )
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -234,68 +241,40 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   return (
     <BuilderShellProvider openPropertyPanel={openPropertyPanel}>
       <DndContext
-      sensors={sensors}
-      collisionDetection={builderCollisionDetection}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-    >
-      <Box
-        ref={builderRootRef}
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: isFullscreen ? '100vh' : 'calc(100vh - 64px - 48px)',
-          minHeight: isFullscreen ? '100vh' : 560,
-          mx: isFullscreen ? 0 : { xs: -4, sm: -6 },
-          mt: isFullscreen ? 0 : { xs: -4, sm: -6 },
-          backgroundColor: 'background.default',
-          ...BUILDER_FONT_SMOOTHING,
-          ...builderShellSx(theme, isFullscreen)
-        }}
+        sensors={sensors}
+        collisionDetection={builderCollisionDetection}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
-        <BuilderToolbar
-          tenantName={tenantName}
-          isFullscreen={isFullscreen}
-          onToggleFullscreen={() => void toggleFullscreen(builderRootRef.current)}
-        />
-        <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-          {isEditMode && !isMobileLayout && (
-            <BuilderSidebar activePanel={leftPanel} onToggle={togglePanel} />
-          )}
+        <Box
+          ref={builderRootRef}
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: isFullscreen ? '100vh' : 'calc(100vh - 64px - 48px)',
+            minHeight: isFullscreen ? '100vh' : 560,
+            mx: isFullscreen ? 0 : { xs: -4, sm: -6 },
+            mt: isFullscreen ? 0 : { xs: -4, sm: -6 },
+            backgroundColor: 'background.default',
+            ...BUILDER_FONT_SMOOTHING,
+            ...builderShellSx(theme, isFullscreen)
+          }}
+        >
+          <BuilderToolbar
+            tenantName={tenantName}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={() => void toggleFullscreen(builderRootRef.current)}
+          />
+          <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+            {isEditMode && !isMobileLayout && <BuilderSidebar activePanel={leftPanel} onToggle={togglePanel} />}
 
-          {isEditMode && !isMobileLayout && chromeReady && leftPanel !== null && leftPinned && (
-            <BuilderDockPanel
-              panel={leftPanel}
-              onClose={closePanel}
-              pinned={leftPinned}
-              onPinToggle={togglePinned}
-              rect={leftFrame.rect}
-              parentSize={leftFrame.parentSize}
-              onCommit={leftFrame.commit}
-              onEnsureLayout={leftFrame.ensureLayout}
-              onMaximize={leftFrame.maximize}
-            />
-          )}
-
-          <Box
-            sx={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              minWidth: 0,
-              minHeight: 0,
-              overflow: 'hidden',
-              position: 'relative'
-            }}
-          >
-            {isEditMode && !isMobileLayout && chromeReady && leftPanel !== null && !leftPinned && (
+            {isEditMode && !isMobileLayout && chromeReady && leftPanel !== null && leftPinned && (
               <BuilderDockPanel
                 panel={leftPanel}
                 onClose={closePanel}
                 pinned={leftPinned}
                 onPinToggle={togglePinned}
-                overlay
                 rect={leftFrame.rect}
                 parentSize={leftFrame.parentSize}
                 onCommit={leftFrame.commit}
@@ -304,12 +283,51 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
               />
             )}
 
-            <BuilderCanvas isMobileLayout={isMobileLayout} />
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: 0,
+                minHeight: 0,
+                overflow: 'hidden',
+                position: 'relative'
+              }}
+            >
+              {isEditMode && !isMobileLayout && chromeReady && leftPanel !== null && !leftPinned && (
+                <BuilderDockPanel
+                  panel={leftPanel}
+                  onClose={closePanel}
+                  pinned={leftPinned}
+                  onPinToggle={togglePinned}
+                  overlay
+                  rect={leftFrame.rect}
+                  parentSize={leftFrame.parentSize}
+                  onCommit={leftFrame.commit}
+                  onEnsureLayout={leftFrame.ensureLayout}
+                  onMaximize={leftFrame.maximize}
+                />
+              )}
 
-            {isEditMode && !isMobileLayout && propertyChromeReady && propertyPanelOpen && !propertyPinned && (
+              <BuilderCanvas isMobileLayout={isMobileLayout} />
+
+              {isEditMode && !isMobileLayout && propertyChromeReady && propertyPanelOpen && !propertyPinned && (
+                <PropertyPanel
+                  open
+                  overlay
+                  pinned={propertyPinned}
+                  onPinToggle={togglePropertyPinned}
+                  onClose={() => setPropertyPanelOpen(false)}
+                  onOpen={() => setPropertyPanelOpen(true)}
+                  focusTab={propertyPanelFocusTab}
+                  onFocusTabConsumed={() => setPropertyPanelFocusTab(null)}
+                />
+              )}
+            </Box>
+
+            {isEditMode && !isMobileLayout && propertyChromeReady && propertyPanelOpen && propertyPinned && (
               <PropertyPanel
                 open
-                overlay
                 pinned={propertyPinned}
                 onPinToggle={togglePropertyPinned}
                 onClose={() => setPropertyPanelOpen(false)}
@@ -318,53 +336,40 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
                 onFocusTabConsumed={() => setPropertyPanelFocusTab(null)}
               />
             )}
+
+            {isEditMode && !isMobileLayout && !(propertyPanelOpen && propertyPinned) && (
+              <PropertyPanel
+                open={false}
+                highlighted={propertyPanelOpen}
+                onClose={() => setPropertyPanelOpen(false)}
+                onOpen={() => setPropertyPanelOpen(true)}
+              />
+            )}
           </Box>
-
-          {isEditMode && !isMobileLayout && propertyChromeReady && propertyPanelOpen && propertyPinned && (
-            <PropertyPanel
-              open
-              pinned={propertyPinned}
-              onPinToggle={togglePropertyPinned}
-              onClose={() => setPropertyPanelOpen(false)}
-              onOpen={() => setPropertyPanelOpen(true)}
-              focusTab={propertyPanelFocusTab}
-              onFocusTabConsumed={() => setPropertyPanelFocusTab(null)}
-            />
-          )}
-
-          {isEditMode && !isMobileLayout && !(propertyPanelOpen && propertyPinned) && (
-            <PropertyPanel
-              open={false}
-              highlighted={propertyPanelOpen}
-              onClose={() => setPropertyPanelOpen(false)}
-              onOpen={() => setPropertyPanelOpen(true)}
+          {isEditMode && isMobileLayout && (
+            <BuilderMobileDrawers
+              pagesOpen={pagesOpen}
+              paletteOpen={paletteOpen}
+              propertiesOpen={propertiesOpen}
+              stylesOpen={stylesOpen}
+              hasSelectedBlock={Boolean(selectedBlock)}
+              propertyPanelFocusTab={propertyPanelFocusTab}
+              onPropertyPanelFocusTabConsumed={() => setPropertyPanelFocusTab(null)}
+              onPagesOpen={() => setPagesOpen(true)}
+              onPagesClose={() => setPagesOpen(false)}
+              onPaletteOpen={() => setPaletteOpen(true)}
+              onPaletteClose={() => setPaletteOpen(false)}
+              onPropertiesOpen={() => setPropertiesOpen(true)}
+              onPropertiesClose={() => setPropertiesOpen(false)}
+              onStylesOpen={() => setStylesOpen(true)}
+              onStylesClose={() => setStylesOpen(false)}
             />
           )}
         </Box>
-        {isEditMode && isMobileLayout && (
-          <BuilderMobileDrawers
-            pagesOpen={pagesOpen}
-            paletteOpen={paletteOpen}
-            propertiesOpen={propertiesOpen}
-            stylesOpen={stylesOpen}
-            hasSelectedBlock={Boolean(selectedBlock)}
-            propertyPanelFocusTab={propertyPanelFocusTab}
-            onPropertyPanelFocusTabConsumed={() => setPropertyPanelFocusTab(null)}
-            onPagesOpen={() => setPagesOpen(true)}
-            onPagesClose={() => setPagesOpen(false)}
-            onPaletteOpen={() => setPaletteOpen(true)}
-            onPaletteClose={() => setPaletteOpen(false)}
-            onPropertiesOpen={() => setPropertiesOpen(true)}
-            onPropertiesClose={() => setPropertiesOpen(false)}
-            onStylesOpen={() => setStylesOpen(true)}
-            onStylesClose={() => setStylesOpen(false)}
-          />
-        )}
-      </Box>
-      <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
-        <BuilderDragOverlay activeDrag={activeDrag} blocks={blocks} />
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
+          <BuilderDragOverlay activeDrag={activeDrag} blocks={blocks} />
+        </DragOverlay>
+      </DndContext>
     </BuilderShellProvider>
   )
 }
@@ -372,6 +377,7 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
 function WebsiteBuilderContent({
   tenantSlug,
   tenantName,
+  tenantLocation,
   builderScope = 'organization',
   libraryTemplateId = null,
   initialPageSlug,
@@ -390,6 +396,7 @@ function WebsiteBuilderContent({
   const builder = (
     <BuilderProvider
       tenantSlug={tenantSlug}
+      tenantLocation={tenantLocation}
       builderScope={builderScope}
       libraryTemplateId={libraryTemplateId}
       initialPageSlug={initialPageSlug}
@@ -409,17 +416,15 @@ function WebsiteBuilderContent({
     </BuilderProvider>
   )
 
+  const scopedBuilder = <TenantLocationScope location={tenantLocation}>{builder}</TenantLocationScope>
+
   if (builderScope === 'base_template' || builderScope === 'library_template') {
-    return builder
+    return scopedBuilder
   }
 
   return (
-    <BuilderTemplateLauncher
-      tenantSlug={tenantSlug}
-      isSiteStarted={isSiteStarted}
-      extraPageCount={extraPageCount}
-    >
-      {builder}
+    <BuilderTemplateLauncher tenantSlug={tenantSlug} isSiteStarted={isSiteStarted} extraPageCount={extraPageCount}>
+      {scopedBuilder}
     </BuilderTemplateLauncher>
   )
 }

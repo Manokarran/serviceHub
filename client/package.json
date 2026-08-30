@@ -29,6 +29,7 @@
     "@mui/material": "7.3.6",
     "@mui/material-nextjs": "7.3.6",
     "classnames": "2.5.1",
+    "date-holidays": "^3.36.0",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-fade": "^8.6.0",
     "embla-carousel-react": "^8.6.0",

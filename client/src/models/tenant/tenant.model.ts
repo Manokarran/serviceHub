@@ -38,6 +38,19 @@ const tenantSchema = new Schema<ITenantDocument>(
       primaryColor: { type: String, trim: true },
       logoUrl: { type: String, trim: true },
       customDomain: { type: String, trim: true, lowercase: true },
+      defaultTimezone: { type: String, trim: true, maxlength: 64 },
+      defaultCurrency: { type: String, trim: true, uppercase: true, maxlength: 3 },
+      location: {
+        address: { type: String, trim: true, maxlength: 500 },
+        latitude: { type: Number, min: -90, max: 90 },
+        longitude: { type: Number, min: -180, max: 180 },
+        context: {
+          countryCode: { type: String, trim: true, lowercase: true, maxlength: 2 },
+          country: { type: String, trim: true, maxlength: 100 },
+          region: { type: String, trim: true, maxlength: 100 },
+          place: { type: String, trim: true, maxlength: 100 }
+        }
+      },
       siteStartedAt: { type: Date },
       appliedTemplateId: { type: String, trim: true },
       contactNotificationEmail: { type: String, trim: true, lowercase: true, maxlength: 254 },

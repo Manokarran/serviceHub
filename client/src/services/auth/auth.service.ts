@@ -1,7 +1,7 @@
 import { AppError } from '@/lib/errors'
 import type { TenantPlan } from '@/lib/constants/tenant'
 import type { UserRole } from '@/lib/constants/roles'
-import { userRepository } from '@/repositories'
+import { siteCustomerRepository, tenantRepository, userRepository } from '@/repositories'
 
 type SyncGoogleUserInput = {
   googleId: string
@@ -21,6 +21,18 @@ export type AuthUserProfile = {
   tenantSlug?: string
   tenantPlan?: TenantPlan
   registrationComplete: boolean
+}
+
+export type AuthCustomerProfile = {
+  id: string
+  customerId: string
+  email: string
+  name: string
+  image?: string
+  tenantId: string
+  tenantName: string
+  tenantSlug: string
+  context: 'customer'
 }
 
 function mapUserProfile(user: NonNullable<Awaited<ReturnType<typeof userRepository.findById>>>): AuthUserProfile {
@@ -52,6 +64,82 @@ function mapUserProfile(user: NonNullable<Awaited<ReturnType<typeof userReposito
 }
 
 export class AuthService {
+  async syncGoogleCustomer(input: {
+    tenantSlug: string
+    googleId: string
+    email: string
+    name: string
+    image?: string | null
+  }): Promise<AuthCustomerProfile> {
+    const tenant = await tenantRepository.findBySlug(input.tenantSlug)
+
+    if (!tenant || tenant.status === 'suspended') {
+      throw new AppError('This website is not available', 404, 'TENANT_INACTIVE')
+    }
+
+    let customer = await siteCustomerRepository.findByTenantAndGoogleId(tenant._id.toString(), input.googleId)
+
+    const customerData = {
+      name: input.name || 'Customer',
+      email: input.email.toLowerCase(),
+      image: input.image ?? undefined
+    }
+
+    if (!customer) {
+      customer = await siteCustomerRepository.create({
+        tenantId: tenant._id,
+        googleId: input.googleId,
+        ...customerData,
+        isActive: true,
+        lastLoginAt: new Date()
+      })
+    } else {
+      customer = await siteCustomerRepository.updateProfile(tenant._id.toString(), customer._id.toString(), customerData)
+    }
+
+    if (!customer || !customer.isActive) {
+      throw new AppError('Your customer account is inactive', 403, 'CUSTOMER_INACTIVE')
+    }
+
+    return {
+      id: customer._id.toString(),
+      customerId: customer._id.toString(),
+      email: customer.email,
+      name: customer.name,
+      image: customer.image,
+      tenantId: tenant._id.toString(),
+      tenantName: tenant.name,
+      tenantSlug: tenant.slug,
+      context: 'customer'
+    }
+  }
+
+  async getCustomerProfileByGoogleId(tenantSlug: string, googleId: string): Promise<AuthCustomerProfile | null> {
+    const tenant = await tenantRepository.findBySlug(tenantSlug)
+
+    if (!tenant || tenant.status === 'suspended') {
+      return null
+    }
+
+    const customer = await siteCustomerRepository.findByTenantAndGoogleId(tenant._id.toString(), googleId)
+
+    if (!customer || !customer.isActive) {
+      return null
+    }
+
+    return {
+      id: customer._id.toString(),
+      customerId: customer._id.toString(),
+      email: customer.email,
+      name: customer.name,
+      image: customer.image,
+      tenantId: tenant._id.toString(),
+      tenantName: tenant.name,
+      tenantSlug: tenant.slug,
+      context: 'customer'
+    }
+  }
+
   async syncGoogleUser(input: SyncGoogleUserInput): Promise<AuthUserProfile> {
     const email = input.email.toLowerCase()
 

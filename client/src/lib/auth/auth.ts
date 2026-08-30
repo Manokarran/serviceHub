@@ -1,3 +1,5 @@
+import { cookies } from 'next/headers'
+
 import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 
@@ -26,6 +28,28 @@ function applyUserProfile(
   token.tenantName = profile.tenantName
   token.tenantSlug = profile.tenantSlug
   token.tenantPlan = profile.tenantPlan
+  token.context = 'staff'
+  delete token.customerId
+}
+
+function applyCustomerProfile(
+  token: Record<string, unknown>,
+  profile: Awaited<ReturnType<typeof authService.getCustomerProfileByGoogleId>> | null
+) {
+  if (!profile) {
+    return
+  }
+
+  token.userId = profile.customerId
+  token.customerId = profile.customerId
+  token.email = profile.email
+  token.registrationComplete = true
+  token.context = 'customer'
+  token.tenantId = profile.tenantId
+  token.tenantName = profile.tenantName
+  token.tenantSlug = profile.tenantSlug
+  token.role = undefined
+  token.tenantPlan = undefined
 }
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
@@ -42,7 +66,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     async signIn({ account, profile, user }) {
       if (account?.provider !== 'google') {
         console.error('[Auth] Unexpected sign-in provider:', account?.provider)
-        return '/login?error=AccessDenied'
+
+return '/login?error=AccessDenied'
       }
 
       const googleProfile = profile as { email?: string | null; name?: string | null; picture?: string | null }
@@ -50,15 +75,31 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
       if (!email) {
         console.error('[Auth] Google profile is missing an email address')
-        return '/login?error=AccessDenied'
+
+return '/login?error=AccessDenied'
       }
 
       if (!account.providerAccountId) {
         console.error('[Auth] Google account is missing providerAccountId')
-        return '/login?error=AccessDenied'
+
+return '/login?error=AccessDenied'
       }
 
       try {
+        const bookingTenant = (await cookies()).get('BOOKING_TENANT')?.value
+
+        if (bookingTenant) {
+          await authService.syncGoogleCustomer({
+            tenantSlug: bookingTenant,
+            googleId: account.providerAccountId,
+            email,
+            name: googleProfile.name ?? user?.name ?? 'Customer',
+            image: googleProfile.picture ?? user?.image
+          })
+
+          return true
+        }
+
         await authService.syncGoogleUser({
           googleId: account.providerAccountId,
           email,
@@ -91,11 +132,24 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     async jwt({ token, account, trigger, session }) {
       try {
         if (account?.provider === 'google' && token.email) {
-          const profile = await authService.getUserProfileByEmail(token.email)
-          applyUserProfile(token, profile)
+          const bookingTenant = (await cookies()).get('BOOKING_TENANT')?.value
+
+          if (bookingTenant) {
+            const customerProfile = await authService.getCustomerProfileByGoogleId(bookingTenant, account.providerAccountId ?? '')
+
+            applyCustomerProfile(token, customerProfile)
+          } else {
+            const profile = await authService.getUserProfileByEmail(token.email)
+
+            applyUserProfile(token, profile)
+          }
         }
 
         if (trigger === 'update') {
+          if (token.context === 'customer') {
+            return token
+          }
+
           const userId = token.userId as string | undefined
           let profile = userId ? await authService.getUserProfile(userId) : null
 

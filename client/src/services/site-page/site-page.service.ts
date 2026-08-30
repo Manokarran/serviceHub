@@ -75,9 +75,7 @@ function formatPageData(page: NonNullable<Awaited<ReturnType<typeof sitePageRepo
     draftBlocks: serializeForClient((page.draftBlocks ?? []) as unknown as Block[]),
     publishedBlocks: serializeForClient((page.publishedBlocks ?? []) as unknown as Block[]),
     draftSiteStyles: page.draftSiteStyles ? serializeForClient(page.draftSiteStyles as SiteStyles) : null,
-    publishedSiteStyles: page.publishedSiteStyles
-      ? serializeForClient(page.publishedSiteStyles as SiteStyles)
-      : null,
+    publishedSiteStyles: page.publishedSiteStyles ? serializeForClient(page.publishedSiteStyles as SiteStyles) : null,
     draftUpdatedAt: page.draftUpdatedAt ?? page.updatedAt,
     publishedAt: page.publishedAt ?? null,
     updatedAt: page.updatedAt
@@ -137,7 +135,7 @@ export class SitePageService {
   async getPublicPageByTenantSlug(tenantSlug: string, pageSlug = 'home') {
     const tenant = await tenantRepository.findBySlug(tenantSlug)
 
-    if (!tenant) {
+    if (!tenant || tenant.status === 'suspended') {
       return null
     }
 
@@ -154,7 +152,8 @@ export class SitePageService {
     return {
       tenant: {
         name: tenant.name,
-        slug: tenant.slug
+        slug: tenant.slug,
+        location: tenant.settings?.location ?? null
       },
       page: {
         slug: page.slug,
@@ -220,19 +219,16 @@ export class SitePageService {
 
     for (const pageDoc of pageDocs) {
       const slug = pageDoc.slug
-      const draftBlocks = (pageDoc.draftBlocks?.length ? pageDoc.draftBlocks : pageDoc.blocks ?? []) as unknown as Block[]
+      const draftBlocks = (pageDoc.draftBlocks?.length
+        ? pageDoc.draftBlocks
+        : (pageDoc.blocks ?? [])) as unknown as Block[]
       const isHome = isHomePageSlug(slug)
+
       const siteStyles = isHome
         ? ((pageDoc.draftSiteStyles ?? pageDoc.publishedSiteStyles ?? null) as SiteStyles | null)
         : undefined
 
-      const page = await this.publish(
-        tenantId,
-        userId,
-        slug,
-        draftBlocks,
-        siteStyles ?? undefined
-      )
+      const page = await this.publish(tenantId, userId, slug, draftBlocks, siteStyles ?? undefined)
 
       publishedAt = page.publishedAt ?? page.updatedAt ?? publishedAt
     }
@@ -317,13 +313,7 @@ export class SitePageService {
     const sortOrder = existingPages.length > 0 ? Math.max(...existingPages.map(p => p.sortOrder ?? 0)) + 1 : 1
     const draftBlocks = input.draftBlocks ?? []
 
-    const page = await sitePageRepository.createPage(
-      tenantId,
-      slug,
-      parsed.data.title,
-      sortOrder,
-      draftBlocks
-    )
+    const page = await sitePageRepository.createPage(tenantId, slug, parsed.data.title, sortOrder, draftBlocks)
 
     const existingCount = existingPages.length
 
@@ -345,11 +335,15 @@ export class SitePageService {
       return mapPageToSummary(existing)
     }
 
-    return this.createPage(tenantId, {
-      title: 'Contact',
-      slug: 'contact',
-      draftBlocks: createContactPageBlocks() as unknown as ISitePageBlock[]
-    }, { markSiteStarted: false })
+    return this.createPage(
+      tenantId,
+      {
+        title: 'Contact',
+        slug: 'contact',
+        draftBlocks: createContactPageBlocks() as unknown as ISitePageBlock[]
+      },
+      { markSiteStarted: false }
+    )
   }
 
   async ensureAboutPage(tenantId: string): Promise<SitePageSummary> {
@@ -363,11 +357,15 @@ export class SitePageService {
       return mapPageToSummary(existing)
     }
 
-    return this.createPage(tenantId, {
-      title: 'About',
-      slug: 'about',
-      draftBlocks: createAboutPageBlocks() as unknown as ISitePageBlock[]
-    }, { markSiteStarted: false })
+    return this.createPage(
+      tenantId,
+      {
+        title: 'About',
+        slug: 'about',
+        draftBlocks: createAboutPageBlocks() as unknown as ISitePageBlock[]
+      },
+      { markSiteStarted: false }
+    )
   }
 
   async ensureBaseWebsitePages(tenantId: string) {

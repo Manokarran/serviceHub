@@ -2,7 +2,15 @@ import type { SxProps, Theme } from '@mui/material/styles'
 
 import type { BlockPropsMap, BlockType } from '../types'
 import { DEFAULT_FORMS, DEFAULT_SITE_STYLES } from '../constants/siteStylePresets'
-import type { ButtonShape, ButtonStyleConfig, SiteColors, SiteFonts, SiteForms, SiteMisc, SiteStyles } from '../types/siteStyles'
+import type {
+  ButtonShape,
+  ButtonStyleConfig,
+  SiteColors,
+  SiteFonts,
+  SiteForms,
+  SiteMisc,
+  SiteStyles
+} from '../types/siteStyles'
 import { getSiteButtonInteractiveSx, SITE_BUTTON_ACTIVE_SX, SITE_BUTTON_HOVER_SX } from './siteInteractiveHelpers'
 
 export function normalizeSiteFonts(fonts: Partial<SiteFonts>): SiteFonts {
@@ -100,8 +108,7 @@ export function getSiteButtonSx(
   const { colors, fonts } = siteStyles
   const normalizedFonts = normalizeSiteFonts(fonts)
   const accent = overrideColor ?? colors.accent
-  const borderRadius =
-    overrideBorderRadius !== undefined ? overrideBorderRadius : getButtonBorderRadius(config.shape)
+  const borderRadius = overrideBorderRadius !== undefined ? overrideBorderRadius : getButtonBorderRadius(config.shape)
   const radiusCss = typeof borderRadius === 'number' ? `${borderRadius}px` : String(borderRadius)
   const fontFamily = getFontFamily(config.fontSource, normalizedFonts)
   const interactive = getSiteButtonInteractiveSx()
@@ -251,10 +258,12 @@ export function getFormFieldSx(forms: SiteForms, fonts: SiteFonts, options?: For
   const normalizedForms = normalizeSiteForms(forms)
   const fieldShape = options?.fieldShape ?? normalizedForms.fieldShape
   const singleLineRadius = options?.fieldBorderRadius ?? getButtonBorderRadius(fieldShape)
+
   const multilineRadius =
     options?.fieldBorderRadius !== undefined
       ? singleLineRadius
       : resolveMultilineFieldRadius(fieldShape, singleLineRadius)
+
   const fieldBorderWidth = options?.fieldBorderWidth ?? normalizedForms.fieldBorderWidth
   const fieldBackground = options?.fieldBackground ?? normalizedForms.fieldBackground
   const isTransparentField = fieldBackground === 'transparent'
@@ -372,7 +381,9 @@ export function siteStylesToCssVars(colors: SiteColors, fonts: SiteFonts): Recor
   }
 }
 
-export function mapBlockVariantToButtonRole(variant: 'contained' | 'outlined' | 'text'): 'primary' | 'secondary' | 'tertiary' {
+export function mapBlockVariantToButtonRole(
+  variant: 'contained' | 'outlined' | 'text'
+): 'primary' | 'secondary' | 'tertiary' {
   if (variant === 'outlined') return 'secondary'
   if (variant === 'text') return 'tertiary'
 

@@ -1,10 +1,21 @@
 import { getPaletteItem, PALETTE_ITEMS } from '../constants'
-import type { Block, BlockType, CarouselBlockProps, CarouselSlide, PricingBlockProps, SectionBlockProps, ShowcaseBlockProps, TabPanel, TabsBlockProps } from '../types'
+import type {
+  Block,
+  BlockType,
+  CarouselBlockProps,
+  CarouselSlide,
+  PricingBlockProps,
+  SectionBlockProps,
+  ShowcaseBlockProps,
+  TabPanel,
+  TabsBlockProps
+} from '../types'
 import type { SiteStyles } from '../types/siteStyles'
 import { asBlockList, MAX_BLOCK_TREE_DEPTH } from './blockList'
 import { applySiteThemeToBlockProps } from './siteStylesHelpers'
 import { cloneShowcaseItems } from './showcaseBlockHelpers'
 import { clonePricingPlans } from './pricingBlockHelpers'
+import type { TenantLocation } from '@/lib/location/types'
 
 export function createBlockId() {
   return `block-${crypto.randomUUID()}`
@@ -131,7 +142,12 @@ export function cloneBlockWithNewIds(block: Block): Block {
   return cloneBlockDeep(block, new WeakSet<object>(), 0)
 }
 
-export function createBlock(type: BlockType, siteStyles?: SiteStyles, paletteId?: string): Block {
+export function createBlock(
+  type: BlockType,
+  siteStyles?: SiteStyles,
+  paletteId?: string,
+  tenantLocation?: TenantLocation | null
+): Block {
   const paletteItem = getPaletteItem(paletteId, type)
 
   if (!paletteItem) {
@@ -172,6 +188,16 @@ export function createBlock(type: BlockType, siteStyles?: SiteStyles, paletteId?
       ...pricingProps,
       plans: clonePricingPlans(pricingProps.plans, createBlockId)
     } as typeof props
+  }
+
+  if (type === 'location' && tenantLocation) {
+    props = {
+      ...props,
+      address: tenantLocation.address,
+      latitude: tenantLocation.latitude,
+      longitude: tenantLocation.longitude,
+      source: 'profile'
+    } as unknown as typeof props
   }
 
   return {

@@ -36,18 +36,22 @@ import {
   InlineToolbarPopover,
   InlineToolbarShell
 } from './InlineToolbarUi'
-import {
-  SectionBackgroundPopover,
-  SectionBorderPopover,
-  SectionSpacingPopover
-} from './SectionInlinePopovers'
+import { SectionBackgroundPopover, SectionBorderPopover, SectionSpacingPopover } from './SectionInlinePopovers'
 import { HeroBackgroundPopover, HeroLayoutPopover, HeroSpacingPopover } from './HeroInlinePopovers'
 import { SectionLayoutPopover } from './SectionLayoutPopover'
 import { HERO_LAYOUT_OPTIONS } from '../../constants/heroLayout'
 import { SECTION_LAYOUT_OPTIONS } from '../../constants/sectionLayout'
-import { SHOWCASE_COLUMN_OPTIONS, SHOWCASE_LAYOUT_OPTIONS, SHOWCASE_MEDIA_SIDE_OPTIONS } from '../../constants/showcaseLayout'
+import {
+  SHOWCASE_COLUMN_OPTIONS,
+  SHOWCASE_LAYOUT_OPTIONS,
+  SHOWCASE_MEDIA_SIDE_OPTIONS
+} from '../../constants/showcaseLayout'
 import { PRICING_CARD_STYLE_OPTIONS, PRICING_LAYOUT_OPTIONS } from '../../constants/pricingLayout'
-import { ARTISTIC_LINE_STYLE_OPTIONS, CLASSIC_LINE_STYLE_OPTIONS, SHAPE_VARIANT_OPTIONS } from '../../constants/shapeBlock'
+import {
+  ARTISTIC_LINE_STYLE_OPTIONS,
+  CLASSIC_LINE_STYLE_OPTIONS,
+  SHAPE_VARIANT_OPTIONS
+} from '../../constants/shapeBlock'
 import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
@@ -93,9 +97,7 @@ function InlineToolbarTextButton({
         backgroundColor: active ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
         '&:hover': {
           color: active ? 'primary.main' : 'text.primary',
-          backgroundColor: active
-            ? alpha(theme.palette.primary.main, 0.14)
-            : alpha(theme.palette.text.primary, 0.06)
+          backgroundColor: active ? alpha(theme.palette.primary.main, 0.14) : alpha(theme.palette.text.primary, 0.06)
         }
       }}
     >
@@ -104,7 +106,13 @@ function InlineToolbarTextButton({
   )
 }
 
-export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = 'above', onDelete, dragHandleProps }: Props) {
+export function BlockInlineToolbar({
+  block,
+  nested = false,
+  toolbarPlacement = 'above',
+  onDelete,
+  dragHandleProps
+}: Props) {
   const { blocks, updateBlock, selectBlock, copyBlock, pasteBlock, copiedBlock } = useBuilder()
   const shell = useBuilderShell()
   const siteStyles = useSiteStyles()
@@ -135,30 +143,16 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
           <>
             <AlignmentToggleGroup value={props.alignment} onChange={alignment => update({ alignment })} />
             <InlineToolbarDivider />
-            <InlineToolbarTextButton
-              label='H1'
-              active={props.level === 1}
-              onClick={() => update({ level: 1 })}
-            />
-            <InlineToolbarTextButton
-              label='H2'
-              active={props.level === 2}
-              onClick={() => update({ level: 2 })}
-            />
-            <InlineToolbarTextButton
-              label='H3'
-              active={props.level === 3}
-              onClick={() => update({ level: 3 })}
-            />
+            <InlineToolbarTextButton label='H1' active={props.level === 1} onClick={() => update({ level: 1 })} />
+            <InlineToolbarTextButton label='H2' active={props.level === 2} onClick={() => update({ level: 2 })} />
+            <InlineToolbarTextButton label='H3' active={props.level === 3} onClick={() => update({ level: 3 })} />
           </>
         )
       }
       case 'text': {
         const props = block.props as TextBlockProps
 
-        return (
-          <AlignmentToggleGroup value={props.alignment} onChange={alignment => update({ alignment })} />
-        )
+        return <AlignmentToggleGroup value={props.alignment} onChange={alignment => update({ alignment })} />
       }
       case 'button': {
         const props = block.props as ButtonBlockProps
@@ -305,15 +299,19 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
           <>
             <AlignmentToggleGroup value={props.alignment} onChange={alignment => update({ alignment })} />
             <InlineToolbarDivider />
-            {SHAPE_VARIANT_OPTIONS.filter(option => option.value !== 'line').slice(0, 4).map(option => (
-              <InlineToolbarButton
-                key={option.value}
-                icon={option.icon}
-                label={option.label}
-                active={props.variant === option.value}
-                onClick={() => update({ variant: option.value, ...(option.value === 'circle' ? { height: props.width } : {}) })}
-              />
-            ))}
+            {SHAPE_VARIANT_OPTIONS.filter(option => option.value !== 'line')
+              .slice(0, 4)
+              .map(option => (
+                <InlineToolbarButton
+                  key={option.value}
+                  icon={option.icon}
+                  label={option.label}
+                  active={props.variant === option.value}
+                  onClick={() =>
+                    update({ variant: option.value, ...(option.value === 'circle' ? { height: props.width } : {}) })
+                  }
+                />
+              ))}
             <InlineToolbarDivider />
             <InlineToolbarButton
               icon='ri-contrast-2-line'
@@ -400,7 +398,9 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
                 icon={layout.icon}
                 label={layout.label}
                 active={props.layout === layout.value}
-                onClick={() => update({ layout: layout.value, columns: layout.value === 'cards' ? props.columns || 3 : 1 })}
+                onClick={() =>
+                  update({ layout: layout.value, columns: layout.value === 'cards' ? props.columns || 3 : 1 })
+                }
               />
             ))}
             {props.layout === 'cards' && (
@@ -553,9 +553,7 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
           onChange={(src, meta) => {
             update({
               src,
-              ...(meta
-                ? { naturalWidth: meta.width, naturalHeight: meta.height }
-                : {}),
+              ...(meta ? { naturalWidth: meta.width, naturalHeight: meta.height } : {}),
               ...(meta?.alt && !props.alt ? { alt: meta.alt } : {}),
               crop: null,
               adjustments: null
@@ -673,11 +671,7 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
             label='More settings'
             onClick={() => openPanel(block.type === 'section' ? 'style' : undefined)}
           />
-          <InlineToolbarButton
-            icon='ri-file-copy-line'
-            label='Copy block'
-            onClick={() => copyBlock(block)}
-          />
+          <InlineToolbarButton icon='ri-file-copy-line' label='Copy block' onClick={() => copyBlock(block)} />
           {copiedBlock && (
             <InlineToolbarButton
               icon='ri-clipboard-line'
@@ -693,13 +687,7 @@ export function BlockInlineToolbar({ block, nested = false, toolbarPlacement = '
         open={Boolean(mediaAnchor)}
         anchorEl={mediaAnchor}
         onClose={() => setMediaAnchor(null)}
-        title={
-          block.type === 'video'
-            ? 'Replace video'
-            : block.type === 'logo'
-              ? 'Replace logo'
-              : 'Replace image'
-        }
+        title={block.type === 'video' ? 'Replace video' : block.type === 'logo' ? 'Replace logo' : 'Replace image'}
         width={300}
       >
         {mediaPopoverContent()}
@@ -812,7 +800,11 @@ function getInlineBlockLabel(type: Block['type']): string {
     icon: 'Icon',
     contactForm: 'Contact Form',
     showcase: 'Showcase',
-    pricing: 'Pricing'
+    pricing: 'Pricing',
+    serviceDirectory: 'Services',
+    serviceBooking: 'Booking',
+    customerBookings: 'My bookings',
+    location: 'Where are we?'
   }
 
   return labels[type]

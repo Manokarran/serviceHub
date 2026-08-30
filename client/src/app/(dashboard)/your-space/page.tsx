@@ -1,12 +1,14 @@
 import { redirect } from 'next/navigation'
 
 import type { Block } from '@/features/your-space/types'
+import type { TenantLocation } from '@/lib/location/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
 import { WebsiteBuilderLoader } from '@/features/your-space/components/WebsiteBuilderLoader'
 import { auth } from '@/lib/auth'
 import { requireIsoString, serializeForClient, toIsoString } from '@/lib/utils/plain-json'
 import { sitePageService } from '@/services/site-page'
 import { siteWorkspaceService } from '@/services/site-workspace'
+import { tenantProfileService } from '@/services/tenant'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -41,9 +43,14 @@ export default async function YourSpacePage({ searchParams }: PageProps) {
   let initialPages: Awaited<ReturnType<typeof sitePageService.listPages>> = []
   let isSiteStarted = false
   let extraPageCount = 0
+  let tenantLocation: TenantLocation | null = null
 
   if (user.tenantId) {
     try {
+      const profile = await tenantProfileService.getProfile(user.tenantId)
+
+      tenantLocation = profile.location
+
       initialPages = await sitePageService.listPages(user.tenantId)
 
       const resolvedSlug = initialPages.some(page => page.slug === initialPageSlug) ? initialPageSlug : 'home'
@@ -75,6 +82,7 @@ export default async function YourSpacePage({ searchParams }: PageProps) {
   const builderProps = serializeForClient({
     tenantSlug,
     tenantName: user.tenantName ?? 'Your Workspace',
+    tenantLocation,
     initialPageSlug: activeSlug,
     initialPages,
     initialPageTitle,

@@ -16,6 +16,7 @@ import { useSitePageNavigation } from '../../hooks/useSitePageNavigation'
 import { getContactFormFieldSx, getContactFormSubmitButtonConfig } from '../../utils/siteStylesHelpers'
 import { applyBackgroundAlpha } from '../../utils/sectionStyleHelpers'
 import { mergeFormFieldTypographySx, resolveTextTypographySx } from '../../utils/textTypographyHelpers'
+import { siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 import { InlineEditableText } from '../inline/InlineEditableText'
 import { useSiteStyles } from '../SiteStylesScope'
 
@@ -148,7 +149,18 @@ export function ContactFormBlock({ blockId, props }: Props) {
   }
 
   return (
-    <Box sx={{ px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 2, ...alignmentSx, ...panelSx }}>
+    <Box
+      sx={{
+        px: 4,
+        py: 3,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        ...alignmentSx,
+        ...panelSx,
+        ...siteCanvasBelow({ px: 2, py: 2 })
+      }}
+    >
       <Box sx={{ ...contentBoxSx, display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Typography variant='h5' component='h2' sx={titleSx}>
           <InlineEditableText value={props.title} field='title' placeholder='Form title' sx={titleSx} />

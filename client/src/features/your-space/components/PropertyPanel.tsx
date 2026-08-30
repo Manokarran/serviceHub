@@ -9,10 +9,7 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import { PALETTE_ITEMS } from '../constants'
-import {
-  BUILDER_PROPERTY_PANEL_SX,
-  BUILDER_Z_INDEX
-} from '../constants/builderLayout'
+import { BUILDER_PROPERTY_PANEL_SX, BUILDER_Z_INDEX } from '../constants/builderLayout'
 import { builderFormOutlineSx, builderSidePanelSx } from '../constants/builderChrome'
 import { useBuilder } from '../context/BuilderContext'
 import { useFloatingPanelRect } from '../hooks/useFloatingPanelRect'
@@ -43,6 +40,10 @@ import { HeaderBlockProperties } from './property/blocks/HeaderBlockProperties'
 import { FooterBlockProperties } from './property/blocks/FooterBlockProperties'
 import { ShowcaseBlockProperties } from './property/blocks/ShowcaseBlockProperties'
 import { PricingBlockProperties } from './property/blocks/PricingBlockProperties'
+import { ServiceDirectoryBlockProperties } from './property/blocks/ServiceDirectoryBlockProperties'
+import { ServiceBookingBlockProperties } from './property/blocks/ServiceBookingBlockProperties'
+import { CustomerBookingsBlockProperties } from './property/blocks/CustomerBookingsBlockProperties'
+import { LocationBlockProperties } from './property/blocks/LocationBlockProperties'
 
 function getBlockIcon(type: Block['type']): string {
   return PALETTE_ITEMS.find(item => item.type === type)?.icon ?? 'ri-layout-grid-line'
@@ -92,17 +93,35 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
       return <ShowcaseBlockProperties block={block as Block<'showcase'>} activeTab={activeTab} />
     case 'pricing':
       return <PricingBlockProperties block={block as Block<'pricing'>} activeTab={activeTab} />
+    case 'serviceDirectory':
+      return <ServiceDirectoryBlockProperties block={block as Block<'serviceDirectory'>} activeTab={activeTab} />
+    case 'serviceBooking':
+      return <ServiceBookingBlockProperties block={block as Block<'serviceBooking'>} activeTab={activeTab} />
+    case 'customerBookings':
+      return <CustomerBookingsBlockProperties block={block as Block<'customerBookings'>} activeTab={activeTab} />
+    case 'location':
+      return <LocationBlockProperties block={block as Block<'location'>} activeTab={activeTab} />
     default:
       return null
   }
 }
 
-
 function EmptyState() {
   const theme = useTheme()
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, p: 2.5, textAlign: 'center', gap: 1.25 }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flex: 1,
+        p: 2.5,
+        textAlign: 'center',
+        gap: 1.25
+      }}
+    >
       <Box
         sx={{
           width: 40,
@@ -149,10 +168,7 @@ export function PropertyPanelContent({
   const { selectedBlock, mode, deleteBlock } = useBuilder()
   const [activeTab, setActiveTab] = useState<PropertyPanelTab>('design')
 
-  const availableTabs = useMemo(
-    () => (selectedBlock ? getBlockTabs(selectedBlock.type) : []),
-    [selectedBlock]
-  )
+  const availableTabs = useMemo(() => (selectedBlock ? getBlockTabs(selectedBlock.type) : []), [selectedBlock])
 
   const tabItems = useMemo(
     () =>
@@ -330,13 +346,19 @@ function PropertyPanelFrame({
   const { mode } = useBuilder()
   const { rect, parentSize, commit, ensureLayout, maximize } = useFloatingPanelRect(BUILDER_PROPERTY_FRAME_KEY, 'right')
 
-  const handleCommit = useCallback((next: Parameters<typeof commit>[0], parent: Parameters<typeof commit>[1]) => {
-    commit(next, parent, overlay ? 'overlay' : 'docked')
-  }, [commit, overlay])
+  const handleCommit = useCallback(
+    (next: Parameters<typeof commit>[0], parent: Parameters<typeof commit>[1]) => {
+      commit(next, parent, overlay ? 'overlay' : 'docked')
+    },
+    [commit, overlay]
+  )
 
-  const handleEnsureLayout = useCallback((parent: Parameters<typeof ensureLayout>[0]) => {
-    ensureLayout(parent, overlay ? 'overlay' : 'docked')
-  }, [ensureLayout, overlay])
+  const handleEnsureLayout = useCallback(
+    (parent: Parameters<typeof ensureLayout>[0]) => {
+      ensureLayout(parent, overlay ? 'overlay' : 'docked')
+    },
+    [ensureLayout, overlay]
+  )
 
   const content =
     mode === 'preview' ? (

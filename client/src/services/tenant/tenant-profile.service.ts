@@ -1,4 +1,5 @@
 import type { TenantPlan, TenantStatus } from '@/lib/constants/tenant'
+import type { TenantLocation } from '@/lib/location/types'
 import { AppError } from '@/lib/errors'
 import { isReservedTenantSlug } from '@/lib/utils/tenant-slug'
 import { toPlainJson } from '@/lib/utils/plain-json'
@@ -23,12 +24,35 @@ export type TenantProfileView = {
   plan: TenantPlan
   status: TenantStatus
   logoUrl: string
+  defaultTimezone: string
+  defaultCurrency: string
+  location: TenantLocation | null
   createdAt: string
   isSystemTenant: boolean
 }
 
 function isDuplicateKeyError(error: unknown): boolean {
   return Boolean(error && typeof error === 'object' && 'code' in error && (error as { code: unknown }).code === 11000)
+}
+
+function toTenantLocation(location: TenantLocation | undefined): TenantLocation | null {
+  if (!location) {
+    return null
+  }
+
+  const context = {
+    ...(location.context?.countryCode ? { countryCode: location.context.countryCode } : {}),
+    ...(location.context?.country ? { country: location.context.country } : {}),
+    ...(location.context?.region ? { region: location.context.region } : {}),
+    ...(location.context?.place ? { place: location.context.place } : {})
+  }
+
+  return {
+    address: location.address,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    ...(Object.keys(context).length > 0 ? { context } : {})
+  }
 }
 
 function toProfileView(tenant: NonNullable<Awaited<ReturnType<typeof tenantRepository.findById>>>): TenantProfileView {
@@ -38,6 +62,9 @@ function toProfileView(tenant: NonNullable<Awaited<ReturnType<typeof tenantRepos
     plan: tenant.plan,
     status: tenant.status,
     logoUrl: tenant.settings?.logoUrl ?? '',
+    defaultTimezone: tenant.settings?.defaultTimezone ?? '',
+    defaultCurrency: tenant.settings?.defaultCurrency ?? '',
+    location: toTenantLocation(tenant.settings?.location),
     createdAt: tenant.createdAt.toISOString(),
     isSystemTenant: tenant.settings?.kind === 'base_template'
   }
@@ -105,6 +132,9 @@ export class TenantProfileService {
     const previousName = tenant.name
     const previousSlug = tenant.slug
     const previousLogoUrl = tenant.settings?.logoUrl ?? ''
+    const previousDefaultTimezone = tenant.settings?.defaultTimezone ?? ''
+    const previousDefaultCurrency = tenant.settings?.defaultCurrency ?? ''
+    const previousLocation = toTenantLocation(tenant.settings?.location)
     const isSystemTenant = tenant.settings?.kind === 'base_template'
 
     if (isSystemTenant && nextSlug !== previousSlug) {
@@ -146,6 +176,31 @@ export class TenantProfileService {
 
     if (nextLogoUrl !== undefined && nextLogoUrl !== previousLogoUrl) {
       const updated = await tenantRepository.updateSettings(tenantId, { logoUrl: nextLogoUrl })
+
+      if (!updated) {
+        throw new AppError('Organization not found', 404, 'TENANT_NOT_FOUND')
+      }
+    }
+
+    if (
+      parsed.data.defaultTimezone !== previousDefaultTimezone ||
+      parsed.data.defaultCurrency !== previousDefaultCurrency
+    ) {
+      const updated = await tenantRepository.updateSettings(tenantId, {
+        defaultTimezone: parsed.data.defaultTimezone,
+        defaultCurrency: parsed.data.defaultCurrency
+      })
+
+      if (!updated) {
+        throw new AppError('Organization not found', 404, 'TENANT_NOT_FOUND')
+      }
+    }
+
+    const nextLocation = parsed.data.location
+    const locationChanged = JSON.stringify(nextLocation ?? null) !== JSON.stringify(previousLocation)
+
+    if (locationChanged) {
+      const updated = await tenantRepository.updateSettings(tenantId, { location: nextLocation })
 
       if (!updated) {
         throw new AppError('Organization not found', 404, 'TENANT_NOT_FOUND')
