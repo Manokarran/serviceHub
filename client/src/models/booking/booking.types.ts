@@ -57,3 +57,31 @@ export type BookingSummary = {
   timezone: string
   createdAt: string
 }
+
+export type BookingInsightPoint = {
+  date: string
+  label: string
+  seatsOffered: number
+  seatsBooked: number
+}
+
+export type BookingServiceInsight = {
+  serviceId: string
+  serviceName: string
+  bookings: number
+  seatsBooked: number
+  seatsOffered: number
+  utilization: number
+}
+
+export type BookingInsights = {
+  rangeDays: number
+  totalBookings: number
+  seatsBooked: number
+  seatsOffered: number
+  utilization: number
+  pendingRequests: number
+  revenueMinor: number
+  series: BookingInsightPoint[]
+  services: BookingServiceInsight[]
+}

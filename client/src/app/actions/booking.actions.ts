@@ -17,7 +17,7 @@ type Result = { success: true; booking: BookingSummary } | { success: false; err
 type ListResult = { success: true; bookings: BookingSummary[] } | { success: false; error: string }
 type NotificationResult = { success: true } | { success: false; error: string }
 
-export async function getTenantBookingsAction(): Promise<ListResult> {
+export async function getTenantBookingsAction(options: { includePast?: boolean } = {}): Promise<ListResult> {
   try {
     const session = await auth()
 
@@ -25,7 +25,12 @@ export async function getTenantBookingsAction(): Promise<ListResult> {
       throw new AppError('You do not have permission to view bookings.', 403, 'FORBIDDEN')
     }
 
-    return { success: true, bookings: await bookingService.listTenantBookings(session.user.tenantId) }
+    const recentFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+    return {
+      success: true,
+      bookings: await bookingService.listTenantBookings(session.user.tenantId, options.includePast ? {} : { from: recentFrom })
+    }
   } catch (error) {
     if (error instanceof AppError) {
       return { success: false, error: error.message }

@@ -4,7 +4,7 @@ import { Types } from 'mongoose'
 
 import { connectDB } from '@/lib/db'
 import { AppError } from '@/lib/errors'
-import type { BookingStatus, BookingSummary, IBookingDocument } from '@/models/booking'
+import type { BookingInsights, BookingStatus, BookingSummary, IBookingDocument } from '@/models/booking'
 import {
   bookingRepository,
   bookingHoldRepository,
@@ -483,8 +483,12 @@ export class BookingService {
     return { success: true }
   }
 
-  async listTenantBookings(tenantId: string): Promise<BookingSummary[]> {
-    return bookingRepository.listByTenant(tenantId)
+  async listTenantBookings(tenantId: string, options: { from?: Date; limit?: number } = {}): Promise<BookingSummary[]> {
+    return bookingRepository.listByTenant(tenantId, options)
+  }
+
+  async getTenantInsights(tenantId: string, rangeDays = 30): Promise<BookingInsights> {
+    return bookingRepository.getTenantInsights(tenantId, rangeDays)
   }
 
   async sendBookingNotification(tenantId: string, bookingId: string): Promise<void> {
@@ -615,6 +619,7 @@ export class BookingService {
   private async notifyBookingCreated(
     booking: {
       customerId: { toString(): string }
+      serviceId: { toString(): string }
       customerEmail: string
       customerName: string
       serviceName: string
@@ -666,6 +671,7 @@ export class BookingService {
 
   private async notifyBookingConfirmed(booking: {
     customerId: { toString(): string }
+    serviceId: { toString(): string }
     customerEmail: string
     customerName: string
     serviceName: string
@@ -690,6 +696,7 @@ export class BookingService {
   private async notifyBookingCancelled(
     booking: {
       customerId: { toString(): string }
+      serviceId: { toString(): string }
       customerEmail?: string
       customerName: string
       serviceName: string
@@ -733,6 +740,7 @@ export class BookingService {
 
   private async getBookingEmailPayload(booking: {
     customerId: { toString(): string }
+    serviceId: { toString(): string }
     customerEmail?: string
     customerName: string
     serviceName: string
@@ -754,6 +762,31 @@ export class BookingService {
     }
 
     const tenant = await tenantRepository.findById(booking.tenantId.toString())
+    const service = await serviceRepository.findById(booking.tenantId.toString(), booking.serviceId.toString())
+    const tenantLocation = tenant?.settings?.location
+    const serviceLocationLabel = service?.locationLabel?.trim() ?? ''
+
+    const locationLabel =
+      serviceLocationLabel || (service?.locationType === 'in_person' ? tenantLocation?.address?.trim() ?? '' : '')
+
+    const hasCoordinates = Boolean(
+      tenantLocation &&
+        Number.isFinite(tenantLocation.latitude) &&
+        Number.isFinite(tenantLocation.longitude)
+    )
+
+    const mapQuery = hasCoordinates && tenantLocation
+      ? `${tenantLocation.latitude},${tenantLocation.longitude}`
+      : service?.locationType === 'in_person'
+        ? locationLabel
+        : ''
+
+    const mapUrl = mapQuery
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
+      : undefined
+
+    const onlineUrl =
+      service?.locationType === 'online' && /^https?:\/\//i.test(locationLabel) ? locationLabel : undefined
 
     return {
       tenantName: tenant?.name ?? 'the business',
@@ -766,7 +799,11 @@ export class BookingService {
       timezone: booking.timezone,
       quantity: booking.quantity,
       priceAmountMinor: booking.priceAmountMinor,
-      currency: booking.currency
+      currency: booking.currency,
+      locationType: service?.locationType,
+      locationLabel,
+      mapUrl,
+      onlineUrl
     }
   }
 

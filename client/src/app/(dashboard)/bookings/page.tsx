@@ -20,7 +20,8 @@ export default async function BookingsPage() {
     redirect('/home')
   }
 
-  const bookings = await bookingService.listTenantBookings(session.user.tenantId)
+  const recentFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const bookings = await bookingService.listTenantBookings(session.user.tenantId, { from: recentFrom })
 
   return <BookingsPageClient initialBookings={bookings} />
 }

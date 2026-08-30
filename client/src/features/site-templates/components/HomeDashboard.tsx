@@ -12,8 +12,11 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { alpha, keyframes, useTheme } from '@mui/material/styles'
 
+import type { BookingInsights } from '@/models/booking'
 import type { SiteAnalyticsOverview } from '@/models/site-analytics'
+import type { ServiceListItem } from '@/services/booking/service-catalog.service'
 
+import { HomeBookingInsights } from './HomeBookingInsights'
 import { HomeAnalyticsSection } from './HomeAnalyticsSection'
 import { HomeCreateWebsitePanel } from './HomeCreateWebsitePanel'
 
@@ -31,6 +34,8 @@ type Props = {
   hasPublishedSite: boolean
   canManageLeads: boolean
   analytics: SiteAnalyticsOverview
+  bookingInsights: BookingInsights | null
+  services: ServiceListItem[]
 }
 
 const floatIn = keyframes`
@@ -68,7 +73,9 @@ export function HomeDashboard({
   isSiteStarted,
   hasPublishedSite,
   canManageLeads,
-  analytics
+  analytics,
+  bookingInsights,
+  services
 }: Props) {
   const theme = useTheme()
   const accent = theme.palette.primary.main
@@ -347,6 +354,10 @@ export function HomeDashboard({
 
       {isSiteStarted && analytics ? (
         <HomeAnalyticsSection analytics={analytics} hasPublishedSite={hasPublishedSite} />
+      ) : null}
+
+      {isSiteStarted && canManageLeads ? (
+        <HomeBookingInsights insights={bookingInsights} services={services} />
       ) : null}
 
       <HomeCreateWebsitePanel isSiteStarted={isSiteStarted} />

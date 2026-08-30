@@ -161,28 +161,86 @@ export function HomeAnalyticsSection({ analytics, hasPublishedSite }: Props) {
         sx={{
           borderRadius: 3,
           p: { xs: 2.25, md: 3 },
-          border: `1px solid ${theme.palette.divider}`,
-          bgcolor: alpha(theme.palette.background.paper, 0.88),
-          backgroundImage: `radial-gradient(${alpha(theme.palette.primary.main, 0.08)} 1px, transparent 1px)`,
-          backgroundSize: '18px 18px'
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+          background: `radial-gradient(circle at 100% 0%, ${alpha(theme.palette.info.main, 0.13)} 0%, transparent 34%), linear-gradient(145deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.background.paper, 0.98)} 48%)`,
+          boxShadow: `0 18px 38px ${alpha(theme.palette.primary.main, 0.08)}`
         }}
       >
         <Box className='flex items-start justify-between gap-3 flex-wrap' sx={{ mb: 1.5 }}>
-          <div>
-            <Typography variant='h6' sx={{ fontWeight: 750, letterSpacing: '-0.02em' }}>
-              Live site traffic
+          <Box>
+            <Box className='flex items-center gap-2 flex-wrap'>
+              <Typography variant='h6' sx={{ fontWeight: 750, letterSpacing: '-0.02em' }}>
+                Live site traffic
+              </Typography>
+              <Chip
+                icon={<i className='ri-pulse-line' />}
+                label={hasPublishedSite ? 'Live signal' : 'Not published'}
+                size='small'
+                color={hasPublishedSite ? 'success' : 'default'}
+                variant='tonal'
+                sx={{ height: 24, fontWeight: 700 }}
+              />
+            </Box>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
+              Last {analytics.rangeDays} days · visitors, views, and actions from your published site.
             </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Last {analytics.rangeDays} days · views on your published site, plus content clicks (nav ignored).
-            </Typography>
-          </div>
-          <Box className='flex items-center gap-3'>
-            <LegendDot color={theme.palette.primary.main} label='Views' />
-            <LegendDot color={theme.palette.warning.main} label='CTA clicks' dashed />
+          </Box>
+          <Box className='flex items-center gap-3 flex-wrap'>
+            <TrafficStat label='Views' value={formatCount(analytics.current.views)} color={theme.palette.primary.main} />
+            <TrafficStat
+              label='Visitors'
+              value={formatCount(analytics.current.uniqueVisitors)}
+              color={theme.palette.info.main}
+            />
+            <TrafficStat
+              label='Lead rate'
+              value={conversionRate(analytics.current.leads, analytics.current.uniqueVisitors)}
+              color={theme.palette.success.main}
+            />
           </Box>
         </Box>
-        <HomeTrafficChart series={analytics.series} hasPublishedSite={hasPublishedSite} />
+        <Box
+          sx={{
+            p: { xs: 0.75, sm: 1.25 },
+            borderRadius: 2.5,
+            bgcolor: alpha(theme.palette.background.paper, 0.62),
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`
+          }}
+        >
+          <Box className='flex items-center justify-between gap-3 flex-wrap' sx={{ px: { xs: 0.75, sm: 1 }, pt: 0.5 }}>
+            <Typography variant='caption' color='text.secondary' sx={{ fontWeight: 700 }}>
+              Daily activity
+            </Typography>
+            <Box className='flex items-center gap-3'>
+              <LegendDot color={theme.palette.primary.main} label='Views' />
+              <LegendDot color={theme.palette.warning.main} label='CTA clicks' dashed />
+            </Box>
+          </Box>
+          <HomeTrafficChart series={analytics.series} hasPublishedSite={hasPublishedSite} />
+        </Box>
       </Box>
+    </Box>
+  )
+}
+
+function TrafficStat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <Box
+      sx={{
+        minWidth: 72,
+        px: 1.25,
+        py: 0.8,
+        borderRadius: 2,
+        bgcolor: alpha(color, 0.09),
+        border: `1px solid ${alpha(color, 0.16)}`
+      }}
+    >
+      <Typography variant='caption' color='text.secondary' sx={{ display: 'block', fontWeight: 650 }}>
+        {label}
+      </Typography>
+      <Typography variant='body2' sx={{ color, fontWeight: 800, lineHeight: 1.2 }}>
+        {value}
+      </Typography>
     </Box>
   )
 }

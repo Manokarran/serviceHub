@@ -4,6 +4,8 @@ import { auth } from '@/lib/auth'
 import { isManagerRole } from '@/lib/constants/roles'
 import { getPublicSiteDisplayUrl, getPublicSitePath } from '@/lib/utils/public-site-url'
 import { HomeDashboard } from '@/features/site-templates/components/HomeDashboard'
+import { bookingService } from '@/services/booking/booking.service'
+import { serviceCatalogService } from '@/services/booking/service-catalog.service'
 import { siteAnalyticsService } from '@/services/site-analytics'
 import { siteWorkspaceService } from '@/services/site-workspace'
 
@@ -26,9 +28,11 @@ export default async function HomePage() {
   const liveSiteDisplayUrl = tenantSlug ? getPublicSiteDisplayUrl(tenantSlug) : ''
   const canManageLeads = isManagerRole(user.role)
 
-  const [analytics, workspaceStatus] = await Promise.all([
+  const [analytics, workspaceStatus, bookingInsights, services] = await Promise.all([
     siteAnalyticsService.getHomeOverview(user.tenantId),
-    user.tenantId ? siteWorkspaceService.getStatus(user.tenantId) : Promise.resolve(null)
+    user.tenantId ? siteWorkspaceService.getStatus(user.tenantId) : Promise.resolve(null),
+    user.tenantId ? bookingService.getTenantInsights(user.tenantId) : Promise.resolve(null),
+    user.tenantId && canManageLeads ? serviceCatalogService.listServices(user.tenantId) : Promise.resolve([])
   ])
 
   const isSiteStarted = workspaceStatus?.isSiteStarted ?? false
@@ -49,6 +53,8 @@ export default async function HomePage() {
       hasPublishedSite={hasPublishedSite}
       canManageLeads={canManageLeads}
       analytics={analytics}
+      bookingInsights={bookingInsights}
+      services={services}
     />
   )
 }

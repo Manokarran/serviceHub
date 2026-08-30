@@ -24,6 +24,17 @@ export type BookingEmailPayload = {
   quantity: number
   priceAmountMinor: number
   currency: string
+  locationType?: 'in_person' | 'online'
+  locationLabel?: string
+  mapUrl?: string
+  onlineUrl?: string
+}
+
+function sender(displayName?: string): { name: string; address: string } {
+  return {
+    name: displayName?.trim() || serverEnv.emailFromName,
+    address: serverEnv.emailFromAddress
+  }
 }
 
 function isEmailConfigured(): boolean {
@@ -77,7 +88,7 @@ export class EmailService {
       .join('\n')
 
     await transporter.sendMail({
-      from: `"${serverEnv.emailFromName}" <${serverEnv.emailFromAddress}>`,
+      from: sender(payload.tenantName),
       to,
       replyTo: payload.email,
       subject,
@@ -100,7 +111,7 @@ export class EmailService {
     }
 
     await transporter.sendMail({
-      from: `"${serverEnv.emailFromName}" <${serverEnv.emailFromAddress}>`,
+      from: sender(payload.tenantName),
       to,
       subject: payload.subject,
       text: payload.message
@@ -129,7 +140,8 @@ export class EmailService {
         `When: ${this.formatBookingTime(payload)}`,
         `Quantity: ${payload.quantity}`,
         `Reference: ${payload.confirmationCode}`
-      ].join('\n')
+      ].join('\n'),
+      payload
     )
   }
 
@@ -144,11 +156,13 @@ export class EmailService {
         '',
         `Service: ${payload.serviceName}`,
         `When: ${this.formatBookingTime(payload)}`,
+        ...this.formatBookingLocation(payload),
         `Quantity: ${payload.quantity}`,
         `Reference: ${payload.confirmationCode}`,
         '',
         'Please keep this reference for your records.'
-      ].join('\n')
+      ].join('\n'),
+      payload
     )
   }
 
@@ -166,7 +180,8 @@ export class EmailService {
         `When: ${this.formatBookingTime(payload)}`,
         `Quantity: ${payload.quantity}`,
         `Reference: ${payload.confirmationCode}`
-      ].join('\n')
+      ].join('\n'),
+      payload
     )
   }
 
@@ -192,9 +207,11 @@ export class EmailService {
         `Service: ${payload.serviceName}`,
         `Classes: ${occurrenceCount}`,
         `First class: ${this.formatBookingTime(payload)}`,
+        ...(status === 'confirmed' ? this.formatBookingLocation(payload) : []),
         `Seats: ${payload.quantity}`,
         `Reference: ${payload.confirmationCode}`
-      ].join('\n')
+      ].join('\n'),
+      payload
     )
   }
 
@@ -213,7 +230,8 @@ export class EmailService {
         `Reference: ${payload.confirmationCode}`
       ]
         .filter(Boolean)
-        .join('\n')
+        .join('\n'),
+      payload
     )
   }
 
@@ -232,11 +250,17 @@ export class EmailService {
         `Reference: ${payload.confirmationCode}`,
         '',
         'Please contact the business if you need more information.'
-      ].join('\n')
+      ].join('\n'),
+      payload
     )
   }
 
-  private async sendBookingEmail(to: string, subject: string, text: string): Promise<boolean> {
+  private async sendBookingEmail(
+    to: string,
+    subject: string,
+    text: string,
+    payload?: Pick<BookingEmailPayload, 'tenantName'>
+  ): Promise<boolean> {
     const transporter = this.getTransporter()
 
     if (!transporter) {
@@ -246,13 +270,31 @@ export class EmailService {
     }
 
     await transporter.sendMail({
-      from: `"${serverEnv.emailFromName}" <${serverEnv.emailFromAddress}>`,
+      from: sender(payload?.tenantName),
       to,
       subject,
       text
     })
 
     return true
+  }
+
+  private formatBookingLocation(payload: BookingEmailPayload): string[] {
+    if (payload.locationType === 'online') {
+      if (payload.onlineUrl) {
+        return [`Online session: ${payload.onlineUrl}`]
+      }
+
+      return payload.locationLabel ? [`Online access: ${payload.locationLabel}`] : []
+    }
+
+    const lines = payload.locationLabel ? [`Location: ${payload.locationLabel}`] : []
+
+    if (payload.mapUrl) {
+      lines.push(`Map: ${payload.mapUrl}`)
+    }
+
+    return lines
   }
 
   private formatBookingTime(payload: BookingEmailPayload): string {

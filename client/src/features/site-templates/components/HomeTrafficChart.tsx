@@ -56,7 +56,8 @@ export function HomeTrafficChart({ series, hasPublishedSite }: Props) {
   const accent = theme.palette.primary.main
   const clickColor = theme.palette.warning.main
   const ink = theme.palette.text.primary
-  const grid = alpha(ink, theme.palette.mode === 'dark' ? 0.12 : 0.08)
+  const grid = alpha(ink, theme.palette.mode === 'dark' ? 0.2 : 0.12)
+  const axis = alpha(ink, theme.palette.mode === 'dark' ? 0.78 : 0.62)
 
   const { viewPoints, clickPoints } = useMemo(() => {
     const peak = Math.max(4, ...series.map(point => Math.max(point.views, point.clicks)))
@@ -115,9 +116,17 @@ export function HomeTrafficChart({ series, hasPublishedSite }: Props) {
       >
         <defs>
           <linearGradient id='homeViewsFill' x1='0' y1='0' x2='0' y2='1'>
-            <stop offset='0%' stopColor={accent} stopOpacity={0.32} />
+            <stop offset='0%' stopColor={accent} stopOpacity={0.38} />
+            <stop offset='70%' stopColor={accent} stopOpacity={0.1} />
             <stop offset='100%' stopColor={accent} stopOpacity={0.02} />
           </linearGradient>
+          <filter id='homeTrafficGlow' x='-20%' y='-20%' width='140%' height='140%'>
+            <feGaussianBlur stdDeviation='2.5' result='blur' />
+            <feMerge>
+              <feMergeNode in='blur' />
+              <feMergeNode in='SourceGraphic' />
+            </feMerge>
+          </filter>
         </defs>
 
         {[0.25, 0.5, 0.75, 1].map(line => (
@@ -131,10 +140,22 @@ export function HomeTrafficChart({ series, hasPublishedSite }: Props) {
             strokeWidth={1}
           />
         ))}
+        {[0, 0.25, 0.5, 0.75, 1].map(line => (
+          <text
+            key={`axis-${line}`}
+            x={2}
+            y={padTop + chartHeight * (1 - line) + 4}
+            fill={axis}
+            fontSize='10'
+            fontFamily='inherit'
+          >
+            {Math.round((Math.max(4, ...series.map(point => Math.max(point.views, point.clicks))) * line) / 1)}
+          </text>
+        ))}
 
         {areaPath ? <path d={areaPath} fill='url(#homeViewsFill)' /> : null}
         {viewPath ? (
-          <path d={viewPath} fill='none' stroke={accent} strokeWidth={2.6} strokeLinecap='round' />
+          <path d={viewPath} fill='none' stroke={accent} strokeWidth={2.8} strokeLinecap='round' filter='url(#homeTrafficGlow)' />
         ) : null}
         {clickPath ? (
           <path
@@ -178,7 +199,7 @@ export function HomeTrafficChart({ series, hasPublishedSite }: Props) {
             x={viewPoints[index]?.x ?? padX}
             y={height - 8}
             textAnchor={index === 0 ? 'start' : index === series.length - 1 ? 'end' : 'middle'}
-            fill={alpha(ink, 0.55)}
+            fill={axis}
             fontSize='11'
             fontFamily='inherit'
           >

@@ -6,8 +6,11 @@ import {
   type BookingStatus,
   type BookingSummary,
   type IBooking,
-  type IBookingDocument
+  type IBookingDocument,
+  type BookingInsights,
+  type BookingServiceInsight
 } from '@/models/booking'
+import { ServiceModel } from '@/models/service'
 import { ServiceSlotModel } from '@/models/service-slot'
 
 function toBookingSummary(doc: IBookingDocument): BookingSummary {
@@ -229,12 +232,179 @@ export class BookingRepository {
     }
   }
 
-  async listByTenant(tenantId: string): Promise<BookingSummary[]> {
+  async listByTenant(tenantId: string, options: { from?: Date; limit?: number } = {}): Promise<BookingSummary[]> {
     await connectDB()
 
-    const bookings = await BookingModel.find({ tenantId }).sort({ startAt: 1, createdAt: -1 }).limit(500).exec()
+    const query: Record<string, unknown> = { tenantId }
+
+    if (options.from) {
+      query.startAt = { $gte: options.from }
+    }
+
+    const bookings = await BookingModel.find(query)
+      .sort({ startAt: options.from ? 1 : -1, createdAt: -1 })
+      .limit(options.limit ?? 500)
+      .exec()
 
     return bookings.map(toBookingSummary)
+  }
+
+  async getTenantInsights(tenantId: string, rangeDays = 30): Promise<BookingInsights> {
+    await connectDB()
+
+    const emptySeries = Array.from({ length: rangeDays }, (_, index) => {
+      const date = new Date()
+
+      date.setUTCHours(0, 0, 0, 0)
+      date.setUTCDate(date.getUTCDate() + index)
+
+      return {
+        date: date.toISOString().slice(0, 10),
+        label: new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date),
+        seatsOffered: 0,
+        seatsBooked: 0
+      }
+    })
+
+    if (!Types.ObjectId.isValid(tenantId)) {
+      return {
+        rangeDays,
+        totalBookings: 0,
+        seatsBooked: 0,
+        seatsOffered: 0,
+        utilization: 0,
+        pendingRequests: 0,
+        revenueMinor: 0,
+        series: emptySeries,
+        services: []
+      }
+    }
+
+    const tenantObjectId = new Types.ObjectId(tenantId)
+    const now = new Date()
+    const end = new Date(now)
+
+    end.setUTCDate(end.getUTCDate() + rangeDays)
+
+    const [slotRows, bookingRows] = await Promise.all([
+      ServiceSlotModel.aggregate<{
+        _id: { date: string; serviceId: Types.ObjectId }
+        seatsOffered: number
+        seatsBooked: number
+      }>([
+        {
+          $match: {
+            tenantId: tenantObjectId,
+            status: 'scheduled',
+            startAt: { $gte: now, $lt: end }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              date: { $dateToString: { format: '%Y-%m-%d', date: '$startAt', timezone: 'UTC' } },
+              serviceId: '$serviceId'
+            },
+            seatsOffered: { $sum: '$capacity' },
+            seatsBooked: { $sum: '$seatsBooked' }
+          }
+        }
+      ]).exec(),
+      BookingModel.aggregate<{
+        _id: Types.ObjectId
+        bookings: number
+        seatsBooked: number
+        revenueMinor: number
+        pendingRequests: number
+      }>([
+        {
+          $match: {
+            tenantId: tenantObjectId,
+            status: { $nin: ['cancelled', 'removed'] },
+            startAt: { $gte: now, $lt: end }
+          }
+        },
+        {
+          $group: {
+            _id: '$serviceId',
+            bookings: { $sum: 1 },
+            seatsBooked: { $sum: '$quantity' },
+            revenueMinor: { $sum: '$priceAmountMinor' },
+            pendingRequests: {
+              $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
+            }
+          }
+        }
+      ]).exec()
+    ])
+
+    const slotByDay = new Map<string, { seatsOffered: number; seatsBooked: number }>()
+    const slotByService = new Map<string, { seatsOffered: number; seatsBooked: number }>()
+
+    for (const row of slotRows) {
+      const day = slotByDay.get(row._id.date) ?? { seatsOffered: 0, seatsBooked: 0 }
+
+      day.seatsOffered += row.seatsOffered
+      day.seatsBooked += row.seatsBooked
+      slotByDay.set(row._id.date, day)
+
+      const serviceId = row._id.serviceId.toString()
+      const service = slotByService.get(serviceId) ?? { seatsOffered: 0, seatsBooked: 0 }
+
+      service.seatsOffered += row.seatsOffered
+      service.seatsBooked += row.seatsBooked
+      slotByService.set(serviceId, service)
+    }
+
+    const serviceIds = [
+      ...new Set([...slotByService.keys(), ...bookingRows.map(row => row._id.toString())])
+    ].filter(Types.ObjectId.isValid)
+
+    const services = await ServiceModel.find({ tenantId: tenantObjectId, _id: { $in: serviceIds } })
+      .select({ _id: 1, name: 1 })
+      .lean()
+      .exec()
+
+    const serviceNames = new Map(services.map(service => [service._id.toString(), service.name]))
+
+    const bookingByService = new Map(bookingRows.map(row => [row._id.toString(), row]))
+
+    const serviceInsights: BookingServiceInsight[] = serviceIds
+      .map(serviceId => {
+        const slots = slotByService.get(serviceId) ?? { seatsOffered: 0, seatsBooked: 0 }
+        const bookings = bookingByService.get(serviceId)
+        const seatsBooked = bookings?.seatsBooked ?? slots.seatsBooked
+
+        return {
+          serviceId,
+          serviceName: serviceNames.get(serviceId) ?? 'Service',
+          bookings: bookings?.bookings ?? 0,
+          seatsBooked,
+          seatsOffered: slots.seatsOffered,
+          utilization: slots.seatsOffered > 0 ? Math.round((seatsBooked / slots.seatsOffered) * 100) : 0
+        }
+      })
+      .sort((a, b) => b.seatsBooked - a.seatsBooked || b.bookings - a.bookings)
+
+    const series = emptySeries.map(point => ({
+      ...point,
+      ...(slotByDay.get(point.date) ?? {})
+    }))
+
+    const seatsOffered = series.reduce((total, point) => total + point.seatsOffered, 0)
+    const seatsBooked = bookingRows.reduce((total, row) => total + row.seatsBooked, 0)
+
+    return {
+      rangeDays,
+      totalBookings: bookingRows.reduce((total, row) => total + row.bookings, 0),
+      seatsBooked,
+      seatsOffered,
+      utilization: seatsOffered > 0 ? Math.round((seatsBooked / seatsOffered) * 100) : 0,
+      pendingRequests: bookingRows.reduce((total, row) => total + row.pendingRequests, 0),
+      revenueMinor: bookingRows.reduce((total, row) => total + row.revenueMinor, 0),
+      series,
+      services: serviceInsights
+    }
   }
 
   async listByCustomer(tenantId: string, customerId: string): Promise<BookingSummary[]> {
