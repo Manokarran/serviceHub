@@ -35,6 +35,7 @@ type Footer = {
 
 export type Config = {
   templateName: string
+  templateSubtitle: string
   homePageUrl: string
   settingsCookieName: string
   mode: Mode
@@ -50,9 +51,10 @@ export type Config = {
 }
 
 const themeConfig: Config = {
-  templateName: 'Materio',
+  templateName: 'ServiceHub',
+  templateSubtitle: 'Your Space',
   homePageUrl: '/home',
-  settingsCookieName: 'materio-mui-next-demo',
+  settingsCookieName: 'servicehub-settings',
   mode: 'system', // 'system', 'light', 'dark'
   skin: 'default', // 'default', 'bordered'
   semiDark: false, // true, false

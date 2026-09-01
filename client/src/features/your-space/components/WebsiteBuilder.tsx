@@ -1,8 +1,8 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 import {
   DndContext,
@@ -24,7 +24,7 @@ import { builderShellSx } from '../constants/builderChrome'
 import { BuilderProvider, useBuilder } from '../context/BuilderContext'
 import { BuilderNestTargetsProvider, useBuilderNestTargets } from '../context/BuilderNestTargetsContext'
 import type { WebsiteBuilderProps } from '../websiteBuilder.types'
-import type { ActiveDragItem, Block, BlockType } from '../types'
+import type { ActiveDragItem, BlockType } from '../types'
 import { resolveDropTarget } from '../utils/blockTreeUtils'
 import { builderCollisionDetection, pickPreferredDropTargetId } from '../utils/builderCollisionDetection'
 import { BuilderCanvas } from './BuilderCanvas'
@@ -33,6 +33,8 @@ import { BuilderDockPanel } from './BuilderDockPanel'
 import { BuilderMobileDrawers } from './BuilderMobileDrawers'
 import { BuilderSidebar } from './BuilderSidebar'
 import { BuilderToolbar } from './BuilderToolbar'
+import { BuilderAiButton } from './BuilderAiButton'
+import { AiWebsiteChat } from './AiWebsiteChat'
 import { PropertyPanel } from './PropertyPanel'
 import type { PropertyPanelTab } from '../components/property/PropertyPanelUi'
 import { BuilderShellProvider } from '../context/BuilderShellContext'
@@ -40,17 +42,14 @@ import { useBuilderFullscreen } from '../hooks/useBuilderFullscreen'
 import { useBuilderLeftChrome } from '../hooks/useBuilderLeftChrome'
 import { useBuilderPropertyChrome } from '../hooks/useBuilderPropertyChrome'
 import { useFloatingPanelRect } from '../hooks/useFloatingPanelRect'
-import { BUILDER_LEFT_FRAME_KEY } from '../utils/builderPanelFrame'
+import { BUILDER_AI_CHAT_FRAME_KEY, BUILDER_LEFT_FRAME_KEY } from '../utils/builderPanelFrame'
 import { BuilderTemplateLauncher } from '@/features/site-templates/components/BuilderTemplateLauncher'
 import { TenantLocationScope } from './TenantLocationScope'
-
-type WebsiteBuilderInnerProps = {
-  tenantName: string
-}
 
 function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   const theme = useTheme()
   const isMobileLayout = useMediaQuery(theme.breakpoints.down('lg'))
+  const searchParams = useSearchParams()
   const builderRootRef = useRef<HTMLDivElement>(null)
   const { isFullscreen, toggleFullscreen } = useBuilderFullscreen()
 
@@ -61,8 +60,11 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   const [pagesOpen, setPagesOpen] = useState(false)
   const [propertiesOpen, setPropertiesOpen] = useState(false)
   const [stylesOpen, setStylesOpen] = useState(false)
+  const [aiChatOpen, setAiChatOpen] = useState(() => searchParams.get('aiChat') === '1')
+  const [aiChatPinned, setAiChatPinned] = useState(false)
   const { leftPanel, leftPinned, chromeReady, togglePanel, closePanel, togglePinned } = useBuilderLeftChrome()
   const leftFrame = useFloatingPanelRect(BUILDER_LEFT_FRAME_KEY, 'left')
+  const aiChatFrame = useFloatingPanelRect(BUILDER_AI_CHAT_FRAME_KEY, 'left')
   const { propertyPinned, propertyChromeReady, togglePropertyPinned } = useBuilderPropertyChrome()
   const [propertyPanelOpen, setPropertyPanelOpen] = useState(false)
   const [propertyPanelFocusTab, setPropertyPanelFocusTab] = useState<PropertyPanelTab | null>(null)
@@ -82,6 +84,11 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
     },
     [isMobileLayout]
   )
+
+  const openAiChat = useCallback(() => {
+    closePanel()
+    setAiChatOpen(true)
+  }, [closePanel])
 
   const isEditMode = mode === 'edit'
 
@@ -111,6 +118,7 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
       setPropertiesOpen(false)
       setStylesOpen(false)
       setPropertyPanelOpen(false)
+      setAiChatOpen(false)
     }
   }, [isEditMode])
 
@@ -240,33 +248,47 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
 
   return (
     <BuilderShellProvider openPropertyPanel={openPropertyPanel}>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={builderCollisionDetection}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        <Box
-          ref={builderRootRef}
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: isFullscreen ? '100vh' : 'calc(100vh - 64px - 48px)',
-            minHeight: isFullscreen ? '100vh' : 560,
-            mx: isFullscreen ? 0 : { xs: -4, sm: -6 },
-            mt: isFullscreen ? 0 : { xs: -4, sm: -6 },
-            backgroundColor: 'background.default',
-            ...BUILDER_FONT_SMOOTHING,
-            ...builderShellSx(theme, isFullscreen)
-          }}
+      <Box sx={{ position: 'relative', width: '100%' }}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={builderCollisionDetection}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
         >
+          <Box
+            ref={builderRootRef}
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: isFullscreen ? '100vh' : 'calc(100vh - 64px - 48px)',
+              minHeight: isFullscreen ? '100vh' : 560,
+              mx: isFullscreen ? 0 : { xs: -4, sm: -6 },
+              mt: isFullscreen ? 0 : { xs: -4, sm: -6 },
+              backgroundColor: 'background.default',
+              ...BUILDER_FONT_SMOOTHING,
+              ...builderShellSx(theme, isFullscreen)
+            }}
+          >
           <BuilderToolbar
             tenantName={tenantName}
             isFullscreen={isFullscreen}
             onToggleFullscreen={() => void toggleFullscreen(builderRootRef.current)}
           />
           <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+            {isEditMode && !isMobileLayout && aiChatOpen && aiChatPinned && (
+              <AiWebsiteChat
+                open
+                pinned
+                rect={aiChatFrame.rect}
+                onCommit={aiChatFrame.commit}
+                onEnsureLayout={aiChatFrame.ensureLayout}
+                onMaximize={aiChatFrame.maximize}
+                onPinnedChange={setAiChatPinned}
+                onClose={() => setAiChatOpen(false)}
+              />
+            )}
+
             {isEditMode && !isMobileLayout && <BuilderSidebar activePanel={leftPanel} onToggle={togglePanel} />}
 
             {isEditMode && !isMobileLayout && chromeReady && leftPanel !== null && leftPinned && (
@@ -310,6 +332,19 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
               )}
 
               <BuilderCanvas isMobileLayout={isMobileLayout} />
+
+              {(!aiChatPinned || isMobileLayout) && (
+                <AiWebsiteChat
+                  open={aiChatOpen}
+                  pinned={false}
+                  rect={aiChatFrame.rect}
+                  onCommit={aiChatFrame.commit}
+                  onEnsureLayout={aiChatFrame.ensureLayout}
+                  onMaximize={aiChatFrame.maximize}
+                  onPinnedChange={setAiChatPinned}
+                  onClose={() => setAiChatOpen(false)}
+                />
+              )}
 
               {isEditMode && !isMobileLayout && propertyChromeReady && propertyPanelOpen && !propertyPinned && (
                 <PropertyPanel
@@ -365,11 +400,26 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
               onStylesClose={() => setStylesOpen(false)}
             />
           )}
-        </Box>
-        <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
-          <BuilderDragOverlay activeDrag={activeDrag} blocks={blocks} />
-        </DragOverlay>
-      </DndContext>
+          </Box>
+          <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
+            <BuilderDragOverlay activeDrag={activeDrag} blocks={blocks} />
+          </DragOverlay>
+        </DndContext>
+        {isEditMode && (
+          <Box
+            onClick={event => event.stopPropagation()}
+            sx={{
+              position: 'fixed',
+              top: '50%',
+              right: 0,
+              transform: 'translateY(-50%)',
+              zIndex: 200
+            }}
+          >
+            <BuilderAiButton compact={isMobileLayout} floating onClick={openAiChat} />
+          </Box>
+        )}
+      </Box>
     </BuilderShellProvider>
   )
 }

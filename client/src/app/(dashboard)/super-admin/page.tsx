@@ -1,15 +1,19 @@
+import Link from 'next/link'
+
+import { redirect } from 'next/navigation'
+
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
 
 import { auth } from '@/lib/auth'
 import { isSuperAdminEmail } from '@/lib/auth/super-admin'
 import { listAllSiteTemplatesAction } from '@/app/actions/site-template.actions'
+import { getAdminResourceOverview } from '@/services/admin/admin-resource.service'
+import { SuperAdminResourceOverview } from '@/features/site-templates/components/SuperAdminResourceOverview'
 
 export default async function SuperAdminPage() {
   const session = await auth()
@@ -18,8 +22,9 @@ export default async function SuperAdminPage() {
     redirect('/home')
   }
 
-  const templatesResult = await listAllSiteTemplatesAction()
+  const [templatesResult, resourceOverview] = await Promise.all([listAllSiteTemplatesAction(), getAdminResourceOverview()])
   const templateCount = templatesResult.success ? templatesResult.templates.length : 0
+
   const publishedCount = templatesResult.success
     ? templatesResult.templates.filter(template => template.status === 'published').length
     : 0
@@ -34,6 +39,10 @@ export default async function SuperAdminPage() {
           Design the base website, generate branded variations, and publish keepers to the template library. Users can
           pick a library site or generate one from their own details.
         </Typography>
+      </Grid>
+
+      <Grid size={12}>
+        <SuperAdminResourceOverview overview={resourceOverview} />
       </Grid>
 
       <Grid size={{ xs: 12, md: 6 }}>

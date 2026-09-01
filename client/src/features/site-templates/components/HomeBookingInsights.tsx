@@ -4,7 +4,7 @@ import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import LinearProgress from '@mui/material/LinearProgress'
 import Typography from '@mui/material/Typography'
-import { alpha, useTheme } from '@mui/material/styles'
+import { alpha, darken, useTheme } from '@mui/material/styles'
 
 import type { BookingInsights, BookingInsightPoint } from '@/models/booking'
 import type { ServiceListItem } from '@/services/booking/service-catalog.service'
@@ -19,14 +19,28 @@ function formatCount(value: number): string {
 }
 
 function formatCurrency(minor: number, currency: string): string {
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0
-  }).format(minor / 100)
+  const normalizedCurrency = typeof currency === 'string' ? currency.trim().toUpperCase() : ''
+  const safeCurrency = /^[A-Z]{3}$/.test(normalizedCurrency) ? normalizedCurrency : 'AUD'
+  const amount = Number.isFinite(minor) ? minor / 100 : 0
+
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: safeCurrency,
+      maximumFractionDigits: 0
+    }).format(amount)
+  } catch {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: 'AUD',
+      maximumFractionDigits: 0
+    }).format(amount)
+  }
 }
 
 export function HomeBookingInsights({ insights, services }: Props) {
+  const theme = useTheme()
+  const accent = theme.palette.primary.main
   const activeServices = services.filter(service => service.status === 'published')
 
   if (activeServices.length === 0) {
@@ -54,8 +68,8 @@ export function HomeBookingInsights({ insights, services }: Props) {
         borderRadius: 4,
         p: { xs: 2, sm: 2.75, md: 3.25 },
         color: 'common.white',
-        background: `radial-gradient(circle at 92% 0%, ${alpha('#67E8F9', 0.3)} 0%, transparent 32%), linear-gradient(135deg, #111827 0%, #312E81 48%, #6D28D9 100%)`,
-        boxShadow: `0 22px 50px ${alpha('#312E81', 0.26)}`,
+        background: `radial-gradient(circle at 92% 0%, ${alpha('#67E8F9', 0.28)} 0%, transparent 32%), linear-gradient(135deg, #111827 0%, ${darken(accent, 0.62)} 46%, ${darken(accent, 0.18)} 100%)`,
+        boxShadow: `0 22px 50px ${alpha(darken(accent, 0.5), 0.28)}`,
         overflow: 'hidden'
       }}
     >

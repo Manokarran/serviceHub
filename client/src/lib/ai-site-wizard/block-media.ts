@@ -29,6 +29,18 @@ export type MediaFill = {
   continuousAnimation: ImageContinuousAnimation
 }
 
+const PHOTO_BACKGROUND_BLOCK_TYPES = new Set<Block['type']>([
+  'hero',
+  'section',
+  'header',
+  'footer',
+  'carousel',
+  'serviceDirectory',
+  'serviceBooking',
+  'customerBookings',
+  'location'
+])
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
 }
@@ -399,7 +411,11 @@ export function applyMediaFills(
       next.backgroundType = 'photo'
       next.background = backgroundFill.url
       next.backgroundPhotoAnimation = backgroundFill.hoverEffect
-    } else if (forcePhotoBackgrounds && (block.type === 'hero' || block.type === 'section') && fills.has(`${path}:forced-bg`)) {
+    } else if (
+      forcePhotoBackgrounds &&
+      canHavePhotoBackground(block.type) &&
+      fills.has(`${path}:forced-bg`)
+    ) {
       const forced = fills.get(`${path}:forced-bg`)
       if (forced) {
         next.backgroundType = 'photo'
@@ -429,12 +445,26 @@ export function applyMediaFills(
   })
 }
 
-export function collectForceBackgroundPaths(pageSlug: string, blocks: Block[]): string[] {
+function canHavePhotoBackground(type: Block['type']): boolean {
+  return PHOTO_BACKGROUND_BLOCK_TYPES.has(type)
+}
+
+export function collectForceBackgroundPaths(
+  pageSlug: string,
+  blocks: Block[],
+  forcePhotoBackground = false
+): string[] {
   const paths: string[] = []
   let extraSections = 0
 
   walkBlocks(blocks, pageSlug, '/blocks', (block, path, props) => {
     if (readString(props.backgroundType) === 'photo') {
+      return
+    }
+
+    if (forcePhotoBackground && canHavePhotoBackground(block.type)) {
+      paths.push(`${path}:forced-bg`)
+
       return
     }
 

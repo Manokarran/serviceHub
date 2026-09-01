@@ -41,7 +41,7 @@ const DEFAULT_MISC: SiteStyles['misc'] = {
   spacingScale: 'default',
   canvasCornerRadius: 0,
   imageCornerRadius: 0,
-  imageHoverEffect: 'none',
+  imageHoverEffect: 'zoom',
   imageAspectRatio: 'auto',
   pageSplitVisualAnimation: 'static',
   pageSplitVisualColorStart: '',

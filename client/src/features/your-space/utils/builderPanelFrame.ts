@@ -12,6 +12,7 @@ export const BUILDER_PANEL_MIN_HEIGHT = 200
 export const BUILDER_DOCKED_CANVAS_MIN = 240
 export const BUILDER_LEFT_FRAME_KEY = 'servicehub-builder-left-frame'
 export const BUILDER_PROPERTY_FRAME_KEY = 'servicehub-builder-property-frame'
+export const BUILDER_AI_CHAT_FRAME_KEY = 'servicehub-builder-ai-chat-frame'
 
 export type PanelRect = {
   x: number

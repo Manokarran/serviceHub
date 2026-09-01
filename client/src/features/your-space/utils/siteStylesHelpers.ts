@@ -397,6 +397,51 @@ export function mapButtonStyleToVariant(style: ButtonStyleConfig['style']): 'con
   return 'contained'
 }
 
+/** Parse the first opaque color out of a solid value or gradient, as `[r, g, b]`. */
+function parseColorChannels(value: string): [number, number, number] | null {
+  const hex = value.match(/#([0-9a-f]{3,8})\b/i)?.[1]
+
+  if (hex) {
+    const normalized =
+      hex.length === 3 || hex.length === 4
+        ? hex
+            .slice(0, 3)
+            .split('')
+            .map(char => char + char)
+            .join('')
+        : hex.slice(0, 6)
+
+    const parsed = Number.parseInt(normalized, 16)
+
+    return [(parsed >> 16) & 255, (parsed >> 8) & 255, parsed & 255]
+  }
+
+  const channels = value.match(/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i)
+
+  if (channels) {
+    return [Number(channels[1]), Number(channels[2]), Number(channels[3])]
+  }
+
+  return null
+}
+
+/** Perceived luminance test used to keep inserted text readable on its surface. */
+export function isDarkSurface(value: string | undefined): boolean | null {
+  if (!value || value === 'transparent') {
+    return null
+  }
+
+  const channels = parseColorChannels(value)
+
+  if (!channels) {
+    return null
+  }
+
+  const [r, g, b] = channels
+
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.55
+}
+
 /** Apply the active site theme palette to freshly dropped block defaults */
 export function applySiteThemeToBlockProps<T extends BlockType>(
   type: T,

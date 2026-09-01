@@ -32,10 +32,10 @@ const CONTINUOUS_POOLS: Record<AiSiteWizardProfile['animationLevel'], ImageConti
 }
 
 const HOVER_POOLS: Record<AiSiteWizardProfile['animationLevel'], ImageHoverEffect[]> = {
-  none: ['none'],
-  subtle: ['none', 'zoom'],
-  moderate: ['zoom', 'fade'],
-  energetic: ['zoom', 'fade']
+  none: ['zoom'],
+  subtle: ['zoom', 'fade', 'lift'],
+  moderate: ['zoom', 'fade', 'lift', 'blur'],
+  energetic: ['zoom', 'fade', 'lift', 'blur', 'grayscale']
 }
 
 export async function fillMediaSlotsFromUnsplash(

@@ -79,7 +79,7 @@ export type SectionSplitStyle = 'flush' | 'gap' | 'divider' | 'contrast'
 
 export type BackgroundType = 'color' | 'pattern' | 'gradient' | 'photo' | 'video'
 
-export type ImageHoverEffect = 'none' | 'zoom' | 'fade'
+export type ImageHoverEffect = 'none' | 'zoom' | 'fade' | 'lift' | 'blur' | 'grayscale'
 
 /** Fractional crop region relative to the original image (0–1). */
 export type ImageCropSettings = {
@@ -539,7 +539,7 @@ export interface ButtonBlockProps {
 
 export type ServiceDirectoryLayout = 'cards' | 'list' | 'featured'
 
-export interface ServiceDirectoryBlockProps extends BlockBackgroundProps {
+export interface ServiceDirectoryBlockProps extends BlockBackgroundProps, SplitVisualConfig {
   title: string
   subtitle: string
   serviceIds: string[]
@@ -556,7 +556,7 @@ export interface ServiceDirectoryBlockProps extends BlockBackgroundProps {
 
 export type ServiceBookingLayout = 'inline' | 'compact'
 
-export interface ServiceBookingBlockProps extends BlockBackgroundProps {
+export interface ServiceBookingBlockProps extends BlockBackgroundProps, SplitVisualConfig {
   serviceSlug: string
   title: string
   subtitle: string
@@ -567,7 +567,7 @@ export interface ServiceBookingBlockProps extends BlockBackgroundProps {
   alignment: TextAlign
 }
 
-export interface CustomerBookingsBlockProps extends BlockBackgroundProps {
+export interface CustomerBookingsBlockProps extends BlockBackgroundProps, SplitVisualConfig {
   title: string
   subtitle: string
   alignment: TextAlign
@@ -575,7 +575,7 @@ export interface CustomerBookingsBlockProps extends BlockBackgroundProps {
 
 export type LocationBlockSource = 'profile' | 'custom'
 
-export interface LocationBlockProps extends BlockBackgroundProps {
+export interface LocationBlockProps extends BlockBackgroundProps, SplitVisualConfig {
   title: string
   subtitle: string
   address: string
@@ -737,6 +737,8 @@ export interface Block<T extends BlockType = BlockType> {
   type: T
   props: BlockPropsMap[T]
 }
+
+export type BlockPropsPatch = Partial<Block['props']> | Record<string, string | number | boolean>
 
 export interface PaletteItem {
   id: string

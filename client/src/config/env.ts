@@ -51,7 +51,13 @@ export const serverEnv = {
   smtpUser: optional(process.env.SMTP_USER, ''),
   smtpPass: optional(process.env.SMTP_PASS, ''),
   openAiApiKey: optional(process.env.OPENAI_API_KEY, ''),
-  openAiModel: optional(process.env.OPENAI_MODEL, 'gpt-4.1-nano')
+  openAiModel: optional(process.env.OPENAI_MODEL, 'gpt-4.1-nano'),
+  openAiAdminApiKey: optional(process.env.OPENAI_ADMIN_API_KEY, ''),
+  openAiOrganizationId: optional(process.env.OPENAI_ORGANIZATION_ID, ''),
+  openAiMonthlyBudgetUsd: process.env.OPENAI_MONTHLY_BUDGET_USD?.trim() &&
+    Number.isFinite(Number(process.env.OPENAI_MONTHLY_BUDGET_USD))
+    ? Number(process.env.OPENAI_MONTHLY_BUDGET_USD)
+    : null
 } as const
 
 export const publicEnv = {

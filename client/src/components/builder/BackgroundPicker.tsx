@@ -4,24 +4,19 @@ import { useEffect, useMemo, useState } from 'react'
 
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import FormControl from '@mui/material/FormControl'
-import InputLabel from '@mui/material/InputLabel'
-import MenuItem from '@mui/material/MenuItem'
-import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 import { useDebounce } from 'react-use'
 
 import { BUILDER_TYPOGRAPHY, builderSegmentedControlSx } from '@/features/your-space/constants/builderLayout'
-import { PropertyFieldLabel } from '@/features/your-space/components/property/PropertyPanelUi'
+import { LayoutOptionGroup, PropertyFieldLabel } from '@/features/your-space/components/property/PropertyPanelUi'
 import type { ImageHoverEffect } from '@/features/your-space/types'
 import {
   buildPhotoBackgroundCss,
   buildVideoBackgroundValue,
   isVideoBackground,
-  parseMediaUrl,
-  parsePhotoUrl
+  parseMediaUrl
 } from '@/features/your-space/utils/sectionStyleHelpers'
 import { getImageKitThumbnailUrl } from '@/lib/imagekit/urls'
 import { MediaUploadZone } from '@/components/builder/MediaUploadZone'
@@ -64,6 +59,15 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'pattern', label: 'Pattern' },
   { id: 'gradient', label: 'Gradient' },
   { id: 'photo', label: 'Photo' }
+]
+
+const PHOTO_EFFECT_OPTIONS: { value: ImageHoverEffect; label: string; icon: string }[] = [
+  { value: 'none', label: 'None', icon: 'ri-forbid-line' },
+  { value: 'zoom', label: 'Zoom', icon: 'ri-zoom-in-line' },
+  { value: 'fade', label: 'Fade', icon: 'ri-contrast-drop-2-line' },
+  { value: 'lift', label: 'Lift', icon: 'ri-arrow-up-line' },
+  { value: 'blur', label: 'Blur', icon: 'ri-contrast-2-line' },
+  { value: 'grayscale', label: 'Grayscale', icon: 'ri-contrast-drop-line' }
 ]
 
 function setBackgroundType(onStyleChange: Props['onStyleChange'], type: BackgroundType) {
@@ -414,7 +418,7 @@ function PhotoTab({
   backgroundType,
   sectionType,
   photoAnimation,
-  defaultPhotoAnimation = 'none',
+  defaultPhotoAnimation = 'zoom',
   onStyleChange,
   onMediaSelect
 }: {
@@ -723,18 +727,11 @@ function PhotoTab({
       {hasMediaSelected && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 0.5 }}>
           <PropertyFieldLabel>{isCurrentVideo ? 'Video effects' : 'Photo effects'}</PropertyFieldLabel>
-          <FormControl size='small' fullWidth>
-            <InputLabel>Hover effect</InputLabel>
-            <Select
-              label='Hover effect'
-              value={activeAnimation}
-              onChange={e => onStyleChange('backgroundPhotoAnimation', e.target.value)}
-            >
-              <MenuItem value='none'>None</MenuItem>
-              <MenuItem value='zoom'>Zoom on hover</MenuItem>
-              <MenuItem value='fade'>Fade on hover</MenuItem>
-            </Select>
-          </FormControl>
+          <LayoutOptionGroup
+            value={activeAnimation}
+            options={PHOTO_EFFECT_OPTIONS}
+            onChange={effect => onStyleChange('backgroundPhotoAnimation', effect)}
+          />
           <Typography sx={{ ...BUILDER_TYPOGRAPHY.subtle, color: 'text.secondary' }}>
             Hover the section on the canvas to preview. Switch to Preview mode for a cleaner view.
           </Typography>
@@ -754,7 +751,7 @@ export default function BackgroundPicker({
   backgroundType = 'color',
   sectionType,
   photoAnimation,
-  defaultPhotoAnimation = 'none',
+  defaultPhotoAnimation = 'zoom',
   onStyleChange,
   onMediaSelect
 }: Props) {

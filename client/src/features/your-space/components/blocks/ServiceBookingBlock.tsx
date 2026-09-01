@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react'
 
 import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
 
 import type { ServiceBookingBlockProps } from '../../types'
 import { usePublicTenantSlug } from '../../hooks/usePublicTenantSlug'
+import { InlineEditableText } from '../inline/InlineEditableText'
 
 import { ChromeBlockBackground } from './ChromeBlockBackground'
 import { ServiceBookingFlow } from './ServiceBookingFlow'
@@ -40,7 +42,25 @@ export function ServiceBookingBlock({ props }: Props) {
   }, [])
 
   if (!tenantSlug) {
-    return <Box sx={{ p: 4 }}>Service booking preview — choose a service in the block settings.</Box>
+    return (
+      <Box sx={{ p: 4 }}>
+        <Typography variant='h4'>
+          <InlineEditableText value={props.title} field='title' placeholder='Booking title' />
+        </Typography>
+        <Typography color='text.secondary' sx={{ mt: 1 }}>
+          <InlineEditableText
+            value={props.subtitle}
+            field='subtitle'
+            placeholder='Supporting text'
+            multiline
+            sx={{ display: 'block' }}
+          />
+        </Typography>
+        <Typography variant='body2' color='text.secondary' sx={{ mt: 2 }}>
+          Service booking preview — choose a service in the block settings.
+        </Typography>
+      </Box>
+    )
   }
 
   return (
@@ -61,6 +81,7 @@ export function ServiceBookingBlock({ props }: Props) {
           showTimezone={props.showTimezone}
           compact={props.layout === 'compact'}
           ctaLabel={props.ctaLabel}
+          editableText
           onChangeService={props.serviceSlug ? undefined : () => setActiveServiceSlug('')}
         />
       </Box>

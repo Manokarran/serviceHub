@@ -595,7 +595,10 @@ export function normalizeBlock(block: Block): Block {
         alignment: props.alignment ?? 'left',
         background: props.background ?? 'transparent',
         backgroundType: props.backgroundType ?? 'color',
-        backgroundOpacity: props.backgroundOpacity ?? 0
+        backgroundOpacity: props.backgroundOpacity ?? 0,
+        splitVisualAnimation: props.splitVisualAnimation ?? 'static',
+        splitVisualColorStart: props.splitVisualColorStart ?? '',
+        splitVisualColorEnd: props.splitVisualColorEnd ?? ''
       } as ServiceDirectoryBlockProps
     }
   }
@@ -616,7 +619,10 @@ export function normalizeBlock(block: Block): Block {
         alignment: props.alignment ?? 'left',
         background: props.background ?? 'transparent',
         backgroundType: props.backgroundType ?? 'color',
-        backgroundOpacity: props.backgroundOpacity ?? 0
+        backgroundOpacity: props.backgroundOpacity ?? 0,
+        splitVisualAnimation: props.splitVisualAnimation ?? 'static',
+        splitVisualColorStart: props.splitVisualColorStart ?? '',
+        splitVisualColorEnd: props.splitVisualColorEnd ?? ''
       } as ServiceBookingBlockProps
     }
   }
@@ -632,7 +638,10 @@ export function normalizeBlock(block: Block): Block {
         alignment: props.alignment ?? 'left',
         background: props.background ?? 'transparent',
         backgroundType: props.backgroundType ?? 'color',
-        backgroundOpacity: props.backgroundOpacity ?? 0
+        backgroundOpacity: props.backgroundOpacity ?? 0,
+        splitVisualAnimation: props.splitVisualAnimation ?? 'static',
+        splitVisualColorStart: props.splitVisualColorStart ?? '',
+        splitVisualColorEnd: props.splitVisualColorEnd ?? ''
       } as CustomerBookingsBlockProps
     }
   }
@@ -658,7 +667,10 @@ export function normalizeBlock(block: Block): Block {
         alignment: props.alignment ?? 'left',
         background: props.background ?? 'transparent',
         backgroundType: props.backgroundType ?? 'color',
-        backgroundOpacity: props.backgroundOpacity ?? 0
+        backgroundOpacity: props.backgroundOpacity ?? 0,
+        splitVisualAnimation: props.splitVisualAnimation ?? 'static',
+        splitVisualColorStart: props.splitVisualColorStart ?? '',
+        splitVisualColorEnd: props.splitVisualColorEnd ?? ''
       } as LocationBlockProps
     }
   }

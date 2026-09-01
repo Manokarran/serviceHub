@@ -5,7 +5,7 @@ export type ButtonStyle = 'solid' | 'outline' | 'ghost'
 export type FontSource = 'heading' | 'body'
 export type SiteAnimation = 'none' | 'fade' | 'slide-up' | 'scale'
 export type SpacingScale = 'compact' | 'default' | 'spacious'
-export type ImageHoverEffect = 'none' | 'zoom' | 'fade'
+export type ImageHoverEffect = 'none' | 'zoom' | 'fade' | 'lift' | 'blur' | 'grayscale'
 export type ImageAspectRatio = 'auto' | '16/9' | '4/3' | '1/1'
 
 export type SiteStylesView =

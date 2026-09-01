@@ -47,6 +47,40 @@ export function getMediaHoverSx(animation: ImageHoverEffect): SxProps<Theme> {
     }
   }
 
+  if (animation === 'lift') {
+    return {
+      transition: 'transform 0.45s ease, box-shadow 0.45s ease',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: '0 14px 30px rgba(15, 23, 42, 0.16)'
+      }
+    }
+  }
+
+  if (animation === 'blur') {
+    return {
+      '& .media-block-image': {
+        transition: 'filter 0.45s ease, transform 0.45s ease',
+        filter: 'blur(0) scale(1)'
+      },
+      '&:hover .media-block-image': {
+        filter: 'blur(2px) scale(1.04)'
+      }
+    }
+  }
+
+  if (animation === 'grayscale') {
+    return {
+      '& .media-block-image': {
+        transition: 'filter 0.45s ease',
+        filter: 'grayscale(0)'
+      },
+      '&:hover .media-block-image': {
+        filter: 'grayscale(0.85)'
+      }
+    }
+  }
+
   return {}
 }
 
@@ -57,7 +91,7 @@ export function getMediaFrameSx(
 ): SxProps<Theme> {
   const aspectRatio = getMediaAspectRatio(misc)
   const hasFixedAspect = Boolean(aspectRatio)
-  const animation = hoverEffect ?? misc.imageHoverEffect
+  const animation = hoverEffect ?? misc.imageHoverEffect ?? 'zoom'
   const radius = cornerRadius ?? misc.imageCornerRadius
 
   return {

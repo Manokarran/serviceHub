@@ -23,6 +23,7 @@ import {
   isSimpleColor,
   shouldRenderBlockBackgroundLayers
 } from '../../utils/sectionStyleHelpers'
+import { getMediaHoverSx } from '../../utils/mediaBlockHelpers'
 import {
   getVisibleShowcaseItems,
   isLayeredShowcase,
@@ -58,6 +59,7 @@ function ShowcaseVisual({
   radius,
   overlay,
   accentColor,
+  hoverEffect,
   alwaysOverlay = false
 }: {
   item: ShowcaseItem
@@ -65,6 +67,7 @@ function ShowcaseVisual({
   radius: number
   overlay: ShowcaseBlockProps['mediaOverlay']
   accentColor: string
+  hoverEffect: Parameters<typeof getMediaHoverSx>[0]
   alwaysOverlay?: boolean
 }) {
   const kind = resolveShowcaseVisualKind(item)
@@ -83,12 +86,14 @@ function ShowcaseVisual({
         width: '100%',
         borderRadius: `${radius}px`,
         backgroundColor: alpha(accentColor, 0.08),
-        boxShadow: radius > 0 ? '0 20px 48px rgba(15, 23, 42, 0.12)' : 'none'
+        boxShadow: radius > 0 ? '0 20px 48px rgba(15, 23, 42, 0.12)' : 'none',
+        ...(kind === 'image' ? getMediaHoverSx(hoverEffect) : {})
       }}
     >
       {kind === 'image' && imageSrc && (
         <Box
           component='img'
+          className='media-block-image'
           src={imageSrc}
           alt={item.imageAlt || item.title}
           sx={{
@@ -370,6 +375,7 @@ function ShowcaseLayeredCard({
           radius={0}
           overlay={props.mediaOverlay}
           accentColor={siteStyles.colors.accent}
+          hoverEffect={siteStyles.misc.imageHoverEffect}
           alwaysOverlay
         />
       </Box>
@@ -420,6 +426,7 @@ function ShowcaseStackedCard({
       radius={Math.max(16, props.mediaRadius - 8)}
       overlay={props.mediaOverlay}
       accentColor={siteStyles.colors.accent}
+      hoverEffect={siteStyles.misc.imageHoverEffect}
     />
   )
   const copy = (
@@ -515,6 +522,7 @@ function ShowcaseSplitLayout({
           radius={props.mediaRadius}
           overlay={props.mediaOverlay}
           accentColor={siteStyles.colors.accent}
+          hoverEffect={siteStyles.misc.imageHoverEffect}
         />
       </Box>
     </Box>

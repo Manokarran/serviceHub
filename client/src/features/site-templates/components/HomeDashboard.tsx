@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 
 import Link from 'next/link'
 
@@ -10,7 +11,7 @@ import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import { alpha, keyframes, useTheme } from '@mui/material/styles'
+import { alpha, darken, keyframes, lighten, useTheme } from '@mui/material/styles'
 
 import type { BookingInsights } from '@/models/booking'
 import type { SiteAnalyticsOverview } from '@/models/site-analytics'
@@ -19,6 +20,7 @@ import type { ServiceListItem } from '@/services/booking/service-catalog.service
 import { HomeBookingInsights } from './HomeBookingInsights'
 import { HomeAnalyticsSection } from './HomeAnalyticsSection'
 import { HomeCreateWebsitePanel } from './HomeCreateWebsitePanel'
+import { HomeQuickActions } from './HomeQuickActions'
 
 type Props = {
   firstName: string
@@ -79,9 +81,13 @@ export function HomeDashboard({
 }: Props) {
   const theme = useTheme()
   const accent = theme.palette.primary.main
+  const accentDeep = darken(accent, 0.58)
+  const accentDark = darken(accent, 0.32)
+  const accentLight = lighten(accent, 0.3)
   const ink = theme.palette.text.primary
-  const heroInk = '#3B0764'
   const [copied, setCopied] = useState(false)
+
+  const leadCount = analytics?.current?.leads ?? 0
 
   const copyLiveUrl = async () => {
     if (!liveSitePath) {
@@ -112,7 +118,7 @@ export function HomeDashboard({
           position: 'absolute',
           inset: { xs: '-28px -6% auto', md: '-36px -4% auto' },
           height: 260,
-          background: `radial-gradient(ellipse at 20% 0%, ${alpha('#C084FC', 0.28)} 0%, transparent 55%), radial-gradient(ellipse at 80% 10%, ${alpha('#818CF8', 0.22)} 0%, transparent 50%)`,
+          background: `radial-gradient(ellipse at 20% 0%, ${alpha(accentLight, 0.3)} 0%, transparent 55%), radial-gradient(ellipse at 80% 10%, ${alpha(theme.palette.info.main, 0.18)} 0%, transparent 50%)`,
           filter: 'blur(18px)'
         }}
       />
@@ -127,12 +133,11 @@ export function HomeDashboard({
           py: { xs: 3.1, md: 3.75 },
           color: 'common.white',
           background: `
-            radial-gradient(1200px 320px at -8% -30%, ${alpha('#F5D0FE', 0.42)} 0%, transparent 58%),
-            radial-gradient(900px 280px at 108% -10%, ${alpha('#7DD3FC', 0.3)} 0%, transparent 52%),
-            radial-gradient(720px 240px at 72% 130%, ${alpha('#A78BFA', 0.45)} 0%, transparent 58%),
-            linear-gradient(118deg, #5B21B6 0%, #6D28D9 28%, ${accent} 62%, #818CF8 100%)
+            radial-gradient(1100px 320px at -6% -34%, ${alpha('#fff', 0.2)} 0%, transparent 58%),
+            radial-gradient(820px 260px at 104% -8%, ${alpha(accentLight, 0.55)} 0%, transparent 54%),
+            linear-gradient(118deg, ${accentDeep} 0%, ${accentDark} 34%, ${accent} 74%, ${accentLight} 100%)
           `,
-          boxShadow: `0 22px 48px ${alpha('#6D28D9', 0.32)}, inset 0 1px 0 ${alpha('#fff', 0.28)}`,
+          boxShadow: `0 22px 48px ${alpha(accentDark, 0.34)}, inset 0 1px 0 ${alpha('#fff', 0.28)}`,
           border: `1px solid ${alpha('#fff', 0.22)}`
         }}
       >
@@ -141,8 +146,12 @@ export function HomeDashboard({
           sx={{
             position: 'absolute',
             inset: 0,
-            background: `linear-gradient(180deg, ${alpha('#fff', 0.16)} 0%, transparent 42%)`,
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            opacity: 0.14,
+            backgroundImage: `linear-gradient(${alpha('#fff', 0.6)} 1px, transparent 1px), linear-gradient(90deg, ${alpha('#fff', 0.6)} 1px, transparent 1px)`,
+            backgroundSize: '46px 46px',
+            maskImage: 'radial-gradient(circle at 12% 0%, #000 0%, transparent 62%)',
+            WebkitMaskImage: 'radial-gradient(circle at 12% 0%, #000 0%, transparent 62%)'
           }}
         />
         <Box
@@ -154,7 +163,7 @@ export function HomeDashboard({
             borderRadius: '50%',
             right: { xs: -120, md: -48 },
             top: { xs: -150, md: -110 },
-            background: `radial-gradient(circle, ${alpha('#F0ABFC', 0.55)} 0%, ${alpha('#C084FC', 0.12)} 46%, transparent 70%)`,
+            background: `radial-gradient(circle, ${alpha(accentLight, 0.6)} 0%, ${alpha(accentLight, 0.12)} 46%, transparent 70%)`,
             animation: `${drift} 11s ease-in-out infinite`,
             pointerEvents: 'none'
           }}
@@ -168,7 +177,7 @@ export function HomeDashboard({
             borderRadius: '50%',
             left: { xs: -80, md: 180 },
             bottom: { xs: -120, md: -90 },
-            background: `radial-gradient(circle, ${alpha('#67E8F9', 0.32)} 0%, transparent 68%)`,
+            background: `radial-gradient(circle, ${alpha(theme.palette.info.light, 0.34)} 0%, transparent 68%)`,
             animation: `${drift} 14s ease-in-out infinite reverse`,
             pointerEvents: 'none'
           }}
@@ -225,6 +234,18 @@ export function HomeDashboard({
                   fontWeight: 700
                 }}
               />
+              <Chip
+                label={`${tenantPlan} plan`}
+                size='small'
+                sx={{
+                  bgcolor: alpha('#fff', 0.12),
+                  color: 'common.white',
+                  border: `1px solid ${alpha('#fff', 0.24)}`,
+                  backdropFilter: 'blur(10px)',
+                  fontWeight: 600,
+                  textTransform: 'capitalize'
+                }}
+              />
             </Box>
             <Typography
               variant='h3'
@@ -236,11 +257,11 @@ export function HomeDashboard({
                 mb: 1,
                 fontSize: { xs: '1.7rem', md: '2.25rem' },
                 color: '#fff',
-                backgroundImage: 'linear-gradient(105deg, #FFFFFF 0%, #FFF7FF 32%, #F5D0FE 68%, #E0E7FF 100%)',
+                backgroundImage: `linear-gradient(100deg, #FFFFFF 0%, #FFFFFF 46%, ${alpha('#FFFFFF', 0.78)} 100%)`,
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                filter: 'drop-shadow(0 8px 20px rgba(255,255,255,0.28))'
+                filter: 'drop-shadow(0 8px 20px rgba(255,255,255,0.22))'
               }}
             >
               Welcome back, {firstName}
@@ -252,11 +273,11 @@ export function HomeDashboard({
                 maxWidth: 540,
                 mb: 2,
                 lineHeight: 1.55,
-                textShadow: '0 1px 12px rgba(46, 16, 101, 0.28)'
+                textShadow: `0 1px 12px ${alpha(accentDeep, 0.4)}`
               }}
             >
               {isSiteStarted
-                ? 'A tighter command center for your live site — traffic, clicks, and next edits in one place.'
+                ? 'Your command center for the live site — traffic, clicks, and the next edits in one place.'
                 : 'Create a polished company website in minutes — pick a published layout or generate one from your brand details.'}
             </Typography>
 
@@ -337,12 +358,12 @@ export function HomeDashboard({
               startIcon={<i className='ri-layout-masonry-line' />}
               sx={{
                 bgcolor: 'common.white',
-                color: heroInk,
+                color: accentDeep,
                 fontWeight: 700,
                 px: 2.5,
-                boxShadow: `0 12px 28px ${alpha('#2E1065', 0.28)}`,
+                boxShadow: `0 12px 28px ${alpha(accentDeep, 0.3)}`,
                 '&:hover': {
-                  bgcolor: '#F5F3FF'
+                  bgcolor: alpha('#fff', 0.88)
                 }
               }}
             >
@@ -352,115 +373,160 @@ export function HomeDashboard({
         </Box>
       </Box>
 
-      {isSiteStarted && analytics ? (
-        <HomeAnalyticsSection analytics={analytics} hasPublishedSite={hasPublishedSite} />
-      ) : null}
-
-      {isSiteStarted && canManageLeads ? (
-        <HomeBookingInsights insights={bookingInsights} services={services} />
-      ) : null}
-
-      <HomeCreateWebsitePanel isSiteStarted={isSiteStarted} />
-
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 2.5,
-          gridTemplateColumns: {
-            xs: '1fr',
-            md: canManageLeads ? '1.15fr 1fr' : '1fr'
-          }
-        }}
+      <Section
+        title={isSiteStarted ? 'Your website' : 'Get started'}
+        caption={
+          isSiteStarted
+            ? 'Chat with the builder, generate a new version, or swap the layout'
+            : 'Start from a conversation, a brand form, or a library layout'
+        }
       >
-        {canManageLeads ? (
+        <HomeCreateWebsitePanel isSiteStarted={isSiteStarted} />
+      </Section>
+
+      <Section title='Jump back in' caption='The places you use most'>
+        <HomeQuickActions isSiteStarted={isSiteStarted} canManageLeads={canManageLeads} leadCount={leadCount} />
+      </Section>
+
+      {isSiteStarted && analytics ? (
+        <Section title='Site performance' caption={`How your website performed over the last ${analytics.kpiDays} days`}>
+          <HomeAnalyticsSection analytics={analytics} hasPublishedSite={hasPublishedSite} />
+        </Section>
+      ) : null}
+
+      {isSiteStarted && canManageLeads ? <HomeBookingInsights insights={bookingInsights} services={services} /> : null}
+
+      <Section title='Workspace' caption='Who you are signed in as, and where your site lives'>
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 2.5,
+            gridTemplateColumns: {
+              xs: '1fr',
+              md: canManageLeads ? '1.15fr 1fr' : '1fr'
+            }
+          }}
+        >
+          {canManageLeads ? (
+            <Box
+              sx={{
+                borderRadius: 3,
+                p: 2.75,
+                border: `1px solid ${theme.palette.divider}`,
+                background: `linear-gradient(160deg, ${alpha(accent, 0.1)} 0%, ${alpha(theme.palette.background.paper, 0.94)} 58%)`,
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { sm: 'center' },
+                justifyContent: 'space-between',
+                gap: 2.5,
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 12px 28px ${alpha(ink, 0.08)}`
+                }
+              }}
+            >
+              <Box className='flex items-start gap-3'>
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: alpha(accent, 0.14),
+                    color: 'primary.main',
+                    flexShrink: 0
+                  }}
+                >
+                  <i className='ri-mail-open-line' style={{ fontSize: '1.3rem' }} />
+                </Box>
+                <div>
+                  <Typography variant='h6' sx={{ fontWeight: 700, mb: 0.4 }}>
+                    Contact leads
+                  </Typography>
+                  <Typography variant='body2' color='text.secondary'>
+                    {leadCount > 0
+                      ? `${leadCount} new inquiries in the last ${analytics.kpiDays} days. Review, update status, and export CSV.`
+                      : 'Review messages from your site contact form, update status, and export CSV.'}
+                  </Typography>
+                </div>
+              </Box>
+              <Button
+                component={Link}
+                href='/leads'
+                variant='contained'
+                endIcon={<i className='ri-arrow-right-line' />}
+                sx={{ flexShrink: 0 }}
+              >
+                Open leads
+              </Button>
+            </Box>
+          ) : null}
+
           <Box
             sx={{
               borderRadius: 3,
               p: 2.75,
               border: `1px solid ${theme.palette.divider}`,
-              background: `linear-gradient(160deg, ${alpha(accent, 0.1)} 0%, ${alpha(theme.palette.background.paper, 0.94)} 58%)`,
+              bgcolor: alpha(theme.palette.background.paper, 0.92),
               display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: { sm: 'center' },
-              justifyContent: 'space-between',
-              gap: 2.5,
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: `0 12px 28px ${alpha(ink, 0.08)}`
-              }
+              flexDirection: 'column',
+              gap: 2
             }}
           >
-            <Box className='flex items-start gap-3'>
-              <Box
-                sx={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: alpha(accent, 0.14),
-                  color: 'primary.main',
-                  flexShrink: 0
-                }}
-              >
-                <i className='ri-mail-open-line' style={{ fontSize: '1.3rem' }} />
-              </Box>
-              <div>
-                <Typography variant='h6' sx={{ fontWeight: 700, mb: 0.4 }}>
-                  Contact leads
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                  {analytics?.current?.leads > 0
-                    ? `${analytics.current.leads} new inquiries in the last ${analytics.kpiDays} days. Review, update status, and export CSV.`
-                    : 'Review messages from your site contact form, update status, and export CSV.'}
-                </Typography>
-              </div>
+            <Box className='flex items-center justify-between gap-2 flex-wrap'>
+              <Typography variant='h6' sx={{ fontWeight: 700 }}>
+                Account
+              </Typography>
+              <Chip label={tenantPlan} size='small' color='primary' variant='tonal' />
             </Box>
-            <Button
-              component={Link}
-              href='/leads'
-              variant='contained'
-              endIcon={<i className='ri-arrow-right-line' />}
-              sx={{ flexShrink: 0 }}
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 1.25,
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }
+              }}
             >
-              Open leads
-            </Button>
-          </Box>
-        ) : null}
-
-        <Box
-          sx={{
-            borderRadius: 3,
-            p: 2.75,
-            border: `1px solid ${theme.palette.divider}`,
-            bgcolor: alpha(theme.palette.background.paper, 0.92),
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2
-          }}
-        >
-          <Box className='flex items-center justify-between gap-2 flex-wrap'>
-            <Typography variant='h6' sx={{ fontWeight: 700 }}>
-              Workspace
-            </Typography>
-            <Chip label={tenantPlan} size='small' color='primary' variant='tonal' />
-          </Box>
-          <Box
-            sx={{
-              display: 'grid',
-              gap: 1.25,
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }
-            }}
-          >
-            <MetaItem label='Signed in as' value={userName} />
-            <MetaItem label='Email' value={userEmail} />
-            <MetaItem label='Role' value={userRole} />
-            <MetaItem label='Workspace' value={tenantSlug || '—'} />
+              <MetaItem label='Signed in as' value={userName} />
+              <MetaItem label='Email' value={userEmail} />
+              <MetaItem label='Role' value={userRole} />
+              <MetaItem label='Workspace' value={tenantSlug || '—'} />
+            </Box>
           </Box>
         </Box>
+      </Section>
+    </Box>
+  )
+}
+
+function Section({ title, caption, children }: { title: string; caption: string; children: ReactNode }) {
+  const theme = useTheme()
+
+  return (
+    <Box component='section' className='flex flex-col gap-3.5'>
+      <Box className='flex items-center gap-2.5'>
+        <Box
+          aria-hidden
+          sx={{
+            width: 4,
+            height: 30,
+            borderRadius: 99,
+            flexShrink: 0,
+            background: `linear-gradient(180deg, ${theme.palette.primary.main} 0%, ${alpha(theme.palette.primary.main, 0.25)} 100%)`
+          }}
+        />
+        <Box>
+          <Typography variant='h6' sx={{ fontWeight: 750, letterSpacing: '-0.02em', lineHeight: 1.25 }}>
+            {title}
+          </Typography>
+          <Typography variant='caption' color='text.secondary'>
+            {caption}
+          </Typography>
+        </Box>
       </Box>
+      {children}
     </Box>
   )
 }

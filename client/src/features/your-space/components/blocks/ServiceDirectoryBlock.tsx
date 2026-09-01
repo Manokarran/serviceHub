@@ -20,6 +20,7 @@ import { alpha } from '@mui/material/styles'
 
 import type { PublicService } from '@/services/booking/public-service.service'
 import { getSiteButtonSx } from '../../utils/siteStylesHelpers'
+import { getMediaHoverSx } from '../../utils/mediaBlockHelpers'
 import type { ServiceDirectoryBlockProps } from '../../types'
 import { usePublicTenantSlug } from '../../hooks/usePublicTenantSlug'
 import { useSiteStyles } from '../SiteStylesScope'
@@ -27,6 +28,7 @@ import { useSiteStyles } from '../SiteStylesScope'
 import { ChromeBlockBackground } from './ChromeBlockBackground'
 import { ServiceInfo } from './ServiceInfo'
 import { ServiceBookingFlow } from './ServiceBookingFlow'
+import { InlineEditableText } from '../inline/InlineEditableText'
 
 type Props = {
   props: ServiceDirectoryBlockProps
@@ -160,10 +162,16 @@ export function ServiceDirectoryBlock({ props }: Props) {
           >
             <Box sx={{ textAlign: props.alignment }}>
               <Typography variant='h3' sx={{ fontWeight: 750, letterSpacing: '-0.03em' }}>
-                {props.title}
+                <InlineEditableText value={props.title} field='title' placeholder='Services title' />
               </Typography>
               <Typography color='text.secondary' sx={{ mt: 1, maxWidth: 620 }}>
-                {props.subtitle}
+                <InlineEditableText
+                  value={props.subtitle}
+                  field='subtitle'
+                  placeholder='Supporting text'
+                  multiline
+                  sx={{ display: 'block' }}
+                />
               </Typography>
             </Box>
             {props.showSearch ? (
@@ -226,12 +234,14 @@ export function ServiceDirectoryBlock({ props }: Props) {
                         height: isListLayout ? { xs: 170, sm: '100%' } : undefined,
                         minHeight: isFeaturedLead ? { md: 280 } : undefined,
                         bgcolor: 'action.hover',
-                        position: 'relative'
+                        position: 'relative',
+                        ...getMediaHoverSx(siteStyles.misc.imageHoverEffect)
                       }}
                     >
                       {service.coverImageUrl ? (
                         <Box
                           component='img'
+                          className='media-block-image'
                           src={service.coverImageUrl}
                           alt=''
                           sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}

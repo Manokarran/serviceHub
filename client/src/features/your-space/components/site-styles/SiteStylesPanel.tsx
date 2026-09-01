@@ -24,9 +24,9 @@ import {
 } from '../../constants/stylePackPresets'
 import { BUILDER_TYPOGRAPHY } from '../../constants/builderLayout'
 import { useBuilder } from '../../context/BuilderContext'
-import { PropertyBodyText, PropertyFieldLabel, PropertySection } from '../property/PropertyPanelUi'
+import { LayoutOptionGroup, PropertyBodyText, PropertyFieldLabel, PropertySection } from '../property/PropertyPanelUi'
 import type { SiteStylesView } from '../../types/siteStyles'
-import type { ButtonShape, ButtonStyle, SiteAnimation, SpacingScale } from '../../types/siteStyles'
+import type { ButtonShape, ButtonStyle, ImageHoverEffect, SiteAnimation, SpacingScale } from '../../types/siteStyles'
 import { resolveSitePageVisualColors } from '../../utils/sitePageVisualHelpers'
 import { getButtonBorderRadius, normalizeSiteFonts } from '../../utils/siteStylesHelpers'
 import {
@@ -49,6 +49,15 @@ type Props = {
   onClose?: () => void
   embedded?: boolean
 }
+
+const IMAGE_HOVER_OPTIONS: { value: ImageHoverEffect; label: string; icon: string }[] = [
+  { value: 'none', label: 'None', icon: 'ri-forbid-line' },
+  { value: 'zoom', label: 'Zoom', icon: 'ri-zoom-in-line' },
+  { value: 'fade', label: 'Fade', icon: 'ri-contrast-drop-2-line' },
+  { value: 'lift', label: 'Lift', icon: 'ri-arrow-up-line' },
+  { value: 'blur', label: 'Blur', icon: 'ri-contrast-2-line' },
+  { value: 'grayscale', label: 'Grayscale', icon: 'ri-contrast-drop-line' }
+]
 
 export function SiteStylesPanel({ onClose, embedded = false }: Props) {
   const theme = useTheme()
@@ -769,22 +778,15 @@ export function SiteStylesPanel({ onClose, embedded = false }: Props) {
               <MenuItem value='1/1'>Square</MenuItem>
             </Select>
           </FormControl>
-          <FormControl size='small' fullWidth>
-            <InputLabel>Hover effect</InputLabel>
-            <Select
-              label='Hover effect'
-              value={siteStyles.misc.imageHoverEffect}
-              onChange={e =>
-                updateSiteStyles({
-                  misc: { ...siteStyles.misc, imageHoverEffect: e.target.value as typeof siteStyles.misc.imageHoverEffect }
-                })
-              }
-            >
-              <MenuItem value='none'>None</MenuItem>
-              <MenuItem value='zoom'>Zoom</MenuItem>
-              <MenuItem value='fade'>Fade</MenuItem>
-            </Select>
-          </FormControl>
+          <LayoutOptionGroup
+            value={siteStyles.misc.imageHoverEffect}
+            options={IMAGE_HOVER_OPTIONS}
+            onChange={imageHoverEffect =>
+              updateSiteStyles({
+                misc: { ...siteStyles.misc, imageHoverEffect }
+              })
+            }
+          />
         </StylePanelBody>
       </Box>
     )

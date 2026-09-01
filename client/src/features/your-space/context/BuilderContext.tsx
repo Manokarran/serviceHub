@@ -29,7 +29,7 @@ import { isHomePageSlug } from '@/lib/utils/page-slug'
 
 import { createStarterBlocks, getStorageKey } from '../constants'
 import { DEFAULT_SITE_STYLES, SITE_THEME_PRESETS } from '../constants/siteStylePresets'
-import type { Block, BlockType, BuilderMode, BuilderSidebarPanel, BuilderViewport } from '../types'
+import type { Block, BlockPropsPatch, BlockType, BuilderMode, BuilderSidebarPanel, BuilderViewport } from '../types'
 import type { SiteStyles } from '../types/siteStyles'
 import { blocksEqual } from '../utils/blocksEqual'
 import { normalizeBlocks } from '../utils/blockMigration'
@@ -45,6 +45,9 @@ import {
   type NestTargetHints
 } from '../utils/blockTreeUtils'
 import { mergeSiteStyles } from '../utils/siteStylesHelpers'
+import { reharmonizeBlockTreeToTheme } from '../utils/themePropagation'
+import { applyAiBuilderPlan, type AiPlanApplyResult } from '../utils/aiPlanApply'
+import type { AiBuilderPlan, AiBuilderRestyleScope } from '@/lib/ai-builder/types'
 import {
   BUILDER_AUTOSAVE_KEY,
   BUILDER_GRID_MODE_KEY,
@@ -82,6 +85,12 @@ type BuilderState = {
   versions: PublishedVersionSummary[]
 }
 
+export type BuilderDraftSnapshot = {
+  blocks: Block[]
+  siteStyles: SiteStyles
+  selectedBlockId: string | null
+}
+
 type BuilderAction =
   | {
       type: 'SET_INITIAL'
@@ -98,7 +107,7 @@ type BuilderAction =
     }
   | { type: 'SET_BLOCKS'; blocks: Block[]; savedAt?: string | null }
   | { type: 'ADD_BLOCK'; block: Block; target: BlockLocation }
-  | { type: 'UPDATE_BLOCK'; id: string; props: Partial<Block['props']> }
+  | { type: 'UPDATE_BLOCK'; id: string; props: BlockPropsPatch }
   | { type: 'DELETE_BLOCK'; id: string }
   | { type: 'MOVE_BLOCK'; activeId: string; overId: string | number; nestHints?: NestTargetHints }
   | { type: 'SELECT_BLOCK'; id: string | null }
@@ -109,7 +118,9 @@ type BuilderAction =
   | { type: 'SET_AUTOSAVE'; autosaveEnabled: boolean }
   | { type: 'SET_SIDEBAR_PANEL'; panel: BuilderSidebarPanel }
   | { type: 'UPDATE_SITE_STYLES'; siteStyles: SiteStyles }
-  | { type: 'APPLY_THEME'; themeId: string }
+  | { type: 'APPLY_THEME'; themeId: string; restyleControls?: AiBuilderRestyleScope }
+  | { type: 'APPLY_AI_RESULT'; blocks: Block[]; siteStyles: SiteStyles; selectedBlockId: string | null }
+  | { type: 'RESTORE_DRAFT'; snapshot: BuilderDraftSnapshot }
   | { type: 'SET_LOADING'; isLoading: boolean }
   | { type: 'SET_SAVING'; isSaving: boolean }
   | { type: 'SET_PUBLISHING'; isPublishing: boolean }
@@ -230,6 +241,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
       return { ...state, sidebarPanel: action.panel }
     case 'UPDATE_SITE_STYLES':
       return { ...state, siteStyles: action.siteStyles, isDirty: true, saveError: null, publishError: null }
+
     case 'APPLY_THEME': {
       const preset = SITE_THEME_PRESETS.find(entry => entry.id === action.themeId)
 
@@ -237,8 +249,44 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         return state
       }
 
-      return { ...state, siteStyles: preset.styles, isDirty: true, saveError: null, publishError: null }
+      const scope = action.restyleControls ?? 'match'
+
+      const blocks =
+        scope === 'none'
+          ? state.blocks
+          : reharmonizeBlockTreeToTheme(
+              state.blocks,
+              state.siteStyles,
+              preset.styles,
+              scope === 'rebuild' ? 'force' : 'conservative'
+            ).blocks
+
+      return { ...state, blocks, siteStyles: preset.styles, isDirty: true, saveError: null, publishError: null }
     }
+
+    case 'APPLY_AI_RESULT':
+      return {
+        ...state,
+        blocks: action.blocks,
+        siteStyles: action.siteStyles,
+        selectedBlockId: action.selectedBlockId,
+        selectedNestedItemId: null,
+        isDirty: true,
+        saveError: null,
+        publishError: null
+      }
+
+    case 'RESTORE_DRAFT':
+      return {
+        ...state,
+        blocks: action.snapshot.blocks,
+        siteStyles: action.snapshot.siteStyles,
+        selectedBlockId: action.snapshot.selectedBlockId,
+        selectedNestedItemId: null,
+        isDirty: true,
+        saveError: null,
+        publishError: null
+      }
     case 'SET_LOADING':
       return { ...state, isLoading: action.isLoading }
     case 'SET_SAVING':
@@ -327,12 +375,15 @@ type BuilderContextValue = BuilderState & {
   selectedBlock: Block | null
   hasUnpublishedChanges: boolean
   addBlock: (type: BlockType, target?: BlockLocation, paletteId?: string) => Block
-  updateBlock: (id: string, props: Partial<Block['props']>) => void
+  updateBlock: (id: string, props: BlockPropsPatch) => void
   deleteBlock: (id: string) => void
+
   /** The block currently held in the copy clipboard (null if empty). */
   copiedBlock: Block | null
+
   /** Copy a block to the clipboard. */
   copyBlock: (block: Block) => void
+
   /** Paste the clipboard block after a given block id (root-level). Clears clipboard after paste. */
   pasteBlock: (afterBlockId?: string) => void
   moveBlock: (activeId: string, overId: string | number, nestHints?: NestTargetHints) => void
@@ -344,7 +395,17 @@ type BuilderContextValue = BuilderState & {
   setAutosaveEnabled: (enabled: boolean) => void
   setSidebarPanel: (panel: BuilderSidebarPanel) => void
   updateSiteStyles: (partial: Partial<SiteStyles>) => void
-  applyThemePreset: (themeId: string) => void
+  applyThemePreset: (themeId: string, restyleControls?: AiBuilderRestyleScope) => void
+
+  /** Apply a whole AI plan against one snapshot so operations can build on each other. */
+  applyAiPlan: (plan: AiBuilderPlan, refToId: Record<string, string>) => AiPlanApplyResult
+
+  /**
+   * Land a confirmed redesign: one control's subtree when targetBlockId is set, otherwise
+   * the whole page plus its tokens.
+   */
+  applyAiDesign: (input: { blocks: Block[]; siteStyles: SiteStyles | null; targetBlockId: string | null }) => boolean
+  restoreDraft: (snapshot: BuilderDraftSnapshot) => void
   savePage: () => Promise<void>
   publishPage: () => Promise<void>
   switchPage: (slug: string) => Promise<void>
@@ -359,6 +420,7 @@ type BuilderContextValue = BuilderState & {
   deletePage: (slug: string) => Promise<void>
   updatePageMeta: (slug: string, input: { title?: string; description?: string }) => Promise<void>
   refreshPages: () => Promise<void>
+
   /** Replace current page draft with blocks from another page (paste-blocks-to-page). */
   pasteBlocksFromPage: (sourceSlug: string) => Promise<void>
   restoreVersionToDraft: (blocks: Block[], savedAt: string) => void
@@ -463,6 +525,11 @@ export function BuilderProvider({
   const publishedSiteStylesRef = useRef(state.publishedSiteStyles)
   const currentPageSlugRef = useRef(state.currentPageSlug)
   const isDirtyRef = useRef(state.isDirty)
+  const selectedBlockIdRef = useRef(state.selectedBlockId)
+
+  useEffect(() => {
+    selectedBlockIdRef.current = state.selectedBlockId
+  }, [state.selectedBlockId])
 
   useEffect(() => {
     blocksRef.current = state.blocks
@@ -498,6 +565,7 @@ export function BuilderProvider({
       dispatch({ type: 'SET_SAVING', isSaving: true })
 
       const stylesChanged = !siteStylesEqual(siteStyles, publishedSiteStylesRef.current)
+
       const result = await saveSitePageDraftAction(
         pageSlug,
         blocks,
@@ -675,7 +743,7 @@ export function BuilderProvider({
     [tenantLocation]
   )
 
-  const updateBlock = useCallback((id: string, props: Partial<Block['props']>) => {
+  const updateBlock = useCallback((id: string, props: BlockPropsPatch) => {
     dispatch({ type: 'UPDATE_BLOCK', id, props })
   }, [])
 
@@ -756,8 +824,74 @@ export function BuilderProvider({
     dispatch({ type: 'UPDATE_SITE_STYLES', siteStyles: mergeSiteStyles(partial, siteStylesRef.current) })
   }, [])
 
-  const applyThemePreset = useCallback((themeId: string) => {
-    dispatch({ type: 'APPLY_THEME', themeId })
+  const applyThemePreset = useCallback((themeId: string, restyleControls?: AiBuilderRestyleScope) => {
+    dispatch({ type: 'APPLY_THEME', themeId, restyleControls })
+  }, [])
+
+  const applyAiPlan = useCallback(
+    (plan: AiBuilderPlan, refToId: Record<string, string>) => {
+      const result = applyAiBuilderPlan({
+        blocks: blocksRef.current,
+        siteStyles: siteStylesRef.current,
+        selectedBlockId: selectedBlockIdRef.current,
+        plan,
+        refToId,
+        tenantLocation
+      })
+
+      if (result.changes.length > 0) {
+        dispatch({
+          type: 'APPLY_AI_RESULT',
+          blocks: result.blocks,
+          siteStyles: result.siteStyles,
+          selectedBlockId: result.selectedBlockId
+        })
+      }
+
+      return result
+    },
+    [tenantLocation]
+  )
+
+  const applyAiDesign = useCallback(
+    (input: { blocks: Block[]; siteStyles: SiteStyles | null; targetBlockId: string | null }) => {
+      const incoming = normalizeBlocks(input.blocks)
+
+      if (input.targetBlockId) {
+        const replacement = incoming[0]
+
+        if (!replacement || !findBlockInTree(blocksRef.current, input.targetBlockId)) {
+          return false
+        }
+
+        dispatch({
+          type: 'APPLY_AI_RESULT',
+          blocks: updateBlockInTree(blocksRef.current, input.targetBlockId, replacement.props),
+          siteStyles: siteStylesRef.current,
+          selectedBlockId: input.targetBlockId
+        })
+
+        return true
+      }
+
+      if (!incoming.length) {
+        return false
+      }
+
+      dispatch({
+        type: 'APPLY_AI_RESULT',
+        blocks: incoming,
+        siteStyles: input.siteStyles ?? siteStylesRef.current,
+        selectedBlockId: null
+      })
+
+      return true
+    },
+    []
+  )
+
+  const restoreDraft = useCallback((snapshot: BuilderDraftSnapshot) => {
+    dispatch({ type: 'RESTORE_DRAFT', snapshot })
   }, [])
 
   const savePage = useCallback(async () => {
@@ -1012,6 +1146,9 @@ export function BuilderProvider({
       setSidebarPanel,
       updateSiteStyles,
       applyThemePreset,
+      applyAiPlan,
+      applyAiDesign,
+      restoreDraft,
       savePage,
       publishPage,
       switchPage,
@@ -1050,6 +1187,9 @@ export function BuilderProvider({
       setSidebarPanel,
       updateSiteStyles,
       applyThemePreset,
+      applyAiPlan,
+      applyAiDesign,
+      restoreDraft,
       savePage,
       publishPage,
       switchPage,

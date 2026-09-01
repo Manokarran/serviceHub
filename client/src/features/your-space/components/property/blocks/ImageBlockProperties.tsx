@@ -34,7 +34,10 @@ type LayoutOption<T extends string> = { value: T; label: string; icon: string }
 const HOVER_OPTIONS: LayoutOption<ImageHoverEffect>[] = [
   { value: 'none', label: 'None', icon: 'ri-forbid-line' },
   { value: 'zoom', label: 'Zoom', icon: 'ri-zoom-in-line' },
-  { value: 'fade', label: 'Fade', icon: 'ri-contrast-drop-2-line' }
+  { value: 'fade', label: 'Fade', icon: 'ri-contrast-drop-2-line' },
+  { value: 'lift', label: 'Lift', icon: 'ri-arrow-up-line' },
+  { value: 'blur', label: 'Blur', icon: 'ri-contrast-2-line' },
+  { value: 'grayscale', label: 'Grayscale', icon: 'ri-contrast-drop-line' }
 ]
 
 const QUALITY_OPTIONS: LayoutOption<ImageDeliveryQuality>[] = [

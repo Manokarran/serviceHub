@@ -22,7 +22,9 @@ import { getCalendarDateInZone, toIsoDate } from '@/lib/utils/timezone'
 import { WEEKDAY_LABELS } from '@/lib/constants/service'
 import { formatClock, formatDateTime, formatDuration, formatMoney, formatPrice } from '@/features/services/utils/format'
 import { getSiteButtonSx } from '../../utils/siteStylesHelpers'
+import { getMediaHoverSx } from '../../utils/mediaBlockHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
+import { InlineEditableText } from '../inline/InlineEditableText'
 
 import { ServiceInfo } from './ServiceInfo'
 
@@ -36,6 +38,7 @@ type Props = {
   showTimezone?: boolean
   compact?: boolean
   ctaLabel?: string
+  editableText?: boolean
   onChangeService?: () => void
 }
 
@@ -78,13 +81,17 @@ export function ServiceBookingFlow({
   showTimezone = true,
   compact = false,
   ctaLabel = 'Continue booking',
+  editableText = false,
   onChangeService
 }: Props) {
   const theme = useTheme()
   const siteStyles = useSiteStyles()
 
-  const siteButtonSx = (role: 'primary' | 'secondary' | 'tertiary') =>
-    getSiteButtonSx(role, siteStyles) as Record<string, unknown>
+  // Calendar and availability controls are dense data selectors. Keep them square even
+  // when the site's brand buttons use a pill or rounded shape.
+  const sharpBookingButtonSx = (role: 'primary' | 'secondary' | 'tertiary') => ({
+    ...getSiteButtonSx(role, siteStyles, undefined, 0)
+  })
 
   const { data: session, status: sessionStatus } = useSession()
   const [service, setService] = useState<PublicService | null>(initialService)
@@ -677,10 +684,26 @@ export function ServiceBookingFlow({
       <Stack spacing={2.5}>
         <Box>
           <Typography variant={compact ? 'h6' : 'h4'}>
-            {title === 'Choose a time' ? 'Choose a service' : title}
+            {editableText ? (
+              <InlineEditableText value={title} field='title' placeholder='Booking title' />
+            ) : title === 'Choose a time' ? (
+              'Choose a service'
+            ) : (
+              title
+            )}
           </Typography>
           <Typography color='text.secondary' sx={{ mt: 0.75 }}>
-            Search for a service to see its available booking times.
+            {editableText ? (
+              <InlineEditableText
+                value={subtitle}
+                field='subtitle'
+                placeholder='Supporting text'
+                multiline
+                sx={{ display: 'block' }}
+              />
+            ) : (
+              'Search for a service to see its available booking times.'
+            )}
           </Typography>
         </Box>
         {error ? <Alert severity='error'>{error}</Alert> : null}
@@ -749,12 +772,14 @@ export function ServiceBookingFlow({
                     overflow: 'hidden',
                     borderRadius: 2,
                     bgcolor: alpha(siteStyles.colors.accent, 0.12),
-                    color: siteStyles.colors.accent
+                    color: siteStyles.colors.accent,
+                    ...getMediaHoverSx(siteStyles.misc.imageHoverEffect)
                   }}
                 >
                   {item.coverImageUrl ? (
                     <Box
                       component='img'
+                      className='media-block-image'
                       src={item.coverImageUrl}
                       alt=''
                       sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
@@ -841,29 +866,49 @@ export function ServiceBookingFlow({
       {showServiceSummary ? (
         <Box>
           <Typography variant='overline' color='text.secondary'>
-            {title}
+            {editableText ? <InlineEditableText value={title} field='title' placeholder='Booking title' /> : title}
           </Typography>
           {service.coverImageUrl ? (
             <Box
-              component='img'
-              src={service.coverImageUrl}
-              alt=''
               sx={{
-                display: 'block',
                 width: '100%',
                 maxHeight: { xs: 180, sm: 240 },
-                objectFit: 'cover',
                 borderRadius: 2,
+                overflow: 'hidden',
                 mt: 0.5,
-                mb: 2
+                mb: 2,
+                ...getMediaHoverSx(siteStyles.misc.imageHoverEffect)
               }}
-            />
+            >
+              <Box
+                component='img'
+                className='media-block-image'
+                src={service.coverImageUrl}
+                alt=''
+                sx={{
+                  display: 'block',
+                  width: '100%',
+                  maxHeight: { xs: 180, sm: 240 },
+                  objectFit: 'cover'
+                }}
+              />
+            </Box>
           ) : null}
           <Typography variant={compact ? 'h5' : 'h3'} sx={{ fontWeight: 750 }}>
             {service.name}
           </Typography>
           <Typography color='text.secondary' sx={{ mt: 0.75 }}>
-            {service.tagline || subtitle}
+            {editableText ? (
+              <InlineEditableText
+                value={subtitle}
+                field='subtitle'
+                placeholder='Supporting text'
+                multiline
+                sx={{ display: 'block' }}
+              />
+            ) : (
+              service.tagline || subtitle
+            )}
           </Typography>
           {canChangeService ? (
             <Button
@@ -952,8 +997,14 @@ export function ServiceBookingFlow({
                         setQuantity(1)
                       }}
                       sx={[
-                        siteButtonSx(selectedBatchId === batch.id ? 'primary' : 'secondary'),
-                        { justifyContent: 'flex-start', textAlign: 'left', textTransform: 'none', p: 2 }
+                        sharpBookingButtonSx(selectedBatchId === batch.id ? 'primary' : 'secondary'),
+                        {
+                          justifyContent: 'flex-start',
+                          textAlign: 'left',
+                          textTransform: 'none',
+                          p: 2,
+                          overflow: 'hidden'
+                        }
                       ]}
                     >
                       <Stack spacing={0.25} sx={{ width: '100%' }}>
@@ -1000,7 +1051,7 @@ export function ServiceBookingFlow({
                       setHoldToken(null)
                     }}
                     disabled={monthCursor.getTime() <= currentMonth.getTime()}
-                    sx={getSiteButtonSx('secondary', siteStyles)}
+                    sx={sharpBookingButtonSx('secondary')}
                   >
                     Previous
                   </Button>
@@ -1019,7 +1070,7 @@ export function ServiceBookingFlow({
                       setHoldToken(null)
                     }}
                     disabled={monthCursor.getTime() >= lastAvailabilityMonth.getTime()}
-                    sx={getSiteButtonSx('secondary', siteStyles)}
+                    sx={sharpBookingButtonSx('secondary')}
                   >
                     Next
                   </Button>
@@ -1067,7 +1118,7 @@ export function ServiceBookingFlow({
                       }}
                       disabled={!isSelectable}
                       sx={[
-                        siteButtonSx(activeDate === dateKey ? 'primary' : 'secondary'),
+                        sharpBookingButtonSx(activeDate === dateKey ? 'primary' : 'secondary'),
                         {
                           minHeight: { xs: 72, sm: 92 },
                           minWidth: 0,
@@ -1075,6 +1126,7 @@ export function ServiceBookingFlow({
                           alignItems: 'flex-start',
                           justifyContent: 'flex-start',
                           textTransform: 'none',
+                          overflow: 'hidden',
                           opacity: day === null || !isSelectable ? 0.5 : 1
                         }
                       ]}
@@ -1118,7 +1170,7 @@ export function ServiceBookingFlow({
                           daySlots.length === 1 ? 'session' : 'sessions'
                         }, ${available} available, ${booked} booked`}
                         sx={[
-                          siteButtonSx(activeDate === dateKey ? 'primary' : 'secondary'),
+                          sharpBookingButtonSx(activeDate === dateKey ? 'primary' : 'secondary'),
                           {
                             minHeight: 72,
                             minWidth: 0,
@@ -1126,6 +1178,7 @@ export function ServiceBookingFlow({
                             alignItems: 'center',
                             justifyContent: 'stretch',
                             textTransform: 'none',
+                            overflow: 'hidden',
                             opacity: !isSelectable ? 0.5 : 1
                           }
                         ]}
@@ -1196,13 +1249,14 @@ export function ServiceBookingFlow({
                     setHoldToken(null)
                   }}
                   sx={[
-                    siteButtonSx(selectedSlotId === slot.id ? 'primary' : 'secondary'),
+                    sharpBookingButtonSx(selectedSlotId === slot.id ? 'primary' : 'secondary'),
                     {
                       minHeight: 78,
                       p: 1.5,
                       textAlign: 'left',
                       justifyContent: 'stretch',
-                      textTransform: 'none'
+                      textTransform: 'none',
+                      overflow: 'hidden'
                     }
                   ]}
                 >

@@ -20,9 +20,9 @@ import '@/app/globals.css'
 import '@assets/iconify-icons/generated-icons.css'
 
 export const metadata = {
-  title: 'Sidhiyana Pvt Ltd',
+  title: 'ServiceHub — Your Space',
   description:
-    'Materio - Material Design Next.js Admin Dashboard Template - is the most developer friendly & highly customizable Admin Dashboard Template based on MUI v5.'
+    'ServiceHub is your space to build and publish a company website, list services, and manage bookings and leads from one dashboard.'
 }
 
 const RootLayout = async (props: ChildrenType) => {

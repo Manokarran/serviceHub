@@ -1,4 +1,4 @@
-import type { Block, BlockType, CarouselBlockProps, SectionBlockProps, TabsBlockProps } from '../types'
+import type { Block, BlockPropsPatch, BlockType, CarouselBlockProps, SectionBlockProps, TabsBlockProps } from '../types'
 
 export type BlockColumn = 'default' | 'primary' | 'secondary'
 
@@ -1072,7 +1072,7 @@ export function deleteBlockFromTree(blocks: Block[], id: string): Block[] {
   return next
 }
 
-function updateBlockInList(blocks: Block[], id: string, props: Partial<Block['props']>): Block[] {
+function updateBlockInList(blocks: Block[], id: string, props: BlockPropsPatch): Block[] {
   return blocks.map(block => {
     if (block.id === id) {
       return { ...block, props: { ...block.props, ...props } as Block['props'] }
@@ -1086,7 +1086,7 @@ function updateBlockInList(blocks: Block[], id: string, props: Partial<Block['pr
   })
 }
 
-export function updateBlockInTree(blocks: Block[], id: string, props: Partial<Block['props']>): Block[] {
+export function updateBlockInTree(blocks: Block[], id: string, props: BlockPropsPatch): Block[] {
   return updateBlockInList(blocks, id, props)
 }
 

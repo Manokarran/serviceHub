@@ -434,6 +434,7 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
             <ToolbarDivider />
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.125 }}>
+
               {!isSystemBuilder ? (
                 <LiveSiteButton siteUrl={siteUrl} displayUrl={displayUrl} hasUnpublishedChanges={hasUnpublishedChanges} />
               ) : null}

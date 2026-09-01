@@ -69,7 +69,7 @@ export const siteStylesSchema = z.object({
     spacingScale: z.enum(['compact', 'default', 'spacious']),
     canvasCornerRadius: z.number().min(0).max(48).optional(),
     imageCornerRadius: z.number().min(0).max(32),
-    imageHoverEffect: z.enum(['none', 'zoom', 'fade']),
+    imageHoverEffect: z.enum(['none', 'zoom', 'fade', 'lift', 'blur', 'grayscale']),
     imageAspectRatio: z.enum(['auto', '16/9', '4/3', '1/1']),
     pageSplitVisualAnimation: heroSplitVisualAnimationSchema.optional(),
     pageSplitVisualColorStart: z.string().max(32).optional(),

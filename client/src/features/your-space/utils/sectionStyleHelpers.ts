@@ -199,7 +199,7 @@ export function buildVideoBackgroundValue(url: string): string {
 
 export function getPhotoAnimation(
   props: BlockBackgroundProps,
-  siteDefault: ImageHoverEffect = 'none'
+  siteDefault: ImageHoverEffect = 'zoom'
 ): ImageHoverEffect {
   return props.backgroundPhotoAnimation ?? siteDefault
 }
@@ -286,7 +286,7 @@ export function getPhotoLayerSx(opacityPercent: number): SxProps<Theme> {
   }
 }
 
-/** Image Blocks hover effect — zoom/fade triggers on section mouseover */
+/** Photo and video background effects triggered when the section is hovered. */
 export function getPhotoHoverSectionSx(animation: ImageHoverEffect, opacityPercent: number): SxProps<Theme> {
   const opacityFraction = Math.min(100, Math.max(0, opacityPercent)) / 100
   const photoLayer = `.${SECTION_PHOTO_LAYER_CLASS}`
@@ -311,6 +311,42 @@ export function getPhotoHoverSectionSx(animation: ImageHoverEffect, opacityPerce
       },
       [`&:hover ${photoLayer}`]: {
         opacity: opacityFraction * 0.72
+      }
+    }
+  }
+
+  if (animation === 'lift') {
+    return {
+      [`& ${photoLayer}`]: {
+        transition: 'transform 0.45s ease',
+        transform: 'scale(1)'
+      },
+      [`&:hover ${photoLayer}`]: {
+        transform: 'translateY(-4px) scale(1.04)'
+      }
+    }
+  }
+
+  if (animation === 'blur') {
+    return {
+      [`& ${photoLayer}`]: {
+        transition: 'filter 0.45s ease, transform 0.45s ease',
+        filter: 'blur(0) scale(1)'
+      },
+      [`&:hover ${photoLayer}`]: {
+        filter: 'blur(3px) scale(1.04)'
+      }
+    }
+  }
+
+  if (animation === 'grayscale') {
+    return {
+      [`& ${photoLayer}`]: {
+        transition: 'filter 0.45s ease',
+        filter: 'grayscale(0)'
+      },
+      [`&:hover ${photoLayer}`]: {
+        filter: 'grayscale(0.85)'
       }
     }
   }
