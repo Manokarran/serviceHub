@@ -62,11 +62,20 @@ export function CarouselDropZone({
         minHeight: isEmpty ? 140 : 56,
         height: isEmpty ? '100%' : undefined,
         flex: isEmpty ? 1 : undefined,
-        ...builderContainerChromeSx(theme, { isOver, isDragging }),
-        ...(!(isDragging && isOver) && !isDragging
-          ? { backgroundColor: alpha(theme.palette.text.primary, 0.02) }
+        borderRadius: 1,
+        transition: 'box-shadow 0.15s ease, background-color 0.15s ease',
+        ...(isDragging
+          ? builderContainerChromeSx(theme, { isOver, isDragging })
+          : {
+              backgroundColor: 'transparent',
+              border: '1px solid transparent'
+            }),
+        ...(isDragging && isOver
+          ? {
+              backgroundColor: alpha(theme.palette.primary.main, 0.08)
+            }
           : {}),
-        p: isEmpty ? 2 : 0.75
+        p: isEmpty ? 2 : 0.25
       }}
     >
       {isDragging && isOver && <DropTargetCue label={`Drop in ${slideLabel}`} emphasized />}

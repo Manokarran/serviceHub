@@ -12,8 +12,15 @@ import {
   CAROUSEL_TRANSITION_OPTIONS
 } from '../utils/carouselStyleHelpers'
 import {
+  CAROUSEL_STYLE_OPTIONS,
+  getCarouselStyleOverrides,
+  inferCarouselStylePreset,
+  type CarouselStylePreset
+} from '../constants/carouselStyle'
+import {
   CornerRadiusField,
   LayoutOptionGroup,
+  PropertyBodyText,
   PropertyFieldLabel,
   PropertySection
 } from './property/PropertyPanelUi'
@@ -59,8 +66,21 @@ function ColorField({
 }
 
 export function CarouselLayoutControls({ props, accentColor, onUpdate }: Props) {
+  const stylePreset = inferCarouselStylePreset(props)
+
+  const applyStyle = (next: CarouselStylePreset) => {
+    onUpdate(getCarouselStyleOverrides(next))
+  }
+
   return (
     <>
+      <PropertySection title='Carousel style' collapsible defaultOpen>
+        <PropertyBodyText>
+          Switch between the four carousel looks — same slides, different motion and layout.
+        </PropertyBodyText>
+        <LayoutOptionGroup value={stylePreset} options={CAROUSEL_STYLE_OPTIONS} onChange={applyStyle} />
+      </PropertySection>
+
       <PropertySection title='Transition' collapsible defaultOpen>
         <LayoutOptionGroup
           value={props.transition}

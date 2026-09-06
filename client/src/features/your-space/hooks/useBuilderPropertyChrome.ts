@@ -4,15 +4,24 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { readBuilderPropertyChrome, writeBuilderPropertyChrome } from '../utils/builderContainerChrome'
 
-export function useBuilderPropertyChrome() {
-  const [propertyPinned, setPropertyPinned] = useState(true)
+type Options = {
+
+  /** Keep the properties dock closed so a fresh site lands canvas-first. */
+  forceClosed?: boolean
+}
+
+export function useBuilderPropertyChrome(options: Options = {}) {
+  const { forceClosed = false } = options
+  const [propertyPinned, setPropertyPinned] = useState(!forceClosed)
   const [chromeReady, setChromeReady] = useState(false)
   const skipWrite = useRef(true)
 
   useEffect(() => {
-    setPropertyPinned(readBuilderPropertyChrome().pinned)
+    const stored = readBuilderPropertyChrome()
+
+    setPropertyPinned(forceClosed ? false : stored.pinned)
     setChromeReady(true)
-  }, [])
+  }, [forceClosed])
 
   useEffect(() => {
     if (!chromeReady) {

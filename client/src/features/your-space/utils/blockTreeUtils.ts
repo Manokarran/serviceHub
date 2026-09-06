@@ -26,7 +26,8 @@ export const SECTION_CHILD_TYPES: BlockType[] = [
   'pricing',
   'serviceDirectory',
   'serviceBooking',
-  'customerBookings'
+  'customerBookings',
+  'location'
 ]
 
 /** Blocks allowed inside a carousel slide or tab panel */

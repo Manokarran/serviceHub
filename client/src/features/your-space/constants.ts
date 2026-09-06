@@ -62,6 +62,7 @@ const DEFAULT_CAROUSEL_SLIDES = [
 
 const CAROUSEL_BASE_PROPS = {
   slides: DEFAULT_CAROUSEL_SLIDES,
+  stylePreset: 'slide' as const,
   autoplay: true,
   autoplayInterval: 5000,
   loop: true,
@@ -80,6 +81,9 @@ const CAROUSEL_BASE_PROPS = {
   slideMinHeight: 280,
   arrowColor: '#1a1a2e',
   dotColor: '#6366f1',
+  slidePanelColor: '',
+  slidePanelOpacity: 60,
+  showSlidePanelBorder: true,
   background: 'transparent',
   backgroundType: 'color' as const,
   backgroundOpacity: 0,
@@ -93,6 +97,7 @@ function carouselPaletteItem(
   label: string,
   description: string,
   icon: string,
+  stylePreset: 'slide' | 'fade' | 'cards' | 'coverflow',
   transition: CarouselTransition,
   overrides?: Partial<typeof CAROUSEL_BASE_PROPS>
 ): PaletteItem {
@@ -105,6 +110,7 @@ function carouselPaletteItem(
     category: 'carousel',
     defaultProps: {
       ...CAROUSEL_BASE_PROPS,
+      stylePreset,
       transition,
       ...overrides
     }
@@ -273,19 +279,19 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     'split-horizontal'
   ),
   sectionPaletteItem('section-stacked', 'Stacked', 'Two stacked rows', 'ri-layout-grid-line', 'split-vertical'),
-  carouselPaletteItem('carousel-slide', 'Carousel', 'Animated slides with your blocks', 'ri-carousel-view', 'slide'),
-  carouselPaletteItem('carousel-fade', 'Fade carousel', 'Cross-fade between slides', 'ri-transition', 'fade', {
+  carouselPaletteItem('carousel-slide', 'Carousel', 'Animated slides with your blocks', 'ri-carousel-view', 'slide', 'slide'),
+  carouselPaletteItem('carousel-fade', 'Fade carousel', 'Cross-fade between slides', 'ri-transition', 'fade', 'fade', {
     autoplayInterval: 6000,
     transitionDuration: 45
   }),
-  carouselPaletteItem('carousel-cards', 'Card carousel', 'Multiple cards per view', 'ri-gallery-line', 'slide', {
+  carouselPaletteItem('carousel-cards', 'Card carousel', 'Multiple cards per view', 'ri-gallery-line', 'cards', 'slide', {
     slidesPerView: 3,
     slideGap: 24,
     slidePeek: 8,
     slideMinHeight: 220,
     autoplay: false
   }),
-  carouselPaletteItem('carousel-coverflow', 'Coverflow', '3D depth carousel', 'ri-stack-line', 'coverflow', {
+  carouselPaletteItem('carousel-coverflow', 'Coverflow', '3D depth carousel', 'ri-stack-line', 'coverflow', 'coverflow', {
     slidePeek: 18,
     transitionDuration: 40,
     arrowStyle: 'floating'
@@ -924,6 +930,7 @@ export const PALETTE_ITEMS: PaletteItem[] = [
       mapZoom: 12,
       mapStyle: 'theme',
       showMapControls: true,
+      mapOpacity: 85,
       alignment: 'left'
     }
   }

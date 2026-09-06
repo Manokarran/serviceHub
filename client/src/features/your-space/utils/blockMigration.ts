@@ -28,6 +28,7 @@ import type {
 } from '../types'
 import { createBlockId } from './blockFactory'
 import { DEFAULT_SHAPE_PROPS } from '../constants/shapeBlock'
+import { inferCarouselStylePreset } from '../constants/carouselStyle'
 import { DEFAULT_ICON_BLOCK_PROPS } from '../constants/iconBlock'
 import { DEFAULT_LOGO_ICON_STYLE } from '@/components/iconPickerStyle'
 import {
@@ -364,6 +365,7 @@ export function normalizeBlock(block: Block): Block {
       props: {
         ...props,
         slides: slides.length > 0 ? slides : [{ id: createBlockId(), children: [] }],
+        stylePreset: props.stylePreset ?? inferCarouselStylePreset(props),
         transition: props.transition ?? 'slide',
         autoplay: props.autoplay ?? true,
         autoplayInterval: props.autoplayInterval ?? 5000,
@@ -383,6 +385,12 @@ export function normalizeBlock(block: Block): Block {
         slideMinHeight: props.slideMinHeight ?? 280,
         arrowColor: props.arrowColor ?? '#1a1a2e',
         dotColor: props.dotColor ?? '#6366f1',
+        slidePanelColor: typeof props.slidePanelColor === 'string' ? props.slidePanelColor : '',
+        slidePanelOpacity:
+          typeof props.slidePanelOpacity === 'number'
+            ? Math.min(100, Math.max(0, props.slidePanelOpacity))
+            : 60,
+        showSlidePanelBorder: props.showSlidePanelBorder ?? true,
         ...normalizeChromeBackgroundProps(
           {
             ...props,
@@ -664,6 +672,7 @@ export function normalizeBlock(block: Block): Block {
           ? props.mapStyle
           : 'theme',
         showMapControls: props.showMapControls ?? true,
+        mapOpacity: typeof props.mapOpacity === 'number' ? Math.min(100, Math.max(0, props.mapOpacity)) : 85,
         alignment: props.alignment ?? 'left',
         background: props.background ?? 'transparent',
         backgroundType: props.backgroundType ?? 'color',

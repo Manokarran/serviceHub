@@ -5,8 +5,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { BuilderSidebarPanel } from '../types'
 import { readBuilderLeftChrome, writeBuilderLeftChrome } from '../utils/builderContainerChrome'
 
-export function useBuilderLeftChrome() {
-  const [leftPanel, setLeftPanel] = useState<BuilderSidebarPanel | null>('blocks')
+type Options = {
+
+  /** Start with every left dock panel closed so the canvas owns the view. */
+  forceClosed?: boolean
+}
+
+export function useBuilderLeftChrome(options: Options = {}) {
+  const { forceClosed = false } = options
+  const [leftPanel, setLeftPanel] = useState<BuilderSidebarPanel | null>(forceClosed ? null : 'blocks')
   const [leftPinned, setLeftPinned] = useState(true)
   const [chromeReady, setChromeReady] = useState(false)
   const skipWrite = useRef(true)
@@ -15,9 +22,9 @@ export function useBuilderLeftChrome() {
     const stored = readBuilderLeftChrome()
 
     setLeftPinned(stored.pinned)
-    setLeftPanel(stored.panel)
+    setLeftPanel(forceClosed ? null : stored.panel)
     setChromeReady(true)
-  }, [])
+  }, [forceClosed])
 
   useEffect(() => {
     if (!chromeReady) {

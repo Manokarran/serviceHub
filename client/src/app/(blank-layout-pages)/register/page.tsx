@@ -4,18 +4,13 @@ import type { Metadata } from 'next'
 // Component Imports
 import Register from '@views/Register'
 
-// Server Action Imports
-import { getServerMode } from '@core/utils/serverHelpers'
-
 export const metadata: Metadata = {
-  title: 'Complete Registration',
-  description: 'Set up your organization account'
+  title: 'Build with AI · ServiceHub',
+  description: 'Describe your website or pick a template, then create your workspace'
 }
 
 const RegisterPage = async () => {
-  const mode = await getServerMode()
-
-  return <Register mode={mode} />
+  return <Register />
 }
 
 export default RegisterPage

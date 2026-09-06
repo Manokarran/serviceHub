@@ -42,12 +42,39 @@ function scrollBuilderCanvasToTop() {
   canvas?.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+function isBuilderWorkspacePath(pathname: string | null): boolean {
+  if (!pathname) {
+    return false
+  }
+
+  return (
+    pathname.startsWith('/your-space') ||
+    pathname.startsWith('/super-admin/studio/builder') ||
+    pathname.includes('/super-admin/templates/')
+  )
+}
+
+/** Don't hijack clicks that are meant to edit link labels inline. */
+function isInlineEditingClick(event: MouseEvent<HTMLElement>): boolean {
+  const target = event.target as HTMLElement | null
+
+  if (!target) {
+    return false
+  }
+
+  return Boolean(
+    target.closest('input, textarea, [contenteditable="true"]') ||
+      target.closest('[data-inline-editing="true"]')
+  )
+}
+
 export function useSitePageNavigation() {
   const router = useRouter()
   const pathname = usePathname()
   const builder = useBuilderOptional()
   const editContext = useCanvasBlockEdit()
   const isCanvasEditing = Boolean(builder && builder.mode === 'edit' && editContext)
+  const inBuilderWorkspace = Boolean(builder) || isBuilderWorkspacePath(pathname)
 
   const tenantSlug =
     builder?.tenantSlug ??
@@ -56,11 +83,32 @@ export function useSitePageNavigation() {
     ''
   const pages = builder?.pages ?? []
 
+  const switchBuilderPage = useCallback(
+    async (pageSlug: string) => {
+      if (!builder) {
+        return
+      }
+
+      await navigateWithTransition(async () => {
+        await builder.switchPage(pageSlug)
+        scrollBuilderCanvasToTop()
+
+        if (isBuilderWorkspacePath(pathname)) {
+          const params = new URLSearchParams(window.location.search)
+
+          params.set('p', pageSlug)
+          router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+        }
+      })
+    },
+    [builder, pathname, router]
+  )
+
   const handleLinkClick = useCallback(
     (event: MouseEvent<HTMLElement>, href?: string) => {
       const trimmed = href?.trim() || '#'
 
-      if (isCanvasEditing) {
+      if (isInlineEditingClick(event)) {
         event.preventDefault()
 
         return
@@ -68,6 +116,16 @@ export function useSitePageNavigation() {
 
       if (!trimmed || trimmed === '#') {
         event.preventDefault()
+
+        return
+      }
+
+      // Prefer in-builder page switches for hash links like "#about" when that page exists.
+      const pageSlug = resolveInternalPageSlug(trimmed, tenantSlug, pages)
+
+      if (builder && pageSlug) {
+        event.preventDefault()
+        void switchBuilderPage(pageSlug)
 
         return
       }
@@ -80,29 +138,18 @@ export function useSitePageNavigation() {
       }
 
       if (isExternalHref(trimmed)) {
+        // Keep editors from leaving the builder via accidental external nav.
+        if (inBuilderWorkspace && builder?.mode === 'edit') {
+          event.preventDefault()
+        }
+
         return
       }
 
-      const pageSlug = resolveInternalPageSlug(trimmed, tenantSlug, pages)
-
-      if (builder && pageSlug) {
+      // Inside the builder workspace, never fall through to public /site URLs
+      // (those often redirect to app home for unapproved tenants).
+      if (inBuilderWorkspace) {
         event.preventDefault()
-
-        void navigateWithTransition(async () => {
-          await builder.switchPage(pageSlug)
-          scrollBuilderCanvasToTop()
-
-          if (
-            pathname?.startsWith('/your-space') ||
-            pathname?.startsWith('/super-admin/studio/builder') ||
-            pathname?.includes('/super-admin/templates/')
-          ) {
-            const params = new URLSearchParams(window.location.search)
-
-            params.set('p', pageSlug)
-            router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-          }
-        })
 
         return
       }
@@ -125,7 +172,7 @@ export function useSitePageNavigation() {
         window.scrollTo({ top: 0, behavior: 'smooth' })
       })
     },
-    [builder, isCanvasEditing, pages, pathname, router, tenantSlug]
+    [builder, inBuilderWorkspace, pages, pathname, router, switchBuilderPage, tenantSlug]
   )
 
   const resolveHref = useCallback(
@@ -136,9 +183,20 @@ export function useSitePageNavigation() {
         return trimmed
       }
 
+      // Keep builder anchors inert for middle-click / open-in-new-tab while editing.
+      if (inBuilderWorkspace && builder) {
+        const pageSlug = resolveInternalPageSlug(trimmed, tenantSlug, pages)
+
+        if (pageSlug) {
+          return `#page/${pageSlug}`
+        }
+
+        return '#'
+      }
+
       return toHostAwarePublicPath(resolvePublicNavigationHref(trimmed, tenantSlug, pages), tenantSlug)
     },
-    [pages, tenantSlug]
+    [builder, inBuilderWorkspace, pages, tenantSlug]
   )
 
   return {

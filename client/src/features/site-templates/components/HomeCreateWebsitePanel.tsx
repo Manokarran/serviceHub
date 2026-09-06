@@ -9,6 +9,11 @@ import { alpha, keyframes, useTheme } from '@mui/material/styles'
 
 import { BuilderAiButton } from '@/features/your-space/components/BuilderAiButton'
 
+import {
+  HOME_AI_BORDER_GRADIENT,
+  HOME_AI_BUTTON_GRADIENT,
+  HOME_PALETTE
+} from '../constants/home-theme'
 import { usePublishedTemplates } from '../hooks/usePublishedTemplates'
 import { HomeTemplatePicker } from './HomeTemplatePicker'
 
@@ -39,8 +44,12 @@ export function HomeCreateWebsitePanel({ isSiteStarted }: Props) {
             component={Link}
             href='/your-space?aiSetup=1'
             variant='contained'
-            color='secondary'
             startIcon={<i className='ri-sparkling-line' />}
+            sx={{
+              bgcolor: HOME_PALETTE.ink,
+              color: '#fff',
+              '&:hover': { bgcolor: alpha(HOME_PALETTE.ink, 0.88) }
+            }}
           >
             Generate website
           </Button>
@@ -50,6 +59,14 @@ export function HomeCreateWebsitePanel({ isSiteStarted }: Props) {
               href='/your-space?replaceTemplate=1'
               variant='outlined'
               startIcon={<i className='ri-layout-grid-line' />}
+              sx={{
+                borderColor: alpha(HOME_PALETTE.accent, 0.55),
+                color: HOME_PALETTE.dark,
+                '&:hover': {
+                  borderColor: HOME_PALETTE.accent,
+                  bgcolor: alpha(HOME_PALETTE.accent, 0.06)
+                }
+              }}
             >
               Browse library
             </Button>
@@ -70,7 +87,7 @@ export function HomeCreateWebsitePanel({ isSiteStarted }: Props) {
             href='/your-space?setup=1'
             cta='Browse templates'
             ctaIcon='ri-gallery-line'
-            tone='primary'
+            color={HOME_PALETTE.accent}
           />
           <PathCard
             icon='ri-sparkling-line'
@@ -79,7 +96,7 @@ export function HomeCreateWebsitePanel({ isSiteStarted }: Props) {
             href='/your-space?aiSetup=1'
             cta='Generate my website'
             ctaIcon='ri-magic-line'
-            tone='secondary'
+            color={HOME_PALETTE.cyan}
             loading={loading}
           />
         </Box>
@@ -92,8 +109,6 @@ export function HomeCreateWebsitePanel({ isSiteStarted }: Props) {
 
 function BuildWithAiHighlight({ isSiteStarted }: { isSiteStarted: boolean }) {
   const theme = useTheme()
-  const accent = theme.palette.primary.main
-  const secondary = theme.palette.secondary.main
 
   return (
     <Box
@@ -110,12 +125,12 @@ function BuildWithAiHighlight({ isSiteStarted }: { isSiteStarted: boolean }) {
         gap: 2.5,
         background: `
           linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper}) padding-box,
-          linear-gradient(115deg, ${accent}, ${secondary}, ${accent}) border-box
+          ${HOME_AI_BORDER_GRADIENT} border-box
         `,
         backgroundSize: '100% 100%, 240% 240%',
         animation: `${aiBorderShift} 5s ease infinite`,
         border: '1px solid transparent',
-        boxShadow: `0 16px 36px ${alpha(accent, 0.14)}`
+        boxShadow: `0 16px 36px ${alpha(HOME_PALETTE.accent, 0.14)}`
       }}
     >
       <Box
@@ -127,7 +142,7 @@ function BuildWithAiHighlight({ isSiteStarted }: { isSiteStarted: boolean }) {
           borderRadius: '50%',
           right: { xs: -90, md: -40 },
           top: { xs: -140, md: -110 },
-          background: `radial-gradient(circle, ${alpha(secondary, 0.32)} 0%, transparent 68%)`,
+          background: `radial-gradient(circle, ${alpha(HOME_PALETTE.pink, 0.36)} 0%, transparent 68%)`,
           animation: `${aiDrift} 9s ease-in-out infinite`,
           pointerEvents: 'none'
         }}
@@ -141,7 +156,7 @@ function BuildWithAiHighlight({ isSiteStarted }: { isSiteStarted: boolean }) {
           borderRadius: '50%',
           left: { xs: -70, md: 120 },
           bottom: { xs: -100, md: -80 },
-          background: `radial-gradient(circle, ${alpha(accent, 0.28)} 0%, transparent 70%)`,
+          background: `radial-gradient(circle, ${alpha(HOME_PALETTE.cyan, 0.32)} 0%, transparent 70%)`,
           animation: `${aiDrift} 12s ease-in-out infinite reverse`,
           pointerEvents: 'none'
         }}
@@ -158,10 +173,10 @@ function BuildWithAiHighlight({ isSiteStarted }: { isSiteStarted: boolean }) {
             justifyContent: 'center',
             color: '#fff',
             flexShrink: 0,
-            background: `linear-gradient(115deg, ${theme.palette.primary.dark}, ${accent}, ${secondary})`,
+            background: HOME_AI_BUTTON_GRADIENT,
             backgroundSize: '220% 220%',
             animation: `${aiBorderShift} 5s ease infinite`,
-            boxShadow: `0 10px 22px ${alpha(accent, 0.28)}`
+            boxShadow: `0 10px 22px ${alpha(HOME_PALETTE.accent, 0.28)}`
           }}
         >
           <i className='ri-sparkling-2-line' style={{ fontSize: '1.45rem' }} />
@@ -179,7 +194,12 @@ function BuildWithAiHighlight({ isSiteStarted }: { isSiteStarted: boolean }) {
       </Box>
 
       <Box sx={{ position: 'relative', zIndex: 1, flexShrink: 0 }}>
-        <BuilderAiButton size='md' href='/your-space?aiChat=1' />
+        <BuilderAiButton
+          size='md'
+          href='/your-space?aiChat=1'
+          gradient={HOME_AI_BUTTON_GRADIENT}
+          glowColor={HOME_PALETTE.pink}
+        />
       </Box>
     </Box>
   )
@@ -192,7 +212,7 @@ function PathCard({
   href,
   cta,
   ctaIcon,
-  tone,
+  color,
   loading = false
 }: {
   icon: string
@@ -201,11 +221,10 @@ function PathCard({
   href: string
   cta: string
   ctaIcon: string
-  tone: 'primary' | 'secondary'
+  color: string
   loading?: boolean
 }) {
   const theme = useTheme()
-  const color = theme.palette[tone].main
 
   return (
     <Box
@@ -216,7 +235,7 @@ function PathCard({
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
-        border: `1px solid ${alpha(color, 0.16)}`,
+        border: `1px solid ${alpha(color, 0.2)}`,
         bgcolor: 'background.paper',
         transition: 'transform 0.2s, box-shadow 0.2s',
         '&:hover': {
@@ -249,10 +268,18 @@ function PathCard({
         component={Link}
         href={href}
         variant='outlined'
-        color={tone}
         disabled={loading}
         startIcon={<i className={ctaIcon} />}
-        sx={{ alignSelf: 'flex-start', mt: 1 }}
+        sx={{
+          alignSelf: 'flex-start',
+          mt: 1,
+          borderColor: alpha(color, 0.45),
+          color: HOME_PALETTE.ink,
+          '&:hover': {
+            borderColor: color,
+            bgcolor: alpha(color, 0.08)
+          }
+        }}
       >
         {cta}
       </Button>

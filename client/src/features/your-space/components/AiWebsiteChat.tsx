@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useRouter } from 'next/navigation'
 
@@ -22,18 +22,14 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
-import {
-  applyAiGeneratedSiteAction,
-  generateAiSitePreviewAction
-} from '@/app/actions/ai-site-wizard.actions'
 import { proposeDesignRestyleAction, rewordDesignScopeAction } from '@/app/actions/ai-design-studio.actions'
 import { listSuggestedBasePagesAction } from '@/app/actions/site-page.actions'
 import { useSiteWorkspaceOptional } from '@/features/site-templates/context/SiteWorkspaceContext'
-import { inferDesignProfile } from '@/lib/ai-design-studio/brief-inference'
+import { consumePendingBuildIntent, peekPendingBuildIntent } from '@/features/register/utils/pending-build-intent'
 import type { DesignProposal, DesignScope } from '@/lib/ai-design-studio/types'
-import type { AiSiteGenerationPreview } from '@/lib/ai-site-wizard/types'
+import { applySiteFromBrief } from '@/lib/ai-site-wizard/apply-from-brief'
 import { buildAiBuilderContext } from '@/lib/ai-builder/context'
-import { getRequestedAiBuilderBlocks, createLocalAiBuilderPlan } from '@/lib/ai-builder/planner'
+import { createLocalAiBuilderPlan } from '@/lib/ai-builder/planner'
 import {
   isOpenCreatePageListIntent,
   parseAddBasePageIntent,
@@ -49,12 +45,11 @@ import { notifyCreditsChanged } from '@/components/layout/shared/CreditsBadge'
 import { SITE_THEME_PRESETS } from '../constants/siteStylePresets'
 import { BUILDER_TYPOGRAPHY } from '../constants/builderLayout'
 import { useBuilder } from '../context/BuilderContext'
+import { useOptionalBuilderWorkOverlay } from '../context/BuilderWorkOverlayContext'
 import { useBuilderShell } from '../context/BuilderShellContext'
-import { flattenBlocks } from '../utils/blockTreeUtils'
 import { planAiInsertAtTarget } from '../utils/aiInsertAtTarget'
 import { resolveAiInsertTarget } from '../utils/quickAddHelpers'
 import { BuilderFloatingFrame, DockToolButton } from './BuilderFloatingFrame'
-import { createBlock } from '../utils/blockFactory'
 import type { PanelRect, PanelSize } from '../utils/builderPanelFrame'
 import type { BuilderDraftSnapshot } from '../context/BuilderContext'
 import type { AiBuilderPlan } from '@/lib/ai-builder/types'
@@ -102,21 +97,32 @@ const PAGE_OVERRIDE = /\b(whole|entire|full|complete)\s+(page|site|website|thing
 
 const CREATION_INTENT = /\b(build|create|generate|launch|start)\b/i
 
-const COMPANY_PATTERN = /(?:for|called|named)\s+([a-z0-9][a-z0-9 &.'-]{1,80})/i
-
 /**
  * Each shortcut states which intent it runs, so a phrase like "premium dark look" reaches
  * the art director instead of being guessed at by the free-text router.
  */
 type QuickAction = {
   label: string
-  kind: 'restyle' | 'reword' | 'fix-nav'
+  kind: 'restyle' | 'reword' | 'fix-nav' | 'prompt'
   instruction?: string
+  /** Free-text command routed through the local/remote planner. */
+  prompt?: string
 }
 
 const PAGE_ACTIONS: QuickAction[] = [
   { label: 'Redesign this page', kind: 'restyle' },
   { label: 'Premium and dark', kind: 'restyle', instruction: 'luxurious and premium in dark mode' },
+  {
+    label: 'Splashy & fancy',
+    kind: 'prompt',
+    prompt: 'apply the splashy theme'
+  },
+  {
+    label: 'Fancy neon redesign',
+    kind: 'restyle',
+    instruction:
+      'splashy and fancy — dark neon canvas with violet-to-cyan-to-pink glow, gradient headlines, energetic motion, and shimmer accents'
+  },
   { label: 'Warm and editorial', kind: 'restyle', instruction: 'warm editorial feel with generous space and big photography' },
   { label: 'Animated backdrop', kind: 'restyle', instruction: 'use a theme-matched animated gradient background with tasteful motion' },
   { label: 'Rewrite the copy', kind: 'reword' },
@@ -130,9 +136,18 @@ const CONTROL_ACTIONS: QuickAction[] = [
   { label: 'Animated backdrop', kind: 'restyle', instruction: 'use a theme-matched animated gradient background with tasteful motion' }
 ]
 
-function newNonce(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-}
+const PRICING_LAYOUT_ACTIONS: QuickAction[] = [
+  { label: 'Cards layout', kind: 'prompt', prompt: 'switch to cards layout' },
+  { label: 'Compare layout', kind: 'prompt', prompt: 'switch to comparison layout' },
+  { label: 'Stack layout', kind: 'prompt', prompt: 'switch to stack layout' }
+]
+
+const CAROUSEL_STYLE_ACTIONS: QuickAction[] = [
+  { label: 'Slide style', kind: 'prompt', prompt: 'switch to slide carousel style' },
+  { label: 'Fade style', kind: 'prompt', prompt: 'switch to fade carousel style' },
+  { label: 'Cards style', kind: 'prompt', prompt: 'switch to cards carousel style' },
+  { label: 'Coverflow style', kind: 'prompt', prompt: 'switch to coverflow carousel style' }
+]
 
 /**
  * Generating a whole site replaces every page, so only take that path when the request is
@@ -148,49 +163,6 @@ function isCreationPrompt(prompt: string, hasSelection: boolean, blockCount: num
   }
 
   return /\b(site|website|pages?|brand|business)\b/i.test(prompt) || blockCount === 0
-}
-
-function augmentGeneratedPreview(
-  preview: AiSiteGenerationPreview,
-  prompt: string
-): { preview: AiSiteGenerationPreview; addedLabels: string[] } {
-  const requests = getRequestedAiBuilderBlocks(prompt)
-  const pages = preview.pages.map(page => ({ ...page, blocks: [...page.blocks] }))
-  const sharedStyles = pages.find(page => page.slug === 'home')?.siteStyles ?? pages[0]?.siteStyles ?? null
-  const addedLabels: string[] = []
-
-  for (const request of requests) {
-    const preferredSlug =
-      request.type === 'contactForm' || request.type === 'location'
-        ? 'contact'
-        : request.type === 'pricing'
-          ? 'pricing'
-          : 'home'
-
-    const pageIndex = pages.findIndex(page => page.slug === preferredSlug)
-    const fallbackIndex = pageIndex === -1 ? pages.findIndex(page => page.slug === 'home') : pageIndex
-    const targetPage = pages[fallbackIndex === -1 ? 0 : fallbackIndex]
-
-    if (!targetPage || flattenBlocks(targetPage.blocks).some(block => block.type === request.type) || !sharedStyles) {
-      continue
-    }
-
-    targetPage.blocks = [...targetPage.blocks, createBlock(request.type, sharedStyles, request.paletteId)]
-    addedLabels.push(request.label)
-  }
-
-  if (addedLabels.length === 0) {
-    return { preview, addedLabels }
-  }
-
-  return {
-    preview: {
-      ...preview,
-      pages,
-      generationNotes: [...preview.generationNotes, `Added requested controls: ${addedLabels.join(', ')}.`]
-    },
-    addedLabels
-  }
 }
 
 function ProposalCard({
@@ -532,9 +504,24 @@ export function AiWebsiteChat({
     addBasePageFromTemplate
   } = useBuilder()
 
+  const workOverlay = useOptionalBuilderWorkOverlay()
   const shell = useBuilderShell()
   const aiInsertIntent = shell?.aiInsertIntent ?? null
   const workspace = useSiteWorkspaceOptional()
+
+  const runWithWorkOverlay = async (
+    kind: 'theme' | 'restyle' | 'generate' | 'plan',
+    work: () => void | Promise<void>,
+    title?: string
+  ) => {
+    if (!workOverlay) {
+      await work()
+
+      return
+    }
+
+    await workOverlay.runBuilderWork({ kind, title, work })
+  }
 
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
@@ -548,6 +535,7 @@ export function AiWebsiteChat({
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([])
   const [suggestedPages, setSuggestedPages] = useState<SuggestedBasePage[]>([])
   const [addingPageSlug, setAddingPageSlug] = useState<string | null>(null)
+  const pendingBuildHandled = useRef(false)
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -743,17 +731,34 @@ export function AiWebsiteChat({
       return
     }
 
-    pushUndo(`${proposal.concept} on ${proposal.targetLabel}`)
+    void (async () => {
+      setBusy(true)
+      setError(null)
 
-    if (!applyAiDesign({ blocks: proposal.blocks, siteStyles: proposal.siteStyles, targetBlockId: proposal.targetBlockId })) {
-      setUndoStack(current => current.slice(0, -1))
-      setError('The draft changed while you were reviewing. Ask me again to get a fresh proposal.')
+      try {
+        await runWithWorkOverlay('restyle', () => {
+          pushUndo(`${proposal.concept} on ${proposal.targetLabel}`)
 
-      return
-    }
+          if (
+            !applyAiDesign({
+              blocks: proposal.blocks,
+              siteStyles: proposal.siteStyles,
+              targetBlockId: proposal.targetBlockId
+            })
+          ) {
+            setUndoStack(current => current.slice(0, -1))
+            setError('The draft changed while you were reviewing. Ask me again to get a fresh proposal.')
 
-    appendMessage('assistant', `Applied "${proposal.concept}" to ${proposal.targetLabel}.`, proposal.highlights)
-    setProposal(null)
+            return
+          }
+
+          appendMessage('assistant', `Applied "${proposal.concept}" to ${proposal.targetLabel}.`, proposal.highlights)
+          setProposal(null)
+        }, proposal.concept)
+      } finally {
+        setBusy(false)
+      }
+    })()
   }
 
   const runStudio = async (kind: 'restyle' | 'reword', value: DesignScope, instruction: string) => {
@@ -767,11 +772,13 @@ export function AiWebsiteChat({
     setBusy(true)
 
     try {
-      if (kind === 'restyle') {
-        await requestProposal(value, instruction)
-      } else {
-        await runReword(value, instruction)
-      }
+      await runWithWorkOverlay(kind === 'restyle' ? 'restyle' : 'plan', async () => {
+        if (kind === 'restyle') {
+          await requestProposal(value, instruction)
+        } else {
+          await runReword(value, instruction)
+        }
+      })
     } catch (studioError) {
       setError(studioError instanceof Error ? studioError.message : 'I could not do that.')
     } finally {
@@ -791,51 +798,93 @@ export function AiWebsiteChat({
     await runStudio(kind, scope, trimmed)
   }
 
-  const generateSite = async (prompt: string) => {
-    const profile = inferDesignProfile({
-      businessName: prompt.match(COMPANY_PATTERN)?.[1]?.trim() || 'Your new brand',
-      pageCopy: [],
-      instruction: prompt,
-      nonce: newNonce()
-    })
+  const generateSite = async (prompt: string, businessName?: string) => {
+    await runWithWorkOverlay(
+      'generate',
+      async () => {
+        const built = await applySiteFromBrief(prompt, businessName)
+        const controlsNote =
+          built.addedLabels.length > 0 ? ` I also added ${built.addedLabels.join(', ')} controls.` : ''
 
-    const previewResult = await generateAiSitePreviewAction(profile)
-
-    if (!previewResult.success) {
-      throw new Error(previewResult.error)
-    }
-
-    const augmented = augmentGeneratedPreview(previewResult.preview, prompt)
-    const applyResult = await applyAiGeneratedSiteAction(augmented.preview.templateId, augmented.preview)
-
-    if (!applyResult.success) {
-      throw new Error(applyResult.error)
-    }
-
-    const controlsNote = augmented.addedLabels.length > 0 ? ` I also added ${augmented.addedLabels.join(', ')} controls.` : ''
-
-    appendMessage(
-      'assistant',
-      `I built a first draft from your brief using the ${previewResult.preview.designConcept} direction.${controlsNote} The draft is ready to review on the right.`
+        appendMessage(
+          'assistant',
+          `I built a first draft from your brief using the ${built.designConcept} direction.${controlsNote} The draft is ready to review on the right.`
+        )
+        router.refresh()
+      },
+      businessName
     )
-    router.refresh()
   }
 
-  const runPlan = (plan: AiBuilderPlan, label: string) => {
-    pushUndo(label)
-
-    const result = applyAiPlan(plan, refToId)
-
-    if (result.changes.length === 0) {
-      setUndoStack(current => current.slice(0, -1))
-      setError(result.skipped[0] ?? plan.reply)
-
-      return false
+  useEffect(() => {
+    if (!open || pendingBuildHandled.current) {
+      return
     }
 
-    appendMessage('assistant', plan.reply, [...result.changes, ...result.skipped])
+    const pending = peekPendingBuildIntent()
 
-    return true
+    if (!pending || pending.type !== 'ai' || !pending.prompt.trim()) {
+      return
+    }
+
+    pendingBuildHandled.current = true
+    const intent = consumePendingBuildIntent()
+
+    if (!intent || intent.type !== 'ai') {
+      return
+    }
+
+    void (async () => {
+      appendMessage('user', intent.prompt)
+      setBusy(true)
+      setError(null)
+
+      try {
+        await generateSite(intent.prompt, intent.companyName)
+      } catch (generationError) {
+        setError(generationError instanceof Error ? generationError.message : 'I could not build that website yet.')
+        appendMessage(
+          'assistant',
+          'I could not finish generating from your registration prompt. Try sending it again here, or use Generate website from Home.'
+        )
+      } finally {
+        setBusy(false)
+      }
+    })()
+    // Intentionally once on open with a pending registration prompt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  const runPlan = async (plan: AiBuilderPlan, label: string) => {
+    const themeOp = plan.operations.find(operation => operation.kind === 'apply_theme')
+    const kind = themeOp ? 'theme' : 'plan'
+    const title = themeOp
+      ? SITE_THEME_PRESETS.find(preset => preset.id === themeOp.themeId)?.name
+      : undefined
+
+    let applied = false
+
+    await runWithWorkOverlay(
+      kind,
+      () => {
+        pushUndo(label)
+
+        const result = applyAiPlan(plan, refToId)
+
+        if (result.changes.length === 0) {
+          setUndoStack(current => current.slice(0, -1))
+          setError(result.skipped[0] ?? plan.reply)
+
+          return
+        }
+
+        appendMessage('assistant', plan.reply, [...result.changes, ...result.skipped])
+        applied = true
+      },
+      title
+    )
+
+    return applied
   }
 
   const runInsertAtIntent = async (promptValue: string, intent = aiInsertIntent) => {
@@ -876,17 +925,19 @@ export function AiWebsiteChat({
 
       pushUndo(`insert ${intent.label}: ${prompt}`)
 
-      const result = applyAiPlan(planned.plan, bundle.refToId)
+      await runWithWorkOverlay('plan', () => {
+        const result = applyAiPlan(planned.plan, bundle.refToId)
 
-      if (result.changes.length === 0) {
-        setUndoStack(current => current.slice(0, -1))
-        setError(result.skipped[0] ?? planned.plan.reply)
+        if (result.changes.length === 0) {
+          setUndoStack(current => current.slice(0, -1))
+          setError(result.skipped[0] ?? planned.plan.reply)
 
-        return
-      }
+          return
+        }
 
-      appendMessage('assistant', planned.plan.reply, [...result.changes, ...result.skipped])
-      shell?.clearAiInsertIntent()
+        appendMessage('assistant', planned.plan.reply, [...result.changes, ...result.skipped])
+        shell?.clearAiInsertIntent()
+      })
     } catch (insertError) {
       setError(insertError instanceof Error ? insertError.message : 'I could not insert that control.')
     } finally {
@@ -1048,7 +1099,7 @@ export function AiWebsiteChat({
         return
       }
 
-      runPlan(planResult.plan, prompt)
+      await runPlan(planResult.plan, prompt)
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : 'I could not apply that request.')
     } finally {
@@ -1071,12 +1122,27 @@ export function AiWebsiteChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pending handoff from quick-add
   }, [open, shell?.aiInsertPending])
 
-  const quickActions = scope === 'control' ? CONTROL_ACTIONS : PAGE_ACTIONS
+  const quickActions =
+    scope === 'control'
+      ? [
+          ...(selectedBlock?.type === 'pricing' ? PRICING_LAYOUT_ACTIONS : []),
+          ...(selectedBlock?.type === 'carousel' ? CAROUSEL_STYLE_ACTIONS : []),
+          ...CONTROL_ACTIONS
+        ]
+      : PAGE_ACTIONS
 
   const runQuickAction = (action: QuickAction) => {
     if (action.kind === 'fix-nav') {
       appendMessage('user', 'Fix Navigation')
       runFixNavigation()
+
+      return
+    }
+
+    if (action.kind === 'prompt') {
+      if (action.prompt) {
+        void sendPrompt(action.prompt)
+      }
 
       return
     }
@@ -1112,10 +1178,10 @@ export function AiWebsiteChat({
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        backgroundColor: alpha(theme.palette.background.paper, 0.98),
-        border: `1px solid ${alpha(theme.palette.primary.main, 0.22)}`,
-        borderRadius: 3,
-        boxShadow: `0 24px 72px ${alpha(theme.palette.common.black, 0.2)}`
+        backgroundColor: pinned && isDesktopLayout ? 'transparent' : alpha(theme.palette.background.paper, 0.98),
+        border: pinned && isDesktopLayout ? 'none' : `1px solid ${alpha(theme.palette.primary.main, 0.22)}`,
+        borderRadius: pinned && isDesktopLayout ? 0 : 3,
+        boxShadow: pinned && isDesktopLayout ? 'none' : `0 24px 72px ${alpha(theme.palette.common.black, 0.2)}`
       }}
     >
       <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
@@ -1240,13 +1306,29 @@ export function AiWebsiteChat({
 
             const selectedTheme = SITE_THEME_PRESETS.find(preset => preset.id === selectedThemeId)
 
-            if (selectedTheme) {
-              pushUndo(`${selectedTheme.name} theme`)
-              applyThemePreset(selectedTheme.id)
-              appendMessage('assistant', `Applied the ${selectedTheme.name} theme to your draft.`)
+            if (!selectedTheme) {
+              return
             }
 
             setThemePickerOpen(false)
+
+            void (async () => {
+              setBusy(true)
+
+              try {
+                await runWithWorkOverlay(
+                  'theme',
+                  () => {
+                    pushUndo(`${selectedTheme.name} theme`)
+                    applyThemePreset(selectedTheme.id)
+                    appendMessage('assistant', `Applied the ${selectedTheme.name} theme to your draft.`)
+                  },
+                  selectedTheme.name
+                )
+              } finally {
+                setBusy(false)
+              }
+            })()
           }}
         />
       ) : createPagePickerOpen ? (

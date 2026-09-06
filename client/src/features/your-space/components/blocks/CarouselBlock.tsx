@@ -185,13 +185,10 @@ function CarouselShell({ block, preview }: Props) {
   const [selectedSnap, setSelectedSnap] = useState(0)
 
   const plugins = useMemo(() => {
-    if (editMode) {
-      return []
-    }
-
     const list = []
 
-    if (props.autoplay) {
+    // Autoplay only in preview — edit mode stays still for precise placement.
+    if (!editMode && props.autoplay) {
       list.push(
         Autoplay({
           delay: props.autoplayInterval,
@@ -222,7 +219,8 @@ function CarouselShell({ block, preview }: Props) {
         return props.slidePeek > 0 || props.slidesPerView > 1 ? 0.5 : 0
       },
       containScroll: props.transition === 'coverflow' ? false : 'trimSnaps',
-      slidesToScroll: 1
+      slidesToScroll: 1,
+      watchDrag: !editMode
     },
     plugins
   )
@@ -232,7 +230,10 @@ function CarouselShell({ block, preview }: Props) {
       return
     }
 
-    setSelectedSnap(emblaApi.selectedScrollSnap())
+    const index = emblaApi.selectedScrollSnap()
+
+    setSelectedSnap(index)
+    setActiveSlideIndex(index)
   }, [emblaApi])
 
   useEffect(() => {
@@ -255,6 +256,19 @@ function CarouselShell({ block, preview }: Props) {
       setActiveSlideIndex(Math.max(0, props.slides.length - 1))
     }
   }, [activeSlideIndex, props.slides.length])
+
+  useEffect(() => {
+    emblaApi?.reInit()
+  }, [
+    emblaApi,
+    props.slides.length,
+    props.slidesPerView,
+    props.slideGap,
+    props.slidePeek,
+    props.transition,
+    props.stylePreset,
+    editMode
+  ])
 
   const activeSlide = props.slides[activeSlideIndex] ?? props.slides[0]
   const activeSlideLabel = `Slide ${activeSlideIndex + 1}`
@@ -288,6 +302,11 @@ function CarouselShell({ block, preview }: Props) {
     }
   }, [activeSlide, activeSlideLabel, block.id, editMode, nestTargets?.setNestTarget, nestTargets?.clearNestTarget])
 
+  const handleSelectSlide = (index: number) => {
+    setActiveSlideIndex(index)
+    emblaApi?.scrollTo(index)
+  }
+
   const handleAddSlide = () => {
     if (!builder) {
       return
@@ -297,7 +316,10 @@ function CarouselShell({ block, preview }: Props) {
     const nextSlides = [...props.slides, newSlide]
 
     builder.updateBlock(block.id, { slides: nextSlides })
-    setActiveSlideIndex(nextSlides.length - 1)
+    const nextIndex = nextSlides.length - 1
+
+    setActiveSlideIndex(nextIndex)
+    window.requestAnimationFrame(() => emblaApi?.scrollTo(nextIndex))
   }
 
   const handleRemoveSlide = (index: number) => {
@@ -308,11 +330,14 @@ function CarouselShell({ block, preview }: Props) {
     const nextSlides = props.slides.filter((_, i) => i !== index)
 
     builder.updateBlock(block.id, { slides: nextSlides })
-    setActiveSlideIndex(Math.min(activeSlideIndex, nextSlides.length - 1))
+    const nextIndex = Math.min(activeSlideIndex, nextSlides.length - 1)
+
+    setActiveSlideIndex(nextIndex)
+    window.requestAnimationFrame(() => emblaApi?.scrollTo(nextIndex))
   }
 
   const getSlideTransform = (index: number) => {
-    if (editMode || props.transition === 'fade') {
+    if (props.transition === 'fade') {
       return undefined
     }
 
@@ -340,6 +365,23 @@ function CarouselShell({ block, preview }: Props) {
     }
 
     return undefined
+  }
+
+  const slidePanelColor = props.slidePanelColor?.trim() || theme.palette.background.paper
+  const slidePanelOpacity = Math.min(100, Math.max(0, props.slidePanelOpacity ?? 60)) / 100
+  const showSlidePanelBorder = props.showSlidePanelBorder ?? true
+
+  const slideCardSx = {
+    minHeight: { xs: Math.min(props.slideMinHeight, 420), sm: props.slideMinHeight },
+    p: { xs: 1.5, sm: 2 },
+    backgroundColor: alpha(slidePanelColor, slidePanelOpacity),
+    borderRadius: Math.max(0, props.borderRadius - 4),
+    border: showSlidePanelBorder ? `1px solid ${alpha(theme.palette.divider, 0.08)}` : '1px solid transparent',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    justifyContent: 'center',
+    overflow: 'hidden'
   }
 
   return (
@@ -389,7 +431,7 @@ function CarouselShell({ block, preview }: Props) {
           <SlideTabs
             slides={props.slides}
             activeIndex={activeSlideIndex}
-            onSelect={setActiveSlideIndex}
+            onSelect={handleSelectSlide}
             onAdd={handleAddSlide}
             onRemove={handleRemoveSlide}
             isDragging={isDragging}
@@ -401,110 +443,113 @@ function CarouselShell({ block, preview }: Props) {
             position: 'relative',
             overflow: 'visible',
             ...getCarouselViewportSx(props),
-            backgroundColor: alpha(theme.palette.text.primary, editMode ? 0.03 : 0),
             minWidth: 0,
-            ...(props.showArrows && props.arrowStyle === 'floating' && !editMode
-              ? { px: 0.5 }
-              : {})
+            ...(props.showArrows && props.arrowStyle === 'floating' ? { px: 0.5 } : {})
           }}
         >
-          {editMode ? (
-            <Box sx={{ minHeight: props.slideMinHeight, p: 1 }}>
-              {activeSlide && (
-                <CarouselDropZone
-                  carouselId={block.id}
-                  slideId={activeSlide.id}
-                  slideLabel={activeSlideLabel}
-                  children={activeSlide.children}
-                  editMode
-                  emptyLabel={`Drop heading, text, button, image, video, or logo blocks into ${activeSlideLabel}`}
-                />
-              )}
-            </Box>
-          ) : (
-            <>
-              <Box sx={{ position: 'relative', overflow: 'visible' }}>
-                <Box
-                  ref={emblaRef}
-                  sx={{
-                    overflow: 'hidden',
-                    borderRadius: props.borderRadius
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      ...(props.transition === 'fade' ? { position: 'relative' } : {}),
-                      ml: props.slidePeek > 0 ? `${props.slidePeek / 2}%` : 0,
-                      ...siteCanvasBelow({ ml: 0 })
-                    }}
-                  >
-                    {props.slides.map((slide, index) => (
+          <Box sx={{ position: 'relative', overflow: 'visible' }}>
+            <Box
+              ref={emblaRef}
+              sx={{
+                overflow: 'hidden',
+                borderRadius: props.borderRadius
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  ...(props.transition === 'fade' ? { position: 'relative' } : {}),
+                  ml: props.slidePeek > 0 ? `${props.slidePeek / 2}%` : 0,
+                  ...siteCanvasBelow({ ml: 0 })
+                }}
+              >
+                {props.slides.map((slide, index) => {
+                  const isActiveSlide = index === activeSlideIndex
+
+                  return (
+                    <Box
+                      key={slide.id}
+                      className='embla__slide'
+                      onClick={
+                        editMode
+                          ? event => {
+                              event.stopPropagation()
+                              handleSelectSlide(index)
+                            }
+                          : undefined
+                      }
+                      sx={{
+                        ...getCarouselSlideSx(props, editMode),
+                        flex: props.transition === 'fade' ? '0 0 100%' : `0 0 ${flexBasis}`,
+                        ...siteCanvasBelow({
+                          flex: props.transition === 'fade' ? '0 0 100%' : `0 0 ${mobileFlexBasis}`,
+                          mr: `${mobileSlideGap}px`
+                        }),
+                        ...(props.transition === 'fade' && index !== selectedSnap
+                          ? {
+                              opacity: 0,
+                              pointerEvents: 'none'
+                            }
+                          : {}),
+                        ...getSlideTransform(index),
+                        ...(editMode
+                          ? {
+                              cursor: 'pointer',
+                              outline:
+                                isActiveSlide && isDragging
+                                  ? `2px solid ${alpha(theme.palette.primary.main, 0.55)}`
+                                  : 'none',
+                              outlineOffset: 2
+                            }
+                          : {})
+                      }}
+                    >
                       <Box
-                        key={slide.id}
-                        className='embla__slide'
                         sx={{
-                          ...getCarouselSlideSx(props, false),
-                          flex: props.transition === 'fade' ? '0 0 100%' : `0 0 ${flexBasis}`,
-                          ...siteCanvasBelow({
-                            flex: props.transition === 'fade' ? '0 0 100%' : `0 0 ${mobileFlexBasis}`,
-                            mr: `${mobileSlideGap}px`
-                          }),
-                          ...(props.transition === 'fade' && index !== selectedSnap
+                          ...slideCardSx,
+                          ...(editMode && isActiveSlide
                             ? {
-                                opacity: 0,
-                                pointerEvents: 'none'
+                                boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.35)}`
                               }
-                            : {}),
-                          ...getSlideTransform(index)
+                            : {})
                         }}
                       >
-                        <Box
-                          sx={{
-                            minHeight: { xs: Math.min(props.slideMinHeight, 420), sm: props.slideMinHeight },
-                            p: { xs: 1.5, sm: 2 },
-                            backgroundColor: alpha(theme.palette.background.paper, 0.6),
-                            borderRadius: Math.max(0, props.borderRadius - 4),
-                            border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          <CarouselDropZone
-                            carouselId={block.id}
-                            slideId={slide.id}
-                            slideLabel={`Slide ${index + 1}`}
-                            children={slide.children}
-                            editMode={false}
-                            emptyLabel=''
-                          />
-                        </Box>
+                        <CarouselDropZone
+                          carouselId={block.id}
+                          slideId={slide.id}
+                          slideLabel={`Slide ${index + 1}`}
+                          children={slide.children}
+                          editMode={editMode}
+                          emptyLabel={
+                            editMode
+                              ? `Drop heading, text, button, image, video, or logo blocks into Slide ${index + 1}`
+                              : ''
+                          }
+                        />
                       </Box>
-                    ))}
-                  </Box>
-                </Box>
-                {props.showArrows && props.arrowStyle === 'floating' && (
-                  <CarouselControls
-                    emblaApi={emblaApi}
-                    props={props}
-                    selectedIndex={selectedSnap}
-                    onSelect={setSelectedSnap}
-                    fonts={siteStyles.fonts}
-                  />
-                )}
+                    </Box>
+                  )
+                })}
               </Box>
-              {props.arrowStyle !== 'floating' && (
-                <CarouselControls
-                  emblaApi={emblaApi}
-                  props={props}
-                  selectedIndex={selectedSnap}
-                  onSelect={setSelectedSnap}
-                  fonts={siteStyles.fonts}
-                />
-              )}
-            </>
+            </Box>
+            {props.showArrows && props.arrowStyle === 'floating' && (
+              <CarouselControls
+                emblaApi={emblaApi}
+                props={props}
+                selectedIndex={selectedSnap}
+                onSelect={handleSelectSlide}
+                fonts={siteStyles.fonts}
+              />
+            )}
+          </Box>
+          {props.arrowStyle !== 'floating' && (
+            <CarouselControls
+              emblaApi={emblaApi}
+              props={props}
+              selectedIndex={selectedSnap}
+              onSelect={handleSelectSlide}
+              fonts={siteStyles.fonts}
+            />
           )}
         </Box>
       </Box>

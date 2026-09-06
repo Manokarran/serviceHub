@@ -8,6 +8,8 @@ import { alpha, useTheme } from '@mui/material/styles'
 
 import type { SiteAnalyticsDayPoint } from '@/models/site-analytics'
 
+import { HOME_PALETTE } from '../constants/home-theme'
+
 type Props = {
   series: SiteAnalyticsDayPoint[]
   hasPublishedSite: boolean
@@ -53,8 +55,8 @@ export function HomeTrafficChart({ series, hasPublishedSite }: Props) {
   const padBottom = 32
   const chartWidth = width - padX * 2
   const chartHeight = height - padTop - padBottom
-  const accent = theme.palette.primary.main
-  const clickColor = theme.palette.warning.main
+  const accent = HOME_PALETTE.accent
+  const clickColor = HOME_PALETTE.pink
   const ink = theme.palette.text.primary
   const grid = alpha(ink, theme.palette.mode === 'dark' ? 0.2 : 0.12)
   const axis = alpha(ink, theme.palette.mode === 'dark' ? 0.78 : 0.62)

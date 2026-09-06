@@ -35,30 +35,9 @@ export function canAddBlockAtLocation(type: BlockType, location: QuickAddLocatio
   return canNestInTabs(type)
 }
 
-/** Palette entries allowed at a given insert location. Keeps distinct variants (sections, typography, etc.). */
+/** Every palette entry allowed at the insert location (all variants included). */
 export function getQuickAddPaletteItems(location: QuickAddLocation): PaletteItem[] {
-  const allowed = PALETTE_ITEMS.filter(item => canAddBlockAtLocation(item.type, location))
-
-  // Types that ship multiple palette presets — show every preset in insert menus.
-  const keepVariants = new Set<BlockType>(['section', 'carousel', 'tabs', 'heading', 'text', 'shape', 'showcase', 'pricing'])
-  const seenTypes = new Set<BlockType>()
-  const items: PaletteItem[] = []
-
-  for (const item of allowed) {
-    if (keepVariants.has(item.type)) {
-      items.push(item)
-      continue
-    }
-
-    if (seenTypes.has(item.type)) {
-      continue
-    }
-
-    seenTypes.add(item.type)
-    items.push(item)
-  }
-
-  return items
+  return PALETTE_ITEMS.filter(item => canAddBlockAtLocation(item.type, location))
 }
 
 export function toBlockLocation(location: QuickAddLocation, index: number): BlockLocation {

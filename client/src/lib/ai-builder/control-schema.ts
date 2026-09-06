@@ -189,6 +189,7 @@ export const CONTROL_SCHEMA: Record<BlockType, ControlProp[]> = {
     ...visualProps
   ],
   carousel: [
+    pick('stylePreset', 'Carousel style', ['slide', 'fade', 'cards', 'coverflow'] as const, 'Slide, fade, cards, or coverflow?', 'layout'),
     pick('transition', 'Transition', ['slide', 'fade', 'scale', 'coverflow'] as const, 'Slide, fade, scale, or coverflow?', 'motion'),
     bool('autoplay', 'Autoplay', 'Should slides advance on their own?', 'motion'),
     num('autoplayInterval', 'Autoplay interval', 1000, 20000, 'How many milliseconds between slides?', 'motion'),
@@ -208,6 +209,9 @@ export const CONTROL_SCHEMA: Record<BlockType, ControlProp[]> = {
     num('slideMinHeight', 'Slide height', 80, 1200, 'How tall in pixels?'),
     color('arrowColor', 'Arrow color', 'Which arrow color?'),
     color('dotColor', 'Dot color', 'Which dot color?'),
+    color('slidePanelColor', 'Slide panel color', 'Which color for each slide panel?'),
+    num('slidePanelOpacity', 'Slide panel opacity', 0, 100, 'How opaque should slide panels be, from 0 to 100?', 'color'),
+    bool('showSlidePanelBorder', 'Slide panel border', 'Show a border around each slide panel?'),
     ...backgroundProps('background'),
     ...visualProps
   ],
@@ -441,6 +445,7 @@ export const CONTROL_SCHEMA: Record<BlockType, ControlProp[]> = {
     num('mapZoom', 'Map zoom', 1, 21, 'What zoom level, from 1 to 21?', 'layout'),
     pick('mapStyle', 'Map style', ['theme', 'standard', 'muted', 'monochrome', 'warm'] as const, 'Theme, standard, muted, monochrome, or warm?', 'color'),
     bool('showMapControls', 'Map controls', 'Show the map controls?'),
+    num('mapOpacity', 'Map opacity', 0, 100, 'How opaque should the map be, from 0 to 100?', 'layout'),
     alignment,
     ...backgroundProps('background'),
     ...visualProps
@@ -689,7 +694,18 @@ const ENUM_ALIASES: Record<string, string> = {
   full: 'full',
   fullwidth: 'full',
   wide: 'lg',
-  narrow: 'sm'
+  narrow: 'sm',
+  // Pricing / showcase layout synonyms
+  compare: 'comparison',
+  comparison: 'comparison',
+  matrix: 'comparison',
+  table: 'comparison',
+  card: 'cards',
+  cards: 'cards',
+  grid: 'cards',
+  stack: 'stack',
+  stacked: 'stack',
+  simple: 'stack'
 }
 
 function coerceEnum(prop: ControlProp, value: unknown): string | number | null {

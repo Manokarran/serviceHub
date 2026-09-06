@@ -34,6 +34,13 @@ function CarouselArrow({
   const theme = useTheme()
   const icon = direction === 'prev' ? 'ri-arrow-left-s-line' : 'ri-arrow-right-s-line'
   const size = style === 'minimal' ? 36 : 40
+  // Keep the glyph readable on the light pill — fall back when arrow color is too pale.
+  const iconColor =
+    color.trim().toLowerCase() === '#ffffff' ||
+    color.trim().toLowerCase() === '#fff' ||
+    color.trim().toLowerCase() === 'white'
+      ? theme.palette.text.primary
+      : color
 
   const floatingSx =
     floating && style === 'floating'
@@ -53,7 +60,7 @@ function CarouselArrow({
     !floating && style === 'rounded'
       ? {
           backgroundColor: alpha(theme.palette.background.paper, 0.95),
-          border: `1px solid ${alpha(color, 0.18)}`,
+          border: `1px solid ${alpha(iconColor, 0.18)}`,
           boxShadow: `0 2px 8px ${alpha(theme.palette.common.black, 0.06)}`
         }
       : !floating && style === 'minimal'
@@ -63,19 +70,27 @@ function CarouselArrow({
   return (
     <IconButton
       size='small'
-      onClick={onClick}
+      onClick={event => {
+        event.stopPropagation()
+        onClick()
+      }}
       aria-label={direction === 'prev' ? 'Previous slide' : 'Next slide'}
       sx={{
         flexShrink: 0,
-        color,
+        color: iconColor,
         width: size,
         height: size,
         ...(floating ? { pointerEvents: 'auto' } : {}),
         ...floatingSx,
-        ...inlineSx
+        ...inlineSx,
+        '& .ri-arrow-left-s-line, & .ri-arrow-right-s-line': {
+          fontSize: '1.25rem',
+          lineHeight: 1,
+          display: 'block'
+        }
       }}
     >
-      <i className={icon} style={{ fontSize: '1.25rem' }} />
+      <i className={icon} aria-hidden />
     </IconButton>
   )
 }

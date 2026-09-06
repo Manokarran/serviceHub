@@ -270,7 +270,12 @@ export function BuilderFloatingFrame({
     flexDirection: 'column' as const,
     overflow: 'hidden',
     height: '100%',
-    ...builderSidePanelSx(theme, side === 'right' ? 'left' : 'right')
+    ...(overlayId === 'ai'
+      ? {
+          borderRadius: 2.5,
+          ...builderFloatingCardSx(theme)
+        }
+      : builderSidePanelSx(theme, side === 'right' ? 'left' : 'right'))
   }
 
   const dockedHandle: ResizeHandle = side === 'right' ? 'w' : 'e'

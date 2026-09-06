@@ -3,7 +3,7 @@
 import Box from '@mui/material/Box'
 
 import { BUILDER_TYPOGRAPHY } from '../../../constants/builderLayout'
-import { PRICING_MAX_FEATURES, PRICING_MAX_PLANS } from '../../../constants/pricingLayout'
+import { PRICING_LAYOUT_OPTIONS, PRICING_MAX_FEATURES, PRICING_MAX_PLANS } from '../../../constants/pricingLayout'
 import { useBuilder } from '../../../context/BuilderContext'
 import type { Block, PricingBlockProps, PricingFeature, PricingFeatureState, PricingPlan } from '../../../types'
 import { createBlockId } from '../../../utils/blockFactory'
@@ -84,6 +84,19 @@ export function PricingBlockProperties({ block, activeTab }: Props) {
 
   return (
     <PropertyFields>
+      <PropertySection title='Structure' collapsible defaultOpen>
+        <LayoutOptionGroup
+          value={props.layout}
+          options={PRICING_LAYOUT_OPTIONS}
+          onChange={layout =>
+            update({
+              layout,
+              columns: layout === 'stack' ? 2 : props.columns
+            })
+          }
+        />
+      </PropertySection>
+
       <PropertySection title='Section copy' collapsible defaultOpen>
         <PropertyTextField
           label='Eyebrow'

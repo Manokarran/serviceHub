@@ -1,8 +1,15 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useRouter, useSearchParams } from 'next/navigation'
+
+import {
+  consumePendingBuildIntent,
+  getArrivalBuildIntent,
+  type PendingBuildIntent
+} from '@/features/register/utils/pending-build-intent'
+import { BuilderArrivalWelcome } from '@/features/your-space/components/BuilderArrivalWelcome'
 
 import { SiteWorkspaceProvider, useSiteWorkspace } from '../context/SiteWorkspaceContext'
 import { usePublishedTemplates } from '../hooks/usePublishedTemplates'
@@ -18,15 +25,11 @@ type LauncherProps = {
   children: React.ReactNode
 }
 
-function BuilderTemplateLauncherInner({
-  tenantSlug,
-  isSiteStarted,
-  extraPageCount,
-  children
-}: LauncherProps) {
+function BuilderTemplateLauncherInner({ tenantSlug, isSiteStarted, extraPageCount, children }: LauncherProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { templates, loading, hasTemplates } = usePublishedTemplates()
+
   const {
     isTemplatePickerOpen,
     templatePickerMode,
@@ -39,7 +42,14 @@ function BuilderTemplateLauncherInner({
     openAiWizard,
     closeAiWizard
   } = useSiteWorkspace()
+
   const autoPromptHandled = useRef(false)
+  const [arrivalIntent, setArrivalIntent] = useState<PendingBuildIntent | null>(null)
+
+  // Detected before templates finish loading so the register hand-off stays seamless.
+  useEffect(() => {
+    setArrivalIntent(getArrivalBuildIntent())
+  }, [])
 
   const setupRequested = searchParams.get('setup') === '1'
   const aiSetupRequested = searchParams.get('aiSetup') === '1'
@@ -48,6 +58,21 @@ function BuilderTemplateLauncherInner({
 
   useEffect(() => {
     if (loading || autoPromptHandled.current) {
+      return
+    }
+
+    const pendingIntent = getArrivalBuildIntent()
+
+    // Registration already chose AI / template / blank — don't reopen onboarding pickers.
+    if (pendingIntent) {
+      markTemplateSetupSeen(tenantSlug)
+
+      if (pendingIntent.type !== 'ai') {
+        consumePendingBuildIntent()
+      }
+
+      autoPromptHandled.current = true
+
       return
     }
 
@@ -134,6 +159,7 @@ function BuilderTemplateLauncherInner({
   return (
     <>
       {children}
+      <BuilderArrivalWelcome intent={arrivalIntent} />
       <TemplatePickerDialog
         open={isTemplatePickerOpen}
         templates={templates}

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem'
@@ -24,6 +25,7 @@ import {
 } from '../../constants/stylePackPresets'
 import { BUILDER_TYPOGRAPHY } from '../../constants/builderLayout'
 import { useBuilder } from '../../context/BuilderContext'
+import { useOptionalBuilderWorkOverlay } from '../../context/BuilderWorkOverlayContext'
 import { LayoutOptionGroup, PropertyBodyText, PropertyFieldLabel, PropertySection } from '../property/PropertyPanelUi'
 import type { SiteStylesView } from '../../types/siteStyles'
 import type { ButtonShape, ButtonStyle, ImageHoverEffect, SiteAnimation, SpacingScale } from '../../types/siteStyles'
@@ -62,6 +64,26 @@ const IMAGE_HOVER_OPTIONS: { value: ImageHoverEffect; label: string; icon: strin
 export function SiteStylesPanel({ onClose, embedded = false }: Props) {
   const theme = useTheme()
   const { siteStyles, updateSiteStyles, applyThemePreset } = useBuilder()
+  const workOverlay = useOptionalBuilderWorkOverlay()
+  const [pendingThemeId, setPendingThemeId] = useState<string | null>(null)
+
+  const applyThemeWithMotion = (themeId: string, themeName: string) => {
+    if (!workOverlay) {
+      applyThemePreset(themeId)
+      setPendingThemeId(null)
+
+      return
+    }
+
+    void workOverlay.runBuilderWork({
+      kind: 'theme',
+      title: themeName,
+      work: () => {
+        applyThemePreset(themeId)
+        setPendingThemeId(null)
+      }
+    })
+  }
   const [view, setView] = useState<SiteStylesView>('home')
   const headerClose = embedded ? undefined : onClose
 
@@ -200,60 +222,109 @@ export function SiteStylesPanel({ onClose, embedded = false }: Props) {
   }
 
   if (view === 'themes') {
+    const selectedThemeId = pendingThemeId ?? siteStyles.themeId
+    const selectedPreset = SITE_THEME_PRESETS.find(preset => preset.id === selectedThemeId)
+    const canApply = Boolean(selectedPreset && selectedPreset.id !== siteStyles.themeId)
+
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
         <StylePanelHeader title='Themes' onBack={() => setView('home')} onClose={headerClose} />
         <StylePanelBody>
-          <PropertyBodyText>Apply a preset that updates fonts, colors, and buttons together — like Squarespace theme packs.</PropertyBodyText>
-          {SITE_THEME_PRESETS.map(preset => (
-            <Box
-              key={preset.id}
-              onClick={() => applyThemePreset(preset.id)}
-              sx={{
-                p: 1.5,
-                borderRadius: 1.5,
-                border: '2px solid',
-                borderColor: siteStyles.themeId === preset.id ? 'primary.main' : alpha(theme.palette.divider, 0.9),
-                cursor: 'pointer',
-                backgroundColor: siteStyles.themeId === preset.id ? alpha(theme.palette.primary.main, 0.04) : 'transparent',
-                '&:hover': { borderColor: 'primary.main' }
+          <PropertyBodyText>
+            Choose a preset, then apply it. Applying updates fonts, colors, and buttons together — like Squarespace theme packs.
+          </PropertyBodyText>
+          {SITE_THEME_PRESETS.map(preset => {
+            const isActive = siteStyles.themeId === preset.id
+            const isSelected = selectedThemeId === preset.id
+
+            return (
+              <Box
+                key={preset.id}
+                component='button'
+                type='button'
+                onClick={() => setPendingThemeId(preset.id)}
+                aria-pressed={isSelected}
+                sx={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  border: '2px solid',
+                  borderColor: isSelected ? 'primary.main' : alpha(theme.palette.divider, 0.9),
+                  cursor: 'pointer',
+                  backgroundColor: isSelected ? alpha(theme.palette.primary.main, 0.04) : 'transparent',
+                  '&:hover': { borderColor: 'primary.main' }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
+                  <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, m: 0 }}>
+                    {preset.name}
+                  </Typography>
+                  {isActive ? (
+                    <Typography
+                      component='span'
+                      sx={{
+                        ...BUILDER_TYPOGRAPHY.label,
+                        fontSize: '0.625rem',
+                        px: 0.625,
+                        py: 0.125,
+                        borderRadius: 0.5,
+                        color: 'primary.main',
+                        backgroundColor: alpha(theme.palette.primary.main, 0.1)
+                      }}
+                    >
+                      Current
+                    </Typography>
+                  ) : null}
+                  {preset.id === 'plain' && !isActive ? (
+                    <Typography
+                      component='span'
+                      sx={{
+                        ...BUILDER_TYPOGRAPHY.label,
+                        fontSize: '0.625rem',
+                        px: 0.625,
+                        py: 0.125,
+                        borderRadius: 0.5,
+                        color: 'text.secondary',
+                        backgroundColor: alpha(theme.palette.text.primary, 0.06)
+                      }}
+                    >
+                      Default
+                    </Typography>
+                  ) : null}
+                </Box>
+                <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.secondary', fontWeight: 400, display: 'block', mb: 1, m: 0 }}>
+                  {preset.description}
+                </Typography>
+                <ColorSwatchRow
+                  colors={[
+                    preset.styles.colors.swatch1,
+                    preset.styles.colors.swatch2,
+                    preset.styles.colors.swatch3,
+                    preset.styles.colors.swatch4,
+                    preset.styles.colors.swatch5
+                  ]}
+                />
+              </Box>
+            )
+          })}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: 0.5, position: 'sticky', bottom: 0 }}>
+            <Button
+              size='small'
+              variant='contained'
+              disabled={!canApply}
+              onClick={() => {
+                if (!selectedPreset || !canApply) {
+                  return
+                }
+
+                applyThemeWithMotion(selectedPreset.id, selectedPreset.name)
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-                <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, m: 0 }}>
-                  {preset.name}
-                </Typography>
-                {preset.id === 'plain' && (
-                  <Typography
-                    component='span'
-                    sx={{
-                      ...BUILDER_TYPOGRAPHY.label,
-                      fontSize: '0.625rem',
-                      px: 0.625,
-                      py: 0.125,
-                      borderRadius: 0.5,
-                      color: 'text.secondary',
-                      backgroundColor: alpha(theme.palette.text.primary, 0.06)
-                    }}
-                  >
-                    Default
-                  </Typography>
-                )}
-              </Box>
-              <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.secondary', fontWeight: 400, display: 'block', mb: 1, m: 0 }}>
-                {preset.description}
-              </Typography>
-              <ColorSwatchRow
-                colors={[
-                  preset.styles.colors.swatch1,
-                  preset.styles.colors.swatch2,
-                  preset.styles.colors.swatch3,
-                  preset.styles.colors.swatch4,
-                  preset.styles.colors.swatch5
-                ]}
-              />
-            </Box>
-          ))}
+              Apply theme
+            </Button>
+          </Box>
         </StylePanelBody>
       </Box>
     )

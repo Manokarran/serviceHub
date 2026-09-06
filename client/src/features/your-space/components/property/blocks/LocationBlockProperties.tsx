@@ -15,6 +15,7 @@ import { useSiteStyles } from '../../SiteStylesScope'
 import type { Block, LocationBlockProps, LocationBlockSource } from '../../../types'
 import type { PropertyPanelTab } from '../PropertyPanelUi'
 import { AlignmentControl } from '../AlignmentControl'
+import { BackgroundOpacityField } from '../BackgroundOpacityField'
 import { LayoutOptionGroup, PropertyBodyText, PropertyFields, PropertySection } from '../PropertyPanelUi'
 import { PropertyTextField } from '../PropertyTextField'
 
@@ -186,6 +187,16 @@ export function LocationBlockProperties({ block, activeTab }: Props) {
               </MenuItem>
             ))}
           </TextField>
+          {props.showMap ? (
+            <>
+              <BackgroundOpacityField
+                label='Map opacity'
+                value={props.mapOpacity ?? 85}
+                onChange={mapOpacity => update({ mapOpacity })}
+              />
+              <PropertyBodyText>Lower opacity softens the map so it blends with the page background.</PropertyBodyText>
+            </>
+          ) : null}
         </PropertySection>
       </PropertyFields>
     )

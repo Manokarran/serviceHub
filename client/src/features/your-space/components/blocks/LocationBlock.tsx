@@ -54,7 +54,14 @@ export function LocationBlock({ props }: Props) {
           ) : null}
         </Box>
         {props.showMap ? (
-          <Box sx={{ width: '100%' }}>
+          <Box
+            sx={{
+              width: '100%',
+              opacity: Math.min(100, Math.max(0, props.mapOpacity ?? 85)) / 100,
+              borderRadius: 2,
+              overflow: 'hidden'
+            }}
+          >
             <LocationMap
               latitude={location.latitude}
               longitude={location.longitude}

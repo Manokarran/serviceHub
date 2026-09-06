@@ -880,6 +880,15 @@ export const PERSONALITY_META: Record<(typeof AI_STYLE_PERSONALITIES)[number], P
     letterSpacing: -0.03,
     uppercase: false
   },
+  splashy: {
+    icon: 'ri-sparkling-2-line',
+    blurb: 'Neon borders, shimmer CTAs, dark aurora',
+    headingFamily: '"Playfair Display", Georgia, serif',
+    radius: 20,
+    weight: 800,
+    letterSpacing: -0.03,
+    uppercase: false
+  },
   minimal: {
     icon: 'ri-subtract-line',
     blurb: 'Almost nothing, perfectly placed',

@@ -105,7 +105,20 @@ export function resolveInternalPageSlug(
     return null
   }
 
-  if (isExternalHref(trimmed) || isAnchorHref(trimmed)) {
+  if (isExternalHref(trimmed)) {
+    return null
+  }
+
+  // Starter / hash nav: "#about" → about page when that page exists.
+  // Builder-safe hrefs use "#page/{slug}" so middle-click doesn't leave the app.
+  if (isAnchorHref(trimmed)) {
+    const raw = trimmed.slice(1).split('?')[0]?.trim() ?? ''
+    const slug = raw.startsWith('page/') ? raw.slice('page/'.length).split('/')[0]?.trim() : raw.split('/')[0]?.trim()
+
+    if (slug && pages.some(page => page.slug === slug)) {
+      return slug
+    }
+
     return null
   }
 

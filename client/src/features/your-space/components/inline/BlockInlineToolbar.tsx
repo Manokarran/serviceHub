@@ -11,6 +11,7 @@ import { useBuilderShell } from '../../context/BuilderShellContext'
 import type {
   Block,
   ButtonBlockProps,
+  CarouselBlockProps,
   FooterBlockProps,
   HeaderBlockProps,
   HeadingBlockProps,
@@ -47,6 +48,11 @@ import {
   SHOWCASE_MEDIA_SIDE_OPTIONS
 } from '../../constants/showcaseLayout'
 import { PRICING_CARD_STYLE_OPTIONS, PRICING_LAYOUT_OPTIONS } from '../../constants/pricingLayout'
+import {
+  CAROUSEL_STYLE_OPTIONS,
+  getCarouselStyleOverrides,
+  inferCarouselStylePreset
+} from '../../constants/carouselStyle'
 import {
   ARTISTIC_LINE_STYLE_OPTIONS,
   CLASSIC_LINE_STYLE_OPTIONS,
@@ -450,7 +456,12 @@ export function BlockInlineToolbar({
                 icon={layout.icon}
                 label={layout.label}
                 active={props.layout === layout.value}
-                onClick={() => update({ layout: layout.value })}
+                onClick={() =>
+                  update({
+                    layout: layout.value,
+                    ...(layout.value === 'stack' ? { columns: 2 } : {})
+                  })
+                }
               />
             ))}
             <InlineToolbarDivider />
@@ -461,6 +472,24 @@ export function BlockInlineToolbar({
                 label={style.label}
                 active={props.cardStyle === style.value}
                 onClick={() => update({ cardStyle: style.value })}
+              />
+            ))}
+          </>
+        )
+      }
+      case 'carousel': {
+        const props = block.props as CarouselBlockProps
+        const activeStyle = inferCarouselStylePreset(props)
+
+        return (
+          <>
+            {CAROUSEL_STYLE_OPTIONS.map(style => (
+              <InlineToolbarButton
+                key={style.value}
+                icon={style.icon}
+                label={style.label}
+                active={activeStyle === style.value}
+                onClick={() => update(getCarouselStyleOverrides(style.value))}
               />
             ))}
           </>

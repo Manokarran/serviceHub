@@ -1,4 +1,5 @@
 import { PALETTE_ITEMS } from '@/features/your-space/constants'
+import { getCarouselStyleOverrides, isCarouselStylePreset } from '@/features/your-space/constants/carouselStyle'
 import { SITE_THEME_PRESETS } from '@/features/your-space/constants/siteStylePresets'
 import type { BlockType } from '@/features/your-space/types'
 
@@ -73,6 +74,11 @@ const THEME_ALIASES: Record<string, string> = {
   calm: 'wellness',
   creative: 'creative',
   agency: 'creative',
+  splashy: 'splashy',
+  fancy: 'splashy',
+  glamorous: 'splashy',
+  neon: 'splashy',
+  aurora: 'splashy',
   luxury: 'luxury',
   premium: 'luxury',
   editorial: 'editorial',
@@ -137,6 +143,78 @@ function findBlockAlias(prompt: string) {
   const text = normalized(prompt)
 
   return BLOCK_ALIASES.find(alias => alias.words.some(word => text.includes(word))) ?? null
+}
+
+/** Map everyday layout wording onto a control's layout enum values. */
+function resolveLayoutFromPrompt(prompt: string, type: BlockType): string | null {
+  const layoutProp = getControlProp(type, 'layout')
+
+  if (!layoutProp?.values?.length) {
+    return null
+  }
+
+  const text = normalized(prompt)
+  const mentionsLayout =
+    /\b(layout|layouts|format|structure|arrangement)\b/.test(text) ||
+    /\b(switch to|change to|make (?:it|this)|use|as|into)\b/.test(text)
+
+  const synonyms: Array<{ needles: string[]; value: string }> = [
+    { needles: ['comparison', 'compare', 'matrix', 'feature table', 'feature matrix'], value: 'comparison' },
+    { needles: ['cards', 'card', 'grid'], value: 'cards' },
+    { needles: ['stack', 'stacked', 'vertical stack', 'single column'], value: 'stack' },
+    { needles: ['split', 'side by side', 'two column', 'two-column'], value: 'split' },
+    { needles: ['list', 'listed'], value: 'list' },
+    { needles: ['featured'], value: 'featured' }
+  ]
+
+  for (const entry of synonyms) {
+    if (!layoutProp.values.includes(entry.value)) {
+      continue
+    }
+
+    const hit = entry.needles.some(needle => new RegExp(`\\b${needle.replace(/\s+/g, '\\s+')}\\b`).test(text))
+
+    if (!hit) {
+      continue
+    }
+
+    if (!mentionsLayout && entry.value === 'cards' && !/\bcards?\b/.test(text)) {
+      continue
+    }
+
+    return entry.value
+  }
+
+  return null
+}
+
+/** Map carousel style wording onto the four palette presets. */
+function resolveCarouselStyleFromPrompt(prompt: string): string | null {
+  const text = normalized(prompt)
+  const mentionsStyle =
+    /\b(style|styles|carousel|slider|transition|look|format)\b/.test(text) ||
+    /\b(switch to|change to|make (?:it|this)|use|as|into)\b/.test(text)
+
+  if (!mentionsStyle) {
+    return null
+  }
+
+  const synonyms: Array<{ needles: string[]; value: string }> = [
+    { needles: ['coverflow', 'cover flow', '3d', 'depth'], value: 'coverflow' },
+    { needles: ['fade', 'cross fade', 'crossfade', 'dissolve'], value: 'fade' },
+    { needles: ['cards', 'card carousel', 'multi card', 'gallery'], value: 'cards' },
+    { needles: ['slide', 'classic', 'standard'], value: 'slide' }
+  ]
+
+  for (const entry of synonyms) {
+    const hit = entry.needles.some(needle => new RegExp(`\\b${needle.replace(/\s+/g, '\\s+')}\\b`).test(text))
+
+    if (hit) {
+      return entry.value
+    }
+  }
+
+  return null
 }
 
 export function getRequestedAiBuilderBlocks(prompt: string) {
@@ -258,6 +336,38 @@ export function createLocalAiBuilderPlan(prompt: string, context: AiBuilderConte
     ])
   }
 
+  const layoutValue = selected ? resolveLayoutFromPrompt(prompt, selected.type) : null
+
+  if (layoutValue && selected && !needsJudgement) {
+    const props: Record<string, string | number> = { layout: layoutValue }
+
+    if (selected.type === 'pricing' && layoutValue === 'stack') {
+      props.columns = 2
+    }
+
+    return high(`Switched the selected ${selected.type} to ${layoutValue} layout.`, [
+      {
+        kind: 'update_block',
+        target: selectedTarget(context),
+        props,
+        reason: 'Layout is an unambiguous enum on the selected control.'
+      }
+    ])
+  }
+
+  const carouselStyle = selected?.type === 'carousel' ? resolveCarouselStyleFromPrompt(prompt) : null
+
+  if (carouselStyle && selected && !needsJudgement && isCarouselStylePreset(carouselStyle)) {
+    return high(`Switched the selected carousel to ${carouselStyle} style.`, [
+      {
+        kind: 'update_block',
+        target: selectedTarget(context),
+        props: getCarouselStyleOverrides(carouselStyle),
+        reason: 'Carousel style maps to a known palette preset.'
+      }
+    ])
+  }
+
   if (/\b(sharp|pill|rounded|round)\b/i.test(prompt) && /\bcorner|corners|radius\b/i.test(prompt) && selected) {
     const key = firstSupported(selected.type, [
       'borderRadius',
@@ -287,11 +397,21 @@ export function createLocalAiBuilderPlan(prompt: string, context: AiBuilderConte
     /\b(add|insert|include|put|place)\b/i.test(prompt) && !needsJudgement && prompt.trim().split(/\s+/).length <= 6
 
   if (alias && isSimpleAdd) {
+    let paletteId = alias.paletteId
+
+    if (alias.type === 'pricing') {
+      if (/\b(compar\w*|matrix|table)\b/i.test(prompt)) {
+        paletteId = 'pricing-comparison'
+      } else if (/\b(stack|stacked|simple)\b/i.test(prompt)) {
+        paletteId = 'pricing-simple'
+      }
+    }
+
     const paletteItem = PALETTE_ITEMS.find(
-      item => item.type === alias.type && (!alias.paletteId || item.id === alias.paletteId)
+      item => item.type === alias.type && (!paletteId || item.id === paletteId)
     )
 
-    return high(`Added a ${alias.label}.`, [
+    return high(`Added a ${paletteItem?.label?.toLowerCase() ?? alias.label}.`, [
       {
         kind: 'add_block',
         type: alias.type,

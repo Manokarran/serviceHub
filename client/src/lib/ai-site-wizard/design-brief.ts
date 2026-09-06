@@ -1,5 +1,6 @@
 import { HERO_SPLIT_VISUAL_ANIMATION_OPTIONS } from '@/features/your-space/constants/heroVisual'
 import { SITE_THEME_PRESETS } from '@/features/your-space/constants/siteStylePresets'
+import { SPLASHY_PALETTE } from '@/features/your-space/constants/splashyTheme'
 import type { HeroSplitVisualAnimation } from '@/features/your-space/types'
 import {
   AI_COLOR_MOODS,
@@ -174,7 +175,7 @@ export function normalizeDesignBrief(
   let background = pickHex(raw.background, presetColors.background)
   let text = pickHex(raw.text, presetColors.text)
   let accent = pickHex(raw.accent, presetColors.accent)
-  const surface = pickHex(raw.surface, presetColors.swatch1)
+  let surface = pickHex(raw.surface, presetColors.swatch1)
 
   // The model routinely proposes elegant-but-unreadable pairings. Preset wins over pretty.
   if (contrastRatio(background, text) < 4.5) {
@@ -193,14 +194,24 @@ export function normalizeDesignBrief(
     accent = presetColors.accent
   }
 
-  const gradientStart = pickHex(raw.gradientStart, accent)
-  const gradientEnd = pickHex(raw.gradientEnd, presetColors.swatch5)
+  let gradientStart = pickHex(raw.gradientStart, accent)
+  let gradientEnd = pickHex(raw.gradientEnd, presetColors.swatch5)
+
+  // Splashy is a locked visual system — keep the register-page aurora even if the model wanders.
+  if (profile.stylePersonality === 'splashy') {
+    background = SPLASHY_PALETTE.ink
+    text = SPLASHY_PALETTE.text
+    accent = SPLASHY_PALETTE.accent
+    surface = SPLASHY_PALETTE.surfaceLift
+    gradientStart = SPLASHY_PALETTE.violet
+    gradientEnd = SPLASHY_PALETTE.cyan
+  }
 
   return {
     concept: cleanText(raw.concept, 4, fallback.concept),
     rationale: cleanText(raw.rationale, 26, fallback.rationale),
     paletteId,
-    colorMode,
+    colorMode: profile.stylePersonality === 'splashy' ? 'dark' : colorMode,
     accent,
     gradientStart,
     gradientEnd: contrastRatio(gradientStart, gradientEnd) > 12 ? accent : gradientEnd,
@@ -211,7 +222,8 @@ export function normalizeDesignBrief(
       profile.fontChoice && profile.fontChoice !== 'ai_pick'
         ? profile.fontChoice
         : pickString(raw.fontPairingId, FONT_IDS, fallback.fontPairingId),
-    themeId: pickString(raw.themeId, THEME_IDS, fallback.themeId),
+    themeId:
+      profile.stylePersonality === 'splashy' ? 'splashy' : pickString(raw.themeId, THEME_IDS, fallback.themeId),
     motion:
       profile.animationLevel === 'none'
         ? 'static'
@@ -221,8 +233,14 @@ export function normalizeDesignBrief(
         ? profile.heroStyle
         : pickString(raw.heroLayout, ['centered', 'split-left', 'split-right'] as const, fallback.heroLayout),
     heroOverlay: pickString(raw.heroOverlay, ['none', 'subtle', 'strong', 'gradient'] as const, fallback.heroOverlay),
-    heroTitleStyle: pickString(raw.heroTitleStyle, ['solid', 'gradient'] as const, fallback.heroTitleStyle),
-    heroSurface: pickString(raw.heroSurface, ['none', 'glass'] as const, fallback.heroSurface),
+    heroTitleStyle:
+      profile.stylePersonality === 'splashy' || profile.stylePersonality === 'flashy'
+        ? 'gradient'
+        : pickString(raw.heroTitleStyle, ['solid', 'gradient'] as const, fallback.heroTitleStyle),
+    heroSurface:
+      profile.stylePersonality === 'splashy'
+        ? 'glass'
+        : pickString(raw.heroSurface, ['none', 'glass'] as const, fallback.heroSurface),
     density:
       profile.layoutDensity !== 'ai_pick'
         ? profile.layoutDensity

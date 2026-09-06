@@ -4,10 +4,12 @@ import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import LinearProgress from '@mui/material/LinearProgress'
 import Typography from '@mui/material/Typography'
-import { alpha, darken, useTheme } from '@mui/material/styles'
+import { alpha, useTheme } from '@mui/material/styles'
 
 import type { BookingInsights, BookingInsightPoint } from '@/models/booking'
 import type { ServiceListItem } from '@/services/booking/service-catalog.service'
+
+import { HOME_PALETTE } from '../constants/home-theme'
 
 type Props = {
   insights: BookingInsights | null
@@ -40,7 +42,6 @@ function formatCurrency(minor: number, currency: string): string {
 
 export function HomeBookingInsights({ insights, services }: Props) {
   const theme = useTheme()
-  const accent = theme.palette.primary.main
   const activeServices = services.filter(service => service.status === 'published')
 
   if (activeServices.length === 0) {
@@ -68,8 +69,8 @@ export function HomeBookingInsights({ insights, services }: Props) {
         borderRadius: 4,
         p: { xs: 2, sm: 2.75, md: 3.25 },
         color: 'common.white',
-        background: `radial-gradient(circle at 92% 0%, ${alpha('#67E8F9', 0.28)} 0%, transparent 32%), linear-gradient(135deg, #111827 0%, ${darken(accent, 0.62)} 46%, ${darken(accent, 0.18)} 100%)`,
-        boxShadow: `0 22px 50px ${alpha(darken(accent, 0.5), 0.28)}`,
+        background: `radial-gradient(circle at 92% 0%, ${alpha(HOME_PALETTE.cyan, 0.32)} 0%, transparent 32%), radial-gradient(circle at 8% 100%, ${alpha(HOME_PALETTE.pink, 0.22)} 0%, transparent 36%), linear-gradient(135deg, #111827 0%, ${HOME_PALETTE.deep} 46%, ${HOME_PALETTE.dark} 100%)`,
+        boxShadow: `0 22px 50px ${alpha(HOME_PALETTE.deep, 0.36)}`,
         overflow: 'hidden'
       }}
     >

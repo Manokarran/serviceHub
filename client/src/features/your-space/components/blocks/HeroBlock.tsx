@@ -30,9 +30,11 @@ import {
   shouldRenderHeroBackgroundVisual,
   shouldShowHeroSplitVisualPanel
 } from '../../utils/heroBlockHelpers'
+import { isHeroRotatingTitleActive } from '../../utils/heroRotatingWords'
 import { resolveHeroVisualColors } from '../../utils/heroVisualHelpers'
 import { siteCanvasAbove, siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 import { BlockBackgroundLayers } from './BlockBackgroundLayers'
+import { HeroRotatingTitle } from './HeroRotatingTitle'
 import { HeroVisualPanel } from './HeroVisualPanel'
 
 type Props = {
@@ -55,7 +57,10 @@ function HeroContent({
   const showPrimaryButton = Boolean(props.buttonText?.trim())
   const showSecondaryButton = Boolean(props.secondaryButtonText?.trim())
   const showEyebrow = Boolean(props.eyebrow?.trim())
-  const titleGradientSx = getHeroTitleGradientSx(props.titleStyle, props.textColor, siteStyles.colors.accent)
+  const rotatingTitle = isHeroRotatingTitleActive(props)
+  const titleGradientSx = rotatingTitle
+    ? {}
+    : getHeroTitleGradientSx(props.titleStyle, props.textColor, siteStyles.colors.accent)
 
   const titleSx = {
     fontFamily: siteStyles.fonts.headingFamily,
@@ -137,7 +142,16 @@ function HeroContent({
       )}
 
       <Typography variant='h2' sx={{ ...titleSx, mb: 2 }}>
-        <InlineEditableText value={props.title} field='title' placeholder='Hero title' sx={titleSx} />
+        {rotatingTitle ? (
+          <HeroRotatingTitle
+            title={props.title}
+            words={props.rotatingWords ?? []}
+            intervalMs={props.rotatingWordIntervalMs}
+            accentColor={siteStyles.colors.accent}
+          />
+        ) : (
+          <InlineEditableText value={props.title} field='title' placeholder='Hero title' sx={titleSx} />
+        )}
       </Typography>
 
       <Typography variant='h6' component='div' sx={{ ...subtitleSx, mb: showPrimaryButton || showSecondaryButton ? 4 : 0 }}>

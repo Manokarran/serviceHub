@@ -2,6 +2,8 @@ import type { SxProps, Theme } from '@mui/material/styles'
 
 import type { BlockPropsMap, BlockType } from '../types'
 import { DEFAULT_FORMS, DEFAULT_SITE_STYLES } from '../constants/siteStylePresets'
+import { isSplashyTheme } from '../constants/splashyTheme'
+import { getSplashyOutlineButtonSx, getSplashyPrimaryButtonSx } from '../constants/splashyThemeStyles'
 import type {
   ButtonShape,
   ButtonStyleConfig,
@@ -132,6 +134,14 @@ export function getSiteButtonSx(
   if (config.style === 'solid') {
     const border = `${config.borderWidth}px solid ${accent}`
 
+    if (isSplashyTheme(siteStyles.themeId) && role === 'primary') {
+      return getSplashyPrimaryButtonSx(base)
+    }
+
+    if (isSplashyTheme(siteStyles.themeId) && role === 'secondary') {
+      return getSplashyOutlineButtonSx(base)
+    }
+
     return {
       ...base,
       backgroundColor: accent,
@@ -175,6 +185,10 @@ export function getSiteButtonSx(
 
   if (config.style === 'outline') {
     const border = `${Math.max(config.borderWidth, 1)}px solid ${accent}`
+
+    if (isSplashyTheme(siteStyles.themeId)) {
+      return getSplashyOutlineButtonSx(base)
+    }
 
     return {
       ...base,
@@ -254,7 +268,11 @@ export function getSiteButtonSx(
   }
 }
 
-export function getFormFieldSx(forms: SiteForms, fonts: SiteFonts, options?: FormFieldSxOptions): SxProps<Theme> {
+export function getFormFieldSx(
+  forms: SiteForms,
+  fonts: SiteFonts,
+  options?: FormFieldSxOptions & { themeId?: string }
+): SxProps<Theme> {
   const normalizedForms = normalizeSiteForms(forms)
   const fieldShape = options?.fieldShape ?? normalizedForms.fieldShape
   const singleLineRadius = options?.fieldBorderRadius ?? getButtonBorderRadius(fieldShape)
@@ -267,6 +285,7 @@ export function getFormFieldSx(forms: SiteForms, fonts: SiteFonts, options?: For
   const fieldBorderWidth = options?.fieldBorderWidth ?? normalizedForms.fieldBorderWidth
   const fieldBackground = options?.fieldBackground ?? normalizedForms.fieldBackground
   const isTransparentField = fieldBackground === 'transparent'
+  const splashy = isSplashyTheme(options?.themeId)
 
   return {
     fontFamily: getFontFamily(normalizedForms.labelFontSource, normalizeSiteFonts(fonts)),
@@ -275,6 +294,11 @@ export function getFormFieldSx(forms: SiteForms, fonts: SiteFonts, options?: For
       borderRadius: singleLineRadius,
       backgroundColor: fieldBackground,
       fontSize: normalizedForms.fieldFontSize,
+      ...(splashy
+        ? {
+            transition: 'box-shadow 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)'
+          }
+        : {}),
       ...(isTransparentField
         ? {
             '&:hover': { backgroundColor: 'transparent' },
@@ -291,13 +315,25 @@ export function getFormFieldSx(forms: SiteForms, fonts: SiteFonts, options?: For
       '& fieldset': {
         borderWidth: fieldBorderWidth,
         borderColor: normalizedForms.fieldBorderColor,
-        borderRadius: singleLineRadius
+        borderRadius: singleLineRadius,
+        ...(splashy ? { transition: 'border-color 0.25s ease' } : {})
       },
       '&:hover fieldset': {
-        borderWidth: fieldBorderWidth
+        borderWidth: fieldBorderWidth,
+        ...(splashy ? { borderColor: 'rgba(196, 181, 253, 0.55)' } : {})
       },
-      '&.Mui-focused fieldset': {
-        borderWidth: fieldBorderWidth > 0 ? Math.max(fieldBorderWidth, 1) : fieldBorderWidth
+      '&.Mui-focused': {
+        ...(splashy
+          ? {
+              transform: 'translateY(-1px)',
+              boxShadow: '0 16px 40px rgba(139, 92, 246, 0.28), 0 0 0 4px rgba(139, 92, 246, 0.1)',
+              ...(isTransparentField ? { backgroundColor: 'transparent' } : {})
+            }
+          : {}),
+        '& fieldset': {
+          borderWidth: fieldBorderWidth > 0 ? Math.max(fieldBorderWidth, splashy ? 1.5 : 1) : fieldBorderWidth,
+          ...(splashy ? { borderColor: '#22D3EE' } : {})
+        }
       },
       '& .MuiOutlinedInput-input': {
         fontSize: normalizedForms.fieldFontSize
@@ -326,6 +362,7 @@ export function getContactFormFieldSx(
     fieldShape,
     fieldBorderRadius,
     fieldBorderWidth,
+    themeId: siteStyles.themeId,
     ...(useTransparentFields ? { fieldBackground: 'transparent' } : {})
   })
 }

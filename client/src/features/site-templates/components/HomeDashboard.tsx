@@ -11,12 +11,13 @@ import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import { alpha, darken, keyframes, lighten, useTheme } from '@mui/material/styles'
+import { alpha, keyframes, useTheme } from '@mui/material/styles'
 
 import type { BookingInsights } from '@/models/booking'
 import type { SiteAnalyticsOverview } from '@/models/site-analytics'
 import type { ServiceListItem } from '@/services/booking/service-catalog.service'
 
+import { HOME_HERO_GRADIENT, HOME_PALETTE, HOME_SECTION_ACCENT } from '../constants/home-theme'
 import { HomeBookingInsights } from './HomeBookingInsights'
 import { HomeAnalyticsSection } from './HomeAnalyticsSection'
 import { HomeCreateWebsitePanel } from './HomeCreateWebsitePanel'
@@ -86,10 +87,8 @@ export function HomeDashboard({
   services
 }: Props) {
   const theme = useTheme()
-  const accent = theme.palette.primary.main
-  const accentDeep = darken(accent, 0.58)
-  const accentDark = darken(accent, 0.32)
-  const accentLight = lighten(accent, 0.3)
+  const accent = HOME_PALETTE.accent
+  const accentDeep = HOME_PALETTE.deep
   const ink = theme.palette.text.primary
   const [copied, setCopied] = useState(false)
 
@@ -129,7 +128,7 @@ export function HomeDashboard({
           position: 'absolute',
           inset: { xs: '-28px -6% auto', md: '-36px -4% auto' },
           height: 260,
-          background: `radial-gradient(ellipse at 20% 0%, ${alpha(accentLight, 0.3)} 0%, transparent 55%), radial-gradient(ellipse at 80% 10%, ${alpha(theme.palette.info.main, 0.18)} 0%, transparent 50%)`,
+          background: `radial-gradient(ellipse at 20% 0%, ${alpha(HOME_PALETTE.soft, 0.35)} 0%, transparent 55%), radial-gradient(ellipse at 80% 10%, ${alpha(HOME_PALETTE.cyan, 0.22)} 0%, transparent 50%), radial-gradient(ellipse at 60% 0%, ${alpha(HOME_PALETTE.pink, 0.12)} 0%, transparent 45%)`,
           filter: 'blur(18px)'
         }}
       />
@@ -143,12 +142,8 @@ export function HomeDashboard({
           px: { xs: 2.75, md: 4.25 },
           py: { xs: 3.1, md: 3.75 },
           color: 'common.white',
-          background: `
-            radial-gradient(1100px 320px at -6% -34%, ${alpha('#fff', 0.2)} 0%, transparent 58%),
-            radial-gradient(820px 260px at 104% -8%, ${alpha(accentLight, 0.55)} 0%, transparent 54%),
-            linear-gradient(118deg, ${accentDeep} 0%, ${accentDark} 34%, ${accent} 74%, ${accentLight} 100%)
-          `,
-          boxShadow: `0 22px 48px ${alpha(accentDark, 0.34)}, inset 0 1px 0 ${alpha('#fff', 0.28)}`,
+          background: HOME_HERO_GRADIENT,
+          boxShadow: `0 22px 48px ${alpha(accentDeep, 0.38)}, inset 0 1px 0 ${alpha('#fff', 0.28)}`,
           border: `1px solid ${alpha('#fff', 0.22)}`
         }}
       >
@@ -174,7 +169,7 @@ export function HomeDashboard({
             borderRadius: '50%',
             right: { xs: -120, md: -48 },
             top: { xs: -150, md: -110 },
-            background: `radial-gradient(circle, ${alpha(accentLight, 0.6)} 0%, ${alpha(accentLight, 0.12)} 46%, transparent 70%)`,
+            background: `radial-gradient(circle, ${alpha(HOME_PALETTE.cyan, 0.55)} 0%, ${alpha(HOME_PALETTE.soft, 0.16)} 46%, transparent 70%)`,
             animation: `${drift} 11s ease-in-out infinite`,
             pointerEvents: 'none'
           }}
@@ -188,7 +183,7 @@ export function HomeDashboard({
             borderRadius: '50%',
             left: { xs: -80, md: 180 },
             bottom: { xs: -120, md: -90 },
-            background: `radial-gradient(circle, ${alpha(theme.palette.info.light, 0.34)} 0%, transparent 68%)`,
+            background: `radial-gradient(circle, ${alpha(HOME_PALETTE.pink, 0.4)} 0%, transparent 68%)`,
             animation: `${drift} 14s ease-in-out infinite reverse`,
             pointerEvents: 'none'
           }}
@@ -410,8 +405,8 @@ export function HomeDashboard({
             sx={{
               borderRadius: 3,
               p: 3,
-              border: `1px dashed ${theme.palette.divider}`,
-              bgcolor: alpha(theme.palette.info.main, 0.06)
+              border: `1px dashed ${alpha(HOME_PALETTE.cyan, 0.35)}`,
+              bgcolor: alpha(HOME_PALETTE.sky, 0.85)
             }}
           >
             <Typography variant='body1' sx={{ fontWeight: 600, mb: 0.75 }}>
@@ -421,7 +416,20 @@ export function HomeDashboard({
               Edit and preview freely. AI features and each new service use credits. Publishing to your live site unlocks
               as soon as a super admin approves you.
             </Typography>
-            <Button component={Link} href='/your-space' variant='outlined' startIcon={<i className='ri-eye-line' />}>
+            <Button
+              component={Link}
+              href='/your-space'
+              variant='outlined'
+              startIcon={<i className='ri-eye-line' />}
+              sx={{
+                borderColor: alpha(HOME_PALETTE.accent, 0.55),
+                color: HOME_PALETTE.dark,
+                '&:hover': {
+                  borderColor: HOME_PALETTE.accent,
+                  bgcolor: alpha(HOME_PALETTE.accent, 0.06)
+                }
+              }}
+            >
               Preview in builder
             </Button>
           </Box>
@@ -518,7 +526,7 @@ export function HomeDashboard({
                     alignItems: 'center',
                     justifyContent: 'center',
                     bgcolor: alpha(accent, 0.14),
-                    color: 'primary.main',
+                    color: accent,
                     flexShrink: 0
                   }}
                 >
@@ -540,7 +548,11 @@ export function HomeDashboard({
                 href='/leads'
                 variant='contained'
                 endIcon={<i className='ri-arrow-right-line' />}
-                sx={{ flexShrink: 0 }}
+                sx={{
+                  flexShrink: 0,
+                  bgcolor: HOME_PALETTE.dark,
+                  '&:hover': { bgcolor: HOME_PALETTE.deep }
+                }}
               >
                 Open leads
               </Button>
@@ -562,7 +574,16 @@ export function HomeDashboard({
               <Typography variant='h6' sx={{ fontWeight: 700 }}>
                 Account
               </Typography>
-              <Chip label={tenantPlan} size='small' color='primary' variant='tonal' />
+              <Chip
+                label={tenantPlan}
+                size='small'
+                variant='tonal'
+                sx={{
+                  bgcolor: alpha(HOME_PALETTE.accent, 0.14),
+                  color: HOME_PALETTE.dark,
+                  fontWeight: 600
+                }}
+              />
             </Box>
             <Box
               sx={{
@@ -584,8 +605,6 @@ export function HomeDashboard({
 }
 
 function Section({ title, caption, children }: { title: string; caption: string; children: ReactNode }) {
-  const theme = useTheme()
-
   return (
     <Box component='section' className='flex flex-col gap-3.5'>
       <Box className='flex items-center gap-2.5'>
@@ -596,7 +615,7 @@ function Section({ title, caption, children }: { title: string; caption: string;
             height: 30,
             borderRadius: 99,
             flexShrink: 0,
-            background: `linear-gradient(180deg, ${theme.palette.primary.main} 0%, ${alpha(theme.palette.primary.main, 0.25)} 100%)`
+            background: HOME_SECTION_ACCENT
           }}
         />
         <Box>

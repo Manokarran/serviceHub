@@ -1,4 +1,5 @@
 import { DEFAULT_SITE_STYLES, SITE_THEME_PRESETS } from '@/features/your-space/constants/siteStylePresets'
+import { SPLASHY_PALETTE } from '@/features/your-space/constants/splashyTheme'
 import type { HeroSplitVisualAnimation } from '@/features/your-space/types'
 import type { SiteAnimation, SiteStyles } from '@/features/your-space/types/siteStyles'
 import { mergeSiteStyles } from '@/features/your-space/utils/siteStylesHelpers'
@@ -25,6 +26,7 @@ const PERSONALITY_FONT_POOLS: Record<Personality, string[]> = {
   playful: ['poppins', 'outfit', 'dm_sans'],
   professional: ['inter', 'plus_jakarta', 'lexend'],
   flashy: ['sora', 'syne', 'space_grotesk'],
+  splashy: ['playfair', 'syne', 'sora'],
   minimal: ['inter', 'manrope', 'lexend'],
   luxury: ['cormorant', 'instrument_serif', 'fraunces'],
   warm: ['fraunces', 'poppins', 'merriweather'],
@@ -40,6 +42,7 @@ const PERSONALITY_THEME_POOLS: Record<Personality, string[]> = {
   playful: ['playful', 'creative', 'startup'],
   professional: ['professional', 'corporate', 'modern'],
   flashy: ['startup', 'bold', 'creative'],
+  splashy: ['splashy'],
   minimal: ['minimal', 'plain'],
   luxury: ['luxury', 'elegant', 'editorial'],
   warm: ['classic', 'playful', 'wellness'],
@@ -55,6 +58,7 @@ const PERSONALITY_PALETTE_POOLS: Record<Personality, string[]> = {
   playful: ['coral', 'amber', 'violet', 'teal'],
   professional: ['blue', 'indigo', 'slate', 'emerald'],
   flashy: ['violet', 'coral', 'indigo', 'crimson'],
+  splashy: ['violet', 'indigo', 'plum', 'coral'],
   minimal: ['mono', 'slate'],
   luxury: ['gold', 'mono', 'plum'],
   warm: ['amber', 'sand', 'orange', 'rose'],
@@ -84,6 +88,7 @@ const PERSONALITY_DENSITY: Record<Personality, keyof typeof DENSITY_TOKENS> = {
   playful: 'balanced',
   professional: 'balanced',
   flashy: 'compact',
+  splashy: 'balanced',
   minimal: 'airy',
   luxury: 'airy',
   warm: 'balanced',
@@ -99,6 +104,7 @@ const PERSONALITY_CORNERS: Record<Personality, keyof typeof CORNER_TOKENS> = {
   playful: 'round',
   professional: 'soft',
   flashy: 'round',
+  splashy: 'round',
   minimal: 'sharp',
   luxury: 'sharp',
   warm: 'round',
@@ -107,7 +113,7 @@ const PERSONALITY_CORNERS: Record<Personality, keyof typeof CORNER_TOKENS> = {
   organic: 'round'
 }
 
-const PERSONALITY_PREFERS_DARK: Personality[] = ['flashy', 'techy', 'luxury', 'bold']
+const PERSONALITY_PREFERS_DARK: Personality[] = ['flashy', 'splashy', 'techy', 'luxury', 'bold']
 
 const MOTION_POOLS: Record<AiSiteWizardProfile['animationLevel'], HeroSplitVisualAnimation[]> = {
   none: ['static'],
@@ -172,6 +178,10 @@ function resolveColorMode(profile: AiSiteWizardProfile, seed: string): 'light' |
     return profile.colorMode
   }
 
+  if (profile.stylePersonality === 'splashy') {
+    return 'dark'
+  }
+
   if (!PERSONALITY_PREFERS_DARK.includes(profile.stylePersonality)) {
     return 'light'
   }
@@ -193,30 +203,43 @@ export function buildFallbackDesignBrief(profile: AiSiteWizardProfile): AiDesign
       : pickFromPool(PERSONALITY_FONT_POOLS[profile.stylePersonality], seed, 'font')
 
   return {
-    concept: `${palette.label} ${profile.stylePersonality}`,
-    rationale: `A ${palette.label.toLowerCase()} palette with ${profile.stylePersonality} typography, matched to ${profile.industry.replace(/_/g, ' ')}.`,
+    concept:
+      profile.stylePersonality === 'splashy'
+        ? 'Neon Aurora'
+        : `${palette.label} ${profile.stylePersonality}`,
+    rationale:
+      profile.stylePersonality === 'splashy'
+        ? 'Dark canvas with violet-to-cyan glow, gradient type, and animated controls.'
+        : `A ${palette.label.toLowerCase()} palette with ${profile.stylePersonality} typography, matched to ${profile.industry.replace(/_/g, ' ')}.`,
     paletteId,
     colorMode,
-    accent: colors.accent,
-    gradientStart: palette.gradientStart,
-    gradientEnd: palette.gradientEnd,
-    background: colors.background,
-    text: colors.text,
-    surface: colors.swatch1,
+    accent: profile.stylePersonality === 'splashy' ? SPLASHY_PALETTE.accent : colors.accent,
+    gradientStart: profile.stylePersonality === 'splashy' ? SPLASHY_PALETTE.violet : palette.gradientStart,
+    gradientEnd: profile.stylePersonality === 'splashy' ? SPLASHY_PALETTE.cyan : palette.gradientEnd,
+    background: profile.stylePersonality === 'splashy' ? SPLASHY_PALETTE.ink : colors.background,
+    text: profile.stylePersonality === 'splashy' ? SPLASHY_PALETTE.text : colors.text,
+    surface: profile.stylePersonality === 'splashy' ? SPLASHY_PALETTE.surfaceLift : colors.swatch1,
     fontPairingId,
-    themeId: pickFromPool(PERSONALITY_THEME_POOLS[profile.stylePersonality], seed, 'theme'),
-    motion: pickFromPool(MOTION_POOLS[profile.animationLevel], seed, 'motion'),
+    themeId:
+      profile.stylePersonality === 'splashy'
+        ? 'splashy'
+        : pickFromPool(PERSONALITY_THEME_POOLS[profile.stylePersonality], seed, 'theme'),
+    motion:
+      profile.stylePersonality === 'splashy' && profile.animationLevel !== 'none'
+        ? pickFromPool(['aurora', 'shimmer', 'mesh-gradient'] as const, seed, 'motion')
+        : pickFromPool(MOTION_POOLS[profile.animationLevel], seed, 'motion'),
     heroLayout:
       profile.heroStyle !== 'ai_pick'
         ? profile.heroStyle
         : pickFromPool(['centered', 'split-left', 'split-right'] as const, seed, 'hero-layout'),
     heroOverlay: pickFromPool(['subtle', 'gradient', 'strong'] as const, seed, 'hero-overlay'),
-    heroTitleStyle: profile.stylePersonality === 'flashy' ? 'gradient' : 'solid',
-    heroSurface: 'none',
+    heroTitleStyle:
+      profile.stylePersonality === 'flashy' || profile.stylePersonality === 'splashy' ? 'gradient' : 'solid',
+    heroSurface: profile.stylePersonality === 'splashy' ? 'glass' : 'none',
     density:
       profile.layoutDensity !== 'ai_pick' ? profile.layoutDensity : PERSONALITY_DENSITY[profile.stylePersonality],
     corners: profile.cornerStyle !== 'ai_pick' ? profile.cornerStyle : PERSONALITY_CORNERS[profile.stylePersonality],
-    sectionBorder: 'none',
+    sectionBorder: profile.stylePersonality === 'splashy' ? 'elevated' : 'none',
     photoKeywords: INDUSTRY_PHOTO_KEYWORDS[profile.industry],
     isFallback: true
   }

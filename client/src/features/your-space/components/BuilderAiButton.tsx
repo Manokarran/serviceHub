@@ -11,15 +11,30 @@ type BaseProps = {
   compact?: boolean
   floating?: boolean
   size?: 'sm' | 'md'
+  /** Optional fill override (e.g. home agency gradient). */
+  gradient?: string
+  /** Glow / focus accent; defaults to theme primary. */
+  glowColor?: string
 }
 
 type Props = BaseProps & ({ href: string; onClick?: never } | { href?: never; onClick: () => void })
 
-export function BuilderAiButton({ compact = false, floating = false, size = 'sm', ...props }: Props) {
+export function BuilderAiButton({
+  compact = false,
+  floating = false,
+  size = 'sm',
+  gradient,
+  glowColor,
+  ...props
+}: Props) {
   const theme = useTheme()
   const large = size === 'md'
   const href = 'href' in props ? props.href : undefined
   const onClick = 'onClick' in props ? props.onClick : undefined
+  const glow = glowColor ?? theme.palette.primary.main
+  const fill =
+    gradient ??
+    `linear-gradient(115deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main}, ${theme.palette.secondary.main}, ${theme.palette.primary.main})`
 
   return (
     <Tooltip title='Build with AI'>
@@ -45,9 +60,9 @@ export function BuilderAiButton({ compact = false, floating = false, size = 'sm'
           cursor: 'pointer',
           textDecoration: 'none',
           flexShrink: 0,
-          background: `linear-gradient(115deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main}, ${theme.palette.secondary.main}, ${theme.palette.primary.main})`,
+          background: fill,
           backgroundSize: '240% 240%',
-          boxShadow: `0 8px 22px ${alpha(theme.palette.primary.main, 0.34)}`,
+          boxShadow: `0 8px 22px ${alpha(glow, 0.34)}`,
           animation: 'aiCanvasGradient 5s ease infinite, aiCanvasPulse 3s ease-in-out infinite',
           transition: 'width 0.28s ease, transform 0.18s ease, box-shadow 0.18s ease',
           '&::before': {
@@ -62,10 +77,10 @@ export function BuilderAiButton({ compact = false, floating = false, size = 'sm'
           },
           '&:hover': {
             transform: 'translateY(-2px)',
-            boxShadow: `0 12px 28px ${alpha(theme.palette.primary.main, 0.46)}`
+            boxShadow: `0 12px 28px ${alpha(glow, 0.46)}`
           },
           '&:focus-visible': {
-            outline: `3px solid ${alpha(theme.palette.primary.main, 0.35)}`,
+            outline: `3px solid ${alpha(glow, 0.35)}`,
             outlineOffset: 2
           },
           '@keyframes aiCanvasGradient': {

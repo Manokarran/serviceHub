@@ -32,6 +32,7 @@ export const authConfig = {
         session.user.tenantName = token.tenantName as string | undefined
         session.user.tenantSlug = token.tenantSlug as string | undefined
         session.user.tenantPlan = token.tenantPlan as TenantPlan | undefined
+
         // Always explicit from JWT profile refresh — never infer from registrationComplete
         session.user.tenantApproved = Boolean(token.tenantApproved)
         session.user.tenantApprovalStatus = token.tenantApprovalStatus as TenantApprovalStatus | undefined
@@ -107,11 +108,8 @@ export const authConfig = {
       }
 
       if (isRegisterRoute) {
-        if (!isLoggedIn) {
-          return false
-        }
-
-        if (isRegistered) {
+        // Public prompt-first signup — Google OAuth happens from the page itself.
+        if (isLoggedIn && isRegistered) {
           return Response.redirect(new URL('/home', nextUrl))
         }
 

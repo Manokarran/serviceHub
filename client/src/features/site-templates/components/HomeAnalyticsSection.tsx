@@ -7,6 +7,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 
 import type { SiteAnalyticsOverview } from '@/models/site-analytics'
 
+import { HOME_PALETTE } from '../constants/home-theme'
 import { HomeTrafficChart } from './HomeTrafficChart'
 
 type Props = {
@@ -53,7 +54,7 @@ export function HomeAnalyticsSection({ analytics, hasPublishedSite }: Props) {
       value: analytics.current.views,
       previous: analytics.previous.views,
       icon: 'ri-eye-line',
-      color: theme.palette.primary.main
+      color: HOME_PALETTE.accent
     },
     {
       key: 'visitors',
@@ -62,7 +63,7 @@ export function HomeAnalyticsSection({ analytics, hasPublishedSite }: Props) {
       value: analytics.current.uniqueVisitors,
       previous: analytics.previous.uniqueVisitors,
       icon: 'ri-user-smile-line',
-      color: theme.palette.info.main
+      color: HOME_PALETTE.cyan
     },
     {
       key: 'clicks',
@@ -71,7 +72,7 @@ export function HomeAnalyticsSection({ analytics, hasPublishedSite }: Props) {
       value: analytics.current.clicks,
       previous: analytics.previous.clicks,
       icon: 'ri-cursor-line',
-      color: theme.palette.warning.main
+      color: HOME_PALETTE.pink
     },
     {
       key: 'leads',
@@ -161,9 +162,9 @@ export function HomeAnalyticsSection({ analytics, hasPublishedSite }: Props) {
         sx={{
           borderRadius: 3,
           p: { xs: 2.25, md: 3 },
-          border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-          background: `radial-gradient(circle at 100% 0%, ${alpha(theme.palette.info.main, 0.13)} 0%, transparent 34%), linear-gradient(145deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.background.paper, 0.98)} 48%)`,
-          boxShadow: `0 18px 38px ${alpha(theme.palette.primary.main, 0.08)}`
+          border: `1px solid ${alpha(HOME_PALETTE.accent, 0.2)}`,
+          background: `radial-gradient(circle at 100% 0%, ${alpha(HOME_PALETTE.cyan, 0.16)} 0%, transparent 34%), linear-gradient(145deg, ${alpha(HOME_PALETTE.accent, 0.1)} 0%, ${alpha(theme.palette.background.paper, 0.98)} 48%)`,
+          boxShadow: `0 18px 38px ${alpha(HOME_PALETTE.accent, 0.08)}`
         }}
       >
         <Box className='flex items-start justify-between gap-3 flex-wrap' sx={{ mb: 1.5 }}>
@@ -186,11 +187,11 @@ export function HomeAnalyticsSection({ analytics, hasPublishedSite }: Props) {
             </Typography>
           </Box>
           <Box className='flex items-center gap-3 flex-wrap'>
-            <TrafficStat label='Views' value={formatCount(analytics.current.views)} color={theme.palette.primary.main} />
+            <TrafficStat label='Views' value={formatCount(analytics.current.views)} color={HOME_PALETTE.accent} />
             <TrafficStat
               label='Visitors'
               value={formatCount(analytics.current.uniqueVisitors)}
-              color={theme.palette.info.main}
+              color={HOME_PALETTE.cyan}
             />
             <TrafficStat
               label='Lead rate'
@@ -204,7 +205,7 @@ export function HomeAnalyticsSection({ analytics, hasPublishedSite }: Props) {
             p: { xs: 0.75, sm: 1.25 },
             borderRadius: 2.5,
             bgcolor: alpha(theme.palette.background.paper, 0.62),
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`
+            border: `1px solid ${alpha(HOME_PALETTE.accent, 0.12)}`
           }}
         >
           <Box className='flex items-center justify-between gap-3 flex-wrap' sx={{ px: { xs: 0.75, sm: 1 }, pt: 0.5 }}>
@@ -212,8 +213,8 @@ export function HomeAnalyticsSection({ analytics, hasPublishedSite }: Props) {
               Daily activity
             </Typography>
             <Box className='flex items-center gap-3'>
-              <LegendDot color={theme.palette.primary.main} label='Views' />
-              <LegendDot color={theme.palette.warning.main} label='CTA clicks' dashed />
+              <LegendDot color={HOME_PALETTE.accent} label='Views' />
+              <LegendDot color={HOME_PALETTE.pink} label='CTA clicks' dashed />
             </Box>
           </Box>
           <HomeTrafficChart series={analytics.series} hasPublishedSite={hasPublishedSite} />

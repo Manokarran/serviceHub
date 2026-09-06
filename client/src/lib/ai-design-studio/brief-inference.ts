@@ -79,6 +79,29 @@ const PERSONALITY_KEYWORDS: Array<[Personality, string[]]> = [
   ['luxury', ['luxury', 'luxurious', 'premium', 'high end', 'high-end', 'upmarket', 'exclusive', 'opulent']],
   ['minimal', ['minimal', 'minimalist', 'spacious', 'understated', 'stripped back', 'pared back']],
   ['editorial', ['editorial', 'magazine', 'journal', 'typographic', 'newspaper']],
+  [
+    'splashy',
+    [
+      'splashy',
+      'fancy',
+      'glamorous',
+      'glamour',
+      'neon',
+      'aurora',
+      'glow',
+      'glowing',
+      'disco',
+      'eye candy',
+      'eye-candy',
+      'razzle',
+      'razzle dazzle',
+      'showy',
+      'sparkly',
+      'sparkling',
+      'iridescent',
+      'holographic'
+    ]
+  ],
   ['flashy', ['flashy', 'wow', 'striking', 'eye catching', 'eye-catching', 'showstopper', 'dramatic entrance', 'vibrant']],
   ['bold', ['bold', 'dramatic', 'punchy', 'loud', 'high contrast', 'high-contrast', 'confident']],
   ['elegant', ['elegant', 'refined', 'sophisticated', 'graceful', 'classy', 'timeless']],
@@ -167,7 +190,21 @@ function pickAnimationLevel(instruction: string): AiSiteWizardProfile['animation
     return 'none'
   }
 
-  if (matches(instruction, ['energetic', 'dynamic', 'animated', 'lively', 'wow', 'motion heavy'])) {
+  if (
+    matches(instruction, [
+      'energetic',
+      'dynamic',
+      'animated',
+      'lively',
+      'wow',
+      'motion heavy',
+      'splashy',
+      'fancy',
+      'neon',
+      'glow',
+      'aurora'
+    ])
+  ) {
     return 'energetic'
   }
 
@@ -320,6 +357,19 @@ export function inferDesignProfile(input: DesignContextInput): AiSiteWizardProfi
   const instruction = input.instruction.trim()
   const combined = `${instruction} ${copy}`
   const industry = pickIndustry(combined)
+  const stylePersonality = pickPersonality(instruction, copy)
+  let colorMood = pickColorMood(instruction)
+  let colorMode = pickColorMode(instruction)
+  let animationLevel = pickAnimationLevel(instruction)
+  let cornerStyle = pickCorners(instruction)
+
+  // Splashy locks the register-page vibe unless the user explicitly overrides a knob.
+  if (stylePersonality === 'splashy') {
+    if (colorMood === 'ai_pick') colorMood = 'violet'
+    if (colorMode === 'ai_pick') colorMode = 'dark'
+    if (animationLevel === 'moderate') animationLevel = 'energetic'
+    if (cornerStyle === 'ai_pick') cornerStyle = 'round'
+  }
 
   return {
     companyName: input.businessName.trim() || 'This business',
@@ -333,13 +383,13 @@ export function inferDesignProfile(input: DesignContextInput): AiSiteWizardProfi
     category: INDUSTRY_CATEGORY[industry],
     industry,
     purpose: pickPurpose(combined),
-    stylePersonality: pickPersonality(instruction, copy),
-    colorMood: pickColorMood(instruction),
-    colorMode: pickColorMode(instruction),
-    animationLevel: pickAnimationLevel(instruction),
+    stylePersonality,
+    colorMood,
+    colorMode,
+    animationLevel,
     fontChoice: pickFont(instruction),
     layoutDensity: pickDensity(instruction),
-    cornerStyle: pickCorners(instruction),
+    cornerStyle,
     brandVoice: pickVoice(instruction),
     heroStyle: pickHeroStyle(instruction),
     generationNonce: input.nonce

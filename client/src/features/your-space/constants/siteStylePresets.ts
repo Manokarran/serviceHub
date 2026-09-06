@@ -277,6 +277,79 @@ export const SITE_THEME_PRESETS: SiteThemePreset[] = [
       primary: { ...DEFAULT_BUTTONS.primary, shape: 'pill' }
     }
   }),
+  createPreset(
+    'splashy',
+    'Splashy',
+    'Dark neon canvas with violet→cyan→pink glow — register-page energy for every control',
+    {
+      fonts: {
+        headingFamily: '"Playfair Display", Georgia, serif',
+        bodyFamily: '"Sora", system-ui, sans-serif',
+        headingWeight: 800,
+        bodyWeight: 400,
+        headingScale: 1.12,
+        bodySize: 16,
+        headingLetterSpacing: -0.03,
+        buttonSize: 15,
+        navSize: 14
+      },
+      colors: {
+        swatch1: '#12141F',
+        swatch2: '#1A1C2A',
+        swatch3: '#8B5CF6',
+        swatch4: '#22D3EE',
+        swatch5: '#F472B6',
+        accent: '#A78BFA',
+        background: '#04050B',
+        text: '#F5F7FF'
+      },
+      buttons: {
+        primary: {
+          shape: 'pill',
+          style: 'solid',
+          fontSource: 'body',
+          borderWidth: 0,
+          paddingX: 30,
+          paddingY: 13
+        },
+        secondary: {
+          shape: 'pill',
+          style: 'outline',
+          fontSource: 'body',
+          borderWidth: 1,
+          paddingX: 28,
+          paddingY: 12
+        },
+        tertiary: {
+          shape: 'pill',
+          style: 'ghost',
+          fontSource: 'body',
+          borderWidth: 0,
+          paddingX: 16,
+          paddingY: 8
+        }
+      },
+      forms: {
+        fieldShape: 'rounded',
+        fieldBorderWidth: 1,
+        fieldBorderColor: 'rgba(255, 255, 255, 0.12)',
+        fieldBackground: '#0A0C16',
+        labelFontSource: 'body',
+        fieldFontSize: 16
+      },
+      misc: {
+        animation: 'slide-up',
+        spacingScale: 'default',
+        canvasCornerRadius: 16,
+        imageCornerRadius: 16,
+        imageHoverEffect: 'lift',
+        imageAspectRatio: 'auto',
+        pageSplitVisualAnimation: 'aurora',
+        pageSplitVisualColorStart: '#8B5CF6',
+        pageSplitVisualColorEnd: '#22D3EE'
+      }
+    }
+  ),
   createPreset('luxury', 'Luxury', 'Refined serif with charcoal and gold accents', {
     fonts: {
       headingFamily: '"Cormorant Garamond", Georgia, serif',

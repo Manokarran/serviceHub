@@ -234,6 +234,14 @@ export interface HeroBlockProps {
   splitVisualAnimation?: HeroSplitVisualAnimation
   splitVisualColorStart?: string
   splitVisualColorEnd?: string
+  /**
+   * When enabled, the `{rotate}` token in `title` cycles through `rotatingWords`
+   * with a slide-up animation (same idea as the register hero).
+   */
+  rotatingWordsEnabled?: boolean
+  rotatingWords?: string[]
+  /** Milliseconds between word changes. Defaults to 2400. */
+  rotatingWordIntervalMs?: number
   background: string
   backgroundType: BackgroundType
   backgroundOpacity?: number
@@ -367,6 +375,9 @@ export type CarouselArrowStyle = 'minimal' | 'rounded' | 'floating'
 
 export type CarouselDotStyle = 'dots' | 'lines' | 'fraction'
 
+/** High-level carousel look — matches the four palette presets. */
+export type CarouselStylePreset = 'slide' | 'fade' | 'cards' | 'coverflow'
+
 export interface CarouselSlide {
   id: string
   children: Block[]
@@ -421,6 +432,8 @@ export interface TabsBlockProps {
 
 export interface CarouselBlockProps extends BlockBackgroundProps, SplitVisualConfig {
   slides: CarouselSlide[]
+  /** Palette-aligned style preset (slide / fade / cards / coverflow). */
+  stylePreset?: CarouselStylePreset
   transition: CarouselTransition
   autoplay: boolean
   autoplayInterval: number
@@ -440,6 +453,12 @@ export interface CarouselBlockProps extends BlockBackgroundProps, SplitVisualCon
   slideMinHeight: number
   arrowColor: string
   dotColor: string
+  /** Fill color for each slide panel/card. Empty uses the site surface. */
+  slidePanelColor?: string
+  /** Slide panel fill opacity 0–100. Lower values let the carousel background show through. */
+  slidePanelOpacity?: number
+  /** Show a subtle border around each slide panel. */
+  showSlidePanelBorder?: boolean
   controlTypography?: TextTypographyOverrides
 }
 
@@ -588,6 +607,8 @@ export interface LocationBlockProps extends BlockBackgroundProps, SplitVisualCon
   mapZoom: number
   mapStyle?: LocationMapStyle
   showMapControls?: boolean
+  /** Map tile opacity (0–100). Lower values blend the map into the page background. */
+  mapOpacity?: number
   alignment: TextAlign
 }
 

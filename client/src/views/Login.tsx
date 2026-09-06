@@ -136,7 +136,11 @@ const LoginV2 = ({ mode, error: initialError }: LoginProps) => {
               {isSubmitting ? 'Redirecting...' : 'Continue with Google'}
             </Button>
             <Typography variant='body2' color='text.secondary' className='text-center'>
-              New users complete organization setup after signing in.
+              New here?{' '}
+              <Link href='/register' className='text-primary'>
+                Build a site with AI
+              </Link>
+              , then finish signup with Google.
             </Typography>
           </div>
         </div>

@@ -6,6 +6,8 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
+import { HOME_PALETTE } from '../constants/home-theme'
+
 type Tone = 'primary' | 'info' | 'success' | 'warning'
 
 type Action = {
@@ -84,7 +86,7 @@ export function HomeQuickActions({ isSiteStarted, canManageLeads, leadCount }: P
       }}
     >
       {actions.map(action => {
-        const color = theme.palette[action.tone].main
+        const color = action.tone === 'primary' ? HOME_PALETTE.accent : theme.palette[action.tone].main
 
         return (
           <Box

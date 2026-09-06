@@ -13,6 +13,7 @@ const LINE_HEIGHT: Record<AiDesignBrief['density'], number> = { compact: 1.5, ba
 const HEADING_VARIANT: Partial<Record<Personality, HeadingBlockVariant>> = {
   bold: 'display',
   flashy: 'display',
+  splashy: 'display',
   luxury: 'display',
   editorial: 'display',
   elegant: 'script',
