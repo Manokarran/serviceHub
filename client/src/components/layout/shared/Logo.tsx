@@ -10,9 +10,6 @@ import styled from '@emotion/styled'
 // Type Imports
 import type { VerticalNavContextProps } from '@menu/contexts/verticalNavContext'
 
-// Component Imports
-import ServiceHubLogo from '@core/svg/Logo'
-
 // Config Imports
 import themeConfig from '@configs/themeConfig'
 
@@ -87,7 +84,12 @@ const Logo = ({ color }: { color?: CSSProperties['color'] }) => {
 
   return (
     <div className='flex items-center min-bs-[24px]'>
-      <ServiceHubLogo className='text-[26px] text-primary' />
+      <img
+        src='/images/brand/sidhiyana-logo-mark.svg'
+        alt='Sidhiyana'
+        className='shrink-0 block object-contain'
+        style={{ width: 28, height: 28 }}
+      />
       <LogoLockup
         ref={logoTextRef}
         isHovered={isHovered}

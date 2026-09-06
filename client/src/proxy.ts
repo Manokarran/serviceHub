@@ -12,10 +12,8 @@ const { auth } = NextAuth(authConfig)
 const APP_ROUTE_PREFIXES = [
   '/home',
   '/your-space',
-  '/services',
   '/bookings',
   '/leads',
-  '/about',
   '/profile',
   '/super-admin',
   '/login',

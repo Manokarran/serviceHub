@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 
 import { useBuilderOptional } from '../context/BuilderContext'
 import { useCanvasBlockEdit } from '../components/inline/CanvasBlockEditContext'
-import { toHostAwarePublicPath } from '@/lib/utils/public-site-url'
+import { getPublicPagePath, toHostAwarePublicPath } from '@/lib/utils/public-site-url'
 import { extractTenantSlugFromHostname } from '@/lib/utils/tenant-host'
 import {
   isAnchorHref,
@@ -130,13 +130,6 @@ export function useSitePageNavigation() {
         return
       }
 
-      if (isAnchorHref(trimmed)) {
-        event.preventDefault()
-        scrollToAnchor(trimmed)
-
-        return
-      }
-
       if (isExternalHref(trimmed)) {
         // Keep editors from leaving the builder via accidental external nav.
         if (inBuilderWorkspace && builder?.mode === 'edit') {
@@ -149,7 +142,41 @@ export function useSitePageNavigation() {
       // Inside the builder workspace, never fall through to public /site URLs
       // (those often redirect to app home for unapproved tenants).
       if (inBuilderWorkspace) {
+        if (isAnchorHref(trimmed) && !pageSlug) {
+          event.preventDefault()
+          scrollToAnchor(trimmed)
+
+          return
+        }
+
         event.preventDefault()
+
+        return
+      }
+
+      // Live public site: "#about" / "about" / "/about" → /site/{tenant}/about
+      if (pageSlug && tenantSlug) {
+        const destination = toHostAwarePublicPath(getPublicPagePath(tenantSlug, pageSlug), tenantSlug)
+
+        if (destination === pathname) {
+          event.preventDefault()
+
+          return
+        }
+
+        event.preventDefault()
+
+        void navigateWithTransition(() => {
+          router.push(destination)
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        })
+
+        return
+      }
+
+      if (isAnchorHref(trimmed)) {
+        event.preventDefault()
+        scrollToAnchor(trimmed)
 
         return
       }
@@ -179,7 +206,7 @@ export function useSitePageNavigation() {
     (href?: string) => {
       const trimmed = href?.trim() || '#'
 
-      if (!trimmed || trimmed === '#' || isExternalHref(trimmed) || isAnchorHref(trimmed)) {
+      if (!trimmed || trimmed === '#' || isExternalHref(trimmed)) {
         return trimmed
       }
 
@@ -191,7 +218,20 @@ export function useSitePageNavigation() {
           return `#page/${pageSlug}`
         }
 
-        return '#'
+        return isAnchorHref(trimmed) ? trimmed : '#'
+      }
+
+      // Live site: resolve "#about" / "about" to the real public path (keeps /site/{tenant} on www).
+      if (tenantSlug) {
+        const pageSlug = resolveInternalPageSlug(trimmed, tenantSlug, pages)
+
+        if (pageSlug) {
+          return toHostAwarePublicPath(getPublicPagePath(tenantSlug, pageSlug), tenantSlug)
+        }
+      }
+
+      if (isAnchorHref(trimmed)) {
+        return trimmed
       }
 
       return toHostAwarePublicPath(resolvePublicNavigationHref(trimmed, tenantSlug, pages), tenantSlug)

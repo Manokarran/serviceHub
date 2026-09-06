@@ -122,9 +122,6 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
             lockedItem('Leads', 'ri-mail-line')
           )
         ) : null}
-        <MenuItem href='/about' icon={<i className='ri-information-line' />}>
-          About
-        </MenuItem>
         {isSuperAdmin ? (
           <MenuSection label='Super Admin'>
             <MenuItem href='/super-admin' icon={<i className='ri-shield-star-line' />}>

@@ -91,6 +91,10 @@ export function getPagePathLabel(tenantSlug: string, pageSlug: string): string {
   return `/site/${tenantSlug}/${pageSlug}`
 }
 
+function isSimplePageSlug(value: string): boolean {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(value)
+}
+
 /**
  * Resolve an internal site page slug from a stored or public href.
  */
@@ -109,14 +113,24 @@ export function resolveInternalPageSlug(
     return null
   }
 
+  // Templates store Home as "/" — never send public-site visitors to the app dashboard.
+  if (tenantSlug && (trimmed === '/' || trimmed === '/home')) {
+    return 'home'
+  }
+
   // Starter / hash nav: "#about" → about page when that page exists.
   // Builder-safe hrefs use "#page/{slug}" so middle-click doesn't leave the app.
+  // On the live public site, pages[] is empty — still treat "#about" as the about page.
   if (isAnchorHref(trimmed)) {
     const raw = trimmed.slice(1).split('?')[0]?.trim() ?? ''
     const slug = raw.startsWith('page/') ? raw.slice('page/'.length).split('/')[0]?.trim() : raw.split('/')[0]?.trim()
 
-    if (slug && pages.some(page => page.slug === slug)) {
-      return slug
+    if (!slug || !isSimplePageSlug(slug)) {
+      return null
+    }
+
+    if (pages.length === 0 || pages.some(page => page.slug === slug)) {
+      return isHomePageSlug(slug) ? 'home' : slug
     }
 
     return null
@@ -140,8 +154,13 @@ export function resolveInternalPageSlug(
     return slug || null
   }
 
-  if (pages.some(page => page.slug === trimmed.replace(/^\//, ''))) {
-    return trimmed.replace(/^\//, '')
+  // Templates often store "about" or "/about" without the /site/{tenant} prefix.
+  const bare = trimmed.replace(/^\//, '').split(/[?#]/)[0]?.trim() ?? ''
+
+  if (bare && !bare.includes('/') && isSimplePageSlug(bare)) {
+    if (pages.length === 0 || pages.some(page => page.slug === bare)) {
+      return isHomePageSlug(bare) ? 'home' : bare
+    }
   }
 
   return null
@@ -149,6 +168,7 @@ export function resolveInternalPageSlug(
 
 /**
  * Normalize href for public site navigation.
+ * Always returns /site/{tenant}/... on the app host so path-based URLs keep the tenant.
  */
 export function resolvePublicNavigationHref(
   href: string,
@@ -161,7 +181,7 @@ export function resolvePublicNavigationHref(
     return '#'
   }
 
-  if (isExternalHref(trimmed) || isAnchorHref(trimmed)) {
+  if (isExternalHref(trimmed)) {
     return trimmed
   }
 
@@ -169,6 +189,11 @@ export function resolvePublicNavigationHref(
 
   if (pageSlug) {
     return getPublicPagePath(tenantSlug, pageSlug)
+  }
+
+  // Real in-page anchors (e.g. #contact-form) that are not pages — keep as-is.
+  if (isAnchorHref(trimmed)) {
+    return trimmed
   }
 
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
