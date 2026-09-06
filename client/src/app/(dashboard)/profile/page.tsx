@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { ProfilePageClient } from '@/features/profile/components/ProfilePageClient'
 import { auth } from '@/lib/auth'
 import { isManagerRole } from '@/lib/constants/roles'
-import { getPublicSiteDisplayUrl, getPublicSitePath } from '@/lib/utils/public-site-url'
+import { getPublicSiteHref, getPublicSiteSlugAffixes } from '@/lib/utils/public-site-url'
 import { tenantProfileService } from '@/services/tenant'
 
 export const dynamic = 'force-dynamic'
@@ -24,9 +24,8 @@ export default async function ProfilePage() {
   }
 
   const profile = await tenantProfileService.getProfile(session.user.tenantId)
-  const liveSitePath = getPublicSitePath(profile.slug)
-  const liveSiteDisplayUrl = getPublicSiteDisplayUrl(profile.slug)
-  const siteUrlPrefix = liveSiteDisplayUrl.slice(0, Math.max(0, liveSiteDisplayUrl.length - profile.slug.length))
+  const liveSitePath = getPublicSiteHref(profile.slug)
+  const { prefix: siteUrlPrefix, suffix: siteUrlSuffix } = getPublicSiteSlugAffixes()
 
   return (
     <ProfilePageClient
@@ -36,6 +35,7 @@ export default async function ProfilePage() {
       userRole={session.user.role ?? ''}
       canEdit={isManagerRole(session.user.role)}
       siteUrlPrefix={siteUrlPrefix}
+      siteUrlSuffix={siteUrlSuffix}
       liveSitePath={liveSitePath}
       profile={profile}
     />

@@ -6,8 +6,8 @@ import type { BuilderSidebarPanel } from '../types'
 import { readBuilderLeftChrome, writeBuilderLeftChrome } from '../utils/builderContainerChrome'
 
 export function useBuilderLeftChrome() {
-  const [leftPanel, setLeftPanel] = useState<BuilderSidebarPanel | null>(null)
-  const [leftPinned, setLeftPinned] = useState(false)
+  const [leftPanel, setLeftPanel] = useState<BuilderSidebarPanel | null>('blocks')
+  const [leftPinned, setLeftPinned] = useState(true)
   const [chromeReady, setChromeReady] = useState(false)
   const skipWrite = useRef(true)
 

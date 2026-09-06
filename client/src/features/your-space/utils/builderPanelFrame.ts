@@ -1,6 +1,7 @@
 import {
   BUILDER_CANVAS_TOOLBAR_HEIGHT,
   BUILDER_FLOATING_PANEL_INSET,
+  FLOATING_AI_PANEL_WIDTH,
   FLOATING_PANEL_EXPANDED_WIDTH,
   FLOATING_PANEL_WIDTH,
   FLOATING_PROPERTY_PANEL_WIDTH
@@ -9,7 +10,8 @@ import { readBuilderLeftChrome } from './builderContainerChrome'
 
 export const BUILDER_PANEL_MIN_WIDTH = 240
 export const BUILDER_PANEL_MIN_HEIGHT = 200
-export const BUILDER_DOCKED_CANVAS_MIN = 240
+/** Keep the canvas readable when Blocks + AI + Properties are all docked. */
+export const BUILDER_DOCKED_CANVAS_MIN = 420
 export const BUILDER_LEFT_FRAME_KEY = 'servicehub-builder-left-frame'
 export const BUILDER_PROPERTY_FRAME_KEY = 'servicehub-builder-property-frame'
 export const BUILDER_AI_CHAT_FRAME_KEY = 'servicehub-builder-ai-chat-frame'
@@ -34,13 +36,33 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
 }
 
-export function defaultPanelRect(corner: 'left' | 'right', parent: PanelSize): PanelRect {
-  const width = corner === 'left' ? FLOATING_PANEL_WIDTH : FLOATING_PROPERTY_PANEL_WIDTH
-  const height = Math.max(
-    BUILDER_PANEL_MIN_HEIGHT,
-    parent.height - BUILDER_CANVAS_TOOLBAR_HEIGHT - BUILDER_FLOATING_PANEL_INSET * 2
-  )
-  const y = BUILDER_CANVAS_TOOLBAR_HEIGHT + BUILDER_FLOATING_PANEL_INSET
+/** Viewport bounds for free-floating (portaled) panels */
+export function viewportPanelSize(): PanelSize {
+  if (typeof window === 'undefined') {
+    return { width: 0, height: 0 }
+  }
+
+  return { width: window.innerWidth, height: window.innerHeight }
+}
+
+export function defaultPanelRect(
+  corner: 'left' | 'right',
+  parent: PanelSize,
+  storageKey?: string
+): PanelRect {
+  const width =
+    storageKey === BUILDER_AI_CHAT_FRAME_KEY
+      ? FLOATING_AI_PANEL_WIDTH
+      : storageKey === BUILDER_PROPERTY_FRAME_KEY
+        ? FLOATING_PROPERTY_PANEL_WIDTH
+        : storageKey === BUILDER_LEFT_FRAME_KEY
+          ? FLOATING_PANEL_WIDTH
+          : corner === 'left'
+            ? FLOATING_PANEL_WIDTH
+            : FLOATING_PROPERTY_PANEL_WIDTH
+  const topInset = BUILDER_FLOATING_PANEL_INSET * 2
+  const height = Math.max(BUILDER_PANEL_MIN_HEIGHT, parent.height - topInset - BUILDER_FLOATING_PANEL_INSET)
+  const y = topInset
   const x =
     corner === 'left'
       ? BUILDER_FLOATING_PANEL_INSET

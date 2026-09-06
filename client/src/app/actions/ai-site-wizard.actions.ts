@@ -3,6 +3,7 @@
 import { auth } from '@/lib/auth'
 import { requireSuperAdminSession } from '@/lib/auth/require-super-admin'
 import { formatActionError, resolveSessionUserId } from '@/lib/auth/resolve-session-user-id'
+import { hasUnlimitedCredits } from '@/lib/credits/has-unlimited-credits'
 import { AppError } from '@/lib/errors'
 import { pickBestTemplate } from '@/lib/ai-site-wizard/template-matcher'
 import type { AiSiteGenerationPreview, AiTemplateRecommendation } from '@/lib/ai-site-wizard/types'
@@ -67,6 +68,11 @@ export async function generateAiSitePreviewAction(
       return { success: false, error: 'You must be signed in with an organization.' }
     }
 
+    const { creditsService } = await import('@/services/credits')
+    const unlimited = hasUnlimitedCredits(session.user)
+
+    await creditsService.assertCanAfford(session.user.tenantId, 'major_redesign', { unlimited })
+
     const profile = aiSiteWizardProfileSchema.parse(profileInput)
     const baseTenantId = await getOrCreateBaseTemplateTenantId()
     const preview = await aiSiteWizardService.generateFromWorkspace(profile, baseTenantId)
@@ -86,11 +92,22 @@ export async function applyAiGeneratedSiteAction(
   try {
     const session = await auth()
 
-    if (!session?.user?.tenantId) {
+    if (!session?.user?.tenantId || !session.user.id) {
       return { success: false, error: 'You must be signed in with an organization.' }
     }
 
+    const { creditsService } = await import('@/services/credits')
+    const unlimited = hasUnlimitedCredits(session.user)
+
+    await creditsService.assertCanAfford(session.user.tenantId, 'major_redesign', { unlimited })
     await aiSiteWizardService.applyGeneratedSite(session.user.tenantId, templateId, preview)
+    await creditsService.spend({
+      tenantId: session.user.tenantId,
+      feature: 'major_redesign',
+      actorUserId: session.user.id,
+      description: 'Applied AI-generated website',
+      unlimited
+    })
 
     return { success: true }
   } catch (error) {

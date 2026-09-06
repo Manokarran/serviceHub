@@ -132,6 +132,7 @@ export type AiBuilderContext = {
 export type AiBuilderContextBundle = {
   context: AiBuilderContext
   refToId: Record<string, string>
+  idToRef: Record<string, string>
 }
 
 export type { SiteStyles }

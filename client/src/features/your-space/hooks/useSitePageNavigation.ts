@@ -6,6 +6,8 @@ import { usePathname, useRouter } from 'next/navigation'
 
 import { useBuilderOptional } from '../context/BuilderContext'
 import { useCanvasBlockEdit } from '../components/inline/CanvasBlockEditContext'
+import { toHostAwarePublicPath } from '@/lib/utils/public-site-url'
+import { extractTenantSlugFromHostname } from '@/lib/utils/tenant-host'
 import {
   isAnchorHref,
   isExternalHref,
@@ -47,7 +49,11 @@ export function useSitePageNavigation() {
   const editContext = useCanvasBlockEdit()
   const isCanvasEditing = Boolean(builder && builder.mode === 'edit' && editContext)
 
-  const tenantSlug = builder?.tenantSlug ?? extractTenantSlugFromPathname(pathname ?? '') ?? ''
+  const tenantSlug =
+    builder?.tenantSlug ??
+    extractTenantSlugFromPathname(pathname ?? '') ??
+    (typeof window !== 'undefined' ? extractTenantSlugFromHostname(window.location.host) : null) ??
+    ''
   const pages = builder?.pages ?? []
 
   const handleLinkClick = useCallback(
@@ -86,7 +92,11 @@ export function useSitePageNavigation() {
           await builder.switchPage(pageSlug)
           scrollBuilderCanvasToTop()
 
-          if (pathname?.startsWith('/your-space') || pathname?.startsWith('/super-admin/studio/builder') || pathname?.includes('/super-admin/templates/')) {
+          if (
+            pathname?.startsWith('/your-space') ||
+            pathname?.startsWith('/super-admin/studio/builder') ||
+            pathname?.includes('/super-admin/templates/')
+          ) {
             const params = new URLSearchParams(window.location.search)
 
             params.set('p', pageSlug)
@@ -97,7 +107,10 @@ export function useSitePageNavigation() {
         return
       }
 
-      const destination = resolvePublicNavigationHref(trimmed, tenantSlug, pages)
+      const destination = toHostAwarePublicPath(
+        resolvePublicNavigationHref(trimmed, tenantSlug, pages),
+        tenantSlug
+      )
 
       if (destination === pathname) {
         event.preventDefault()
@@ -123,7 +136,7 @@ export function useSitePageNavigation() {
         return trimmed
       }
 
-      return resolvePublicNavigationHref(trimmed, tenantSlug, pages)
+      return toHostAwarePublicPath(resolvePublicNavigationHref(trimmed, tenantSlug, pages), tenantSlug)
     },
     [pages, tenantSlug]
   )

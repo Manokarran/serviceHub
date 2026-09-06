@@ -20,16 +20,8 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '8mb'
     }
   },
-  redirects: async () => {
-    return [
-      {
-        source: '/',
-        destination: '/home',
-        permanent: true,
-        locale: false
-      }
-    ]
-  }
+  // `/` → `/home` is handled in `src/proxy.ts` on the app host only,
+  // so tenant subdomains can serve published sites at `/`.
 }
 
 export default nextConfig

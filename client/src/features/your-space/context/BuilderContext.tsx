@@ -13,6 +13,7 @@ import {
 } from 'react'
 
 import {
+  addBasePageFromTemplateAction,
   createSitePageAction,
   deleteSitePageAction,
   duplicateSitePageAction,
@@ -48,6 +49,7 @@ import { mergeSiteStyles } from '../utils/siteStylesHelpers'
 import { reharmonizeBlockTreeToTheme } from '../utils/themePropagation'
 import { applyAiBuilderPlan, type AiPlanApplyResult } from '../utils/aiPlanApply'
 import type { AiBuilderPlan, AiBuilderRestyleScope } from '@/lib/ai-builder/types'
+import { ensureNavLinksOnBlocks, titleForBasePageSlug } from '@/lib/ai-builder/suggested-base-pages'
 import {
   BUILDER_AUTOSAVE_KEY,
   BUILDER_GRID_MODE_KEY,
@@ -413,6 +415,16 @@ type BuilderContextValue = BuilderState & {
     title: string,
     options?: { slug?: string }
   ) => Promise<{ success: true; page: SitePageSummary } | { success: false; error: string }>
+  /**
+   * Clone a missing base page (About / Contact / …) into this site, theme-matched
+   * to the current draft styles, then switch to it.
+   */
+  addBasePageFromTemplate: (
+    slug: string
+  ) => Promise<
+    | { success: true; page: SitePageSummary; themed: boolean; source: 'base_template' | 'starter' }
+    | { success: false; error: string }
+  >
   duplicatePage: (
     sourceSlug: string,
     newTitle: string
@@ -994,6 +1006,35 @@ export function BuilderProvider({
     [refreshPages, builderScope, libraryTemplateId]
   )
 
+  const addBasePageFromTemplate = useCallback(
+    async (slug: string) => {
+      // Persist the open page first so nav updates from the server do not fight a dirty draft.
+      await persistDraft(currentPageSlugRef.current, blocksRef.current, siteStylesRef.current)
+
+      const result = await addBasePageFromTemplateAction(slug, siteStylesRef.current, builderScope)
+
+      if (!result.success) {
+        return result
+      }
+
+      // Patch local nav before switchPage re-saves, so we do not wipe the server nav stitch.
+      const link = {
+        label: result.page.title || titleForBasePageSlug(result.page.slug),
+        href: result.page.slug
+      }
+      const patched = ensureNavLinksOnBlocks(blocksRef.current, [link])
+
+      dispatch({ type: 'SET_BLOCKS', blocks: patched })
+      blocksRef.current = patched
+
+      await refreshPages()
+      await switchPage(result.page.slug)
+
+      return result
+    },
+    [persistDraft, refreshPages, switchPage, builderScope]
+  )
+
   const duplicatePage = useCallback(
     async (sourceSlug: string, newTitle: string) => {
       const result = await duplicateSitePageAction(sourceSlug, newTitle, builderScope, libraryTemplateId ?? undefined)
@@ -1153,6 +1194,7 @@ export function BuilderProvider({
       publishPage,
       switchPage,
       createPage,
+      addBasePageFromTemplate,
       duplicatePage,
       deletePage,
       updatePageMeta,
@@ -1194,6 +1236,7 @@ export function BuilderProvider({
       publishPage,
       switchPage,
       createPage,
+      addBasePageFromTemplate,
       duplicatePage,
       deletePage,
       updatePageMeta,

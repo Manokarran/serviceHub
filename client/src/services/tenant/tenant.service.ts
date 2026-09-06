@@ -1,8 +1,12 @@
+import { serverEnv } from '@/config/env'
 import { AppError } from '@/lib/errors'
+import { getSuperAdminEmails } from '@/lib/auth/super-admin'
+import { DEFAULT_SIGNUP_CREDITS } from '@/lib/constants/credits'
 import { completeRegistrationSchema, type CompleteRegistrationInput } from '@/lib/validators'
 import { slugify } from '@/lib/utils/slug'
 import { isReservedTenantSlug } from '@/lib/utils/tenant-slug'
-import { tenantRepository, userRepository } from '@/repositories'
+import { creditLedgerRepository, platformSettingsRepository, tenantRepository, userRepository } from '@/repositories'
+import { emailService } from '@/services/email/email.service'
 import { sitePageService } from '@/services/site-page'
 import { siteTemplateService } from '@/services/site-template'
 
@@ -42,9 +46,21 @@ export class TenantService {
       throw new AppError('This workspace slug is already taken', 409, 'SLUG_EXISTS')
     }
 
+    let signupCredits = DEFAULT_SIGNUP_CREDITS
+
+    try {
+      const settings = await platformSettingsRepository.getCreditSettings()
+
+      signupCredits = settings.defaultSignupCredits
+    } catch (error) {
+      console.error('[TenantService] Failed to load credit settings — using default signup credits', error)
+    }
+
     const tenant = await tenantRepository.create({
       name: companyName,
-      slug
+      slug,
+      approvalStatus: 'pending',
+      creditsBalance: signupCredits
     })
 
     try {
@@ -52,6 +68,20 @@ export class TenantService {
 
       if (!updatedUser) {
         throw new AppError('Failed to link organization to your account', 500, 'REGISTRATION_FAILED')
+      }
+
+      if (signupCredits > 0) {
+        try {
+          await creditLedgerRepository.create({
+            tenantId: tenant._id.toString(),
+            delta: signupCredits,
+            balanceAfter: signupCredits,
+            reason: 'signup_grant',
+            description: `Welcome pack — ${signupCredits} credits`
+          })
+        } catch (error) {
+          console.error('[TenantService] Failed to write signup credit ledger', error)
+        }
       }
 
       try {
@@ -68,11 +98,49 @@ export class TenantService {
         }
       }
 
+      await this.notifySuperAdminsOfRegistration({
+        tenantName: tenant.name,
+        tenantSlug: tenant.slug,
+        ownerName: user.name,
+        ownerEmail: user.email
+      })
+
       return { tenantId: tenant._id.toString(), slug: tenant.slug }
     } catch (error) {
+      await userRepository.clearTenant(userId)
       await tenantRepository.deleteById(tenant._id.toString())
       throw error
     }
+  }
+
+  private async notifySuperAdminsOfRegistration(payload: {
+    tenantName: string
+    tenantSlug: string
+    ownerName: string
+    ownerEmail: string
+  }) {
+    const recipients = getSuperAdminEmails()
+
+    if (recipients.length === 0) {
+      console.warn('[TenantService] No SUPER_ADMIN emails configured — skipping registration notification')
+
+      return
+    }
+
+    const reviewUrl = `${serverEnv.appUrl.replace(/\/$/, '')}/super-admin/requests`
+
+    await Promise.all(
+      recipients.map(async email => {
+        try {
+          await emailService.sendRegistrationRequestNotification(email, {
+            ...payload,
+            reviewUrl
+          })
+        } catch (error) {
+          console.error(`[TenantService] Failed to email super admin ${email}`, error)
+        }
+      })
+    )
   }
 }
 

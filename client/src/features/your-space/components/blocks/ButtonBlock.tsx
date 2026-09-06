@@ -10,6 +10,7 @@ import { siteCanvasBelow } from '../../utils/siteResponsiveHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
 import { getSiteButtonSx, mapBlockVariantToButtonRole } from '../../utils/siteStylesHelpers'
 import { usePublicTenantSlug } from '../../hooks/usePublicTenantSlug'
+import { isPublicSiteHost } from '@/lib/utils/tenant-host'
 
 type Props = {
   props: ButtonBlockProps
@@ -42,8 +43,14 @@ export function ButtonBlock({ props }: Props) {
 
           window.dispatchEvent(customEvent)
 
-          if (!customEvent.defaultPrevented && tenantSlug && window.location.pathname.startsWith('/site/')) {
-            const bookingPath = `/site/${encodeURIComponent(tenantSlug)}/book`
+          if (
+            !customEvent.defaultPrevented &&
+            tenantSlug &&
+            (window.location.pathname.startsWith('/site/') || isPublicSiteHost(window.location.host))
+          ) {
+            const bookingPath = isPublicSiteHost(window.location.host)
+              ? '/book'
+              : `/site/${encodeURIComponent(tenantSlug)}/book`
 
             const serviceQuery =
               props.action === 'serviceBooking' && props.serviceSlug?.trim()

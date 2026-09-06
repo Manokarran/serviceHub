@@ -33,8 +33,9 @@ export const BUILDER_Z_INDEX = {
   canvasBlockSelected: 100,
   canvasBlockDragging: 110,
   blockToolbar: 120,
-  dockOverlay: 24,
-  propertyOverlay: 25
+  /** Portaled overlays — above app chrome, below MUI modals (~1300). Focused panel is offset from this. */
+  dockOverlay: 1200,
+  propertyOverlay: 1201
 } as const
 
 export const BUILDER_CONTENT_TABS = [
@@ -43,9 +44,11 @@ export const BUILDER_CONTENT_TABS = [
   { id: 'design' as const, icon: 'ri-palette-line', label: 'Styles', shortcut: 'S' }
 ]
 
-export const FLOATING_PANEL_WIDTH = 264
-export const FLOATING_PANEL_EXPANDED_WIDTH = 400
-export const FLOATING_PROPERTY_PANEL_WIDTH = 280
+export const FLOATING_PANEL_WIDTH = 252
+export const FLOATING_PANEL_EXPANDED_WIDTH = 360
+export const FLOATING_PROPERTY_PANEL_WIDTH = 272
+/** Compact docked AI chat — wide enough to type, narrow enough for canvas. */
+export const FLOATING_AI_PANEL_WIDTH = 300
 export const BUILDER_FLOATING_PANEL_INSET = 8
 export const BUILDER_FLOATING_PANEL_MIN_HEIGHT = 320
 

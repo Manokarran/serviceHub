@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { auth } from '@/lib/auth'
+import { requireTenantWorkspace } from '@/lib/auth/require-tenant-workspace'
 import { isManagerRole } from '@/lib/constants/roles'
 import { AppError } from '@/lib/errors'
 import {
@@ -17,19 +17,27 @@ type Result = { success: true; booking: BookingSummary } | { success: false; err
 type ListResult = { success: true; bookings: BookingSummary[] } | { success: false; error: string }
 type NotificationResult = { success: true } | { success: false; error: string }
 
+async function requireBookingManager() {
+  const session = await requireTenantWorkspace()
+
+  if (!session.user.tenantId || !isManagerRole(session.user.role)) {
+    throw new AppError('You do not have permission to manage bookings.', 403, 'FORBIDDEN')
+  }
+
+  return session
+}
+
 export async function getTenantBookingsAction(options: { includePast?: boolean } = {}): Promise<ListResult> {
   try {
-    const session = await auth()
-
-    if (!session?.user?.tenantId || !isManagerRole(session.user.role)) {
-      throw new AppError('You do not have permission to view bookings.', 403, 'FORBIDDEN')
-    }
-
+    const session = await requireBookingManager()
     const recentFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
     return {
       success: true,
-      bookings: await bookingService.listTenantBookings(session.user.tenantId, options.includePast ? {} : { from: recentFrom })
+      bookings: await bookingService.listTenantBookings(
+        session.user.tenantId!,
+        options.includePast ? {} : { from: recentFrom }
+      )
     }
   } catch (error) {
     if (error instanceof AppError) {
@@ -44,12 +52,7 @@ export async function getTenantBookingsAction(options: { includePast?: boolean }
 
 export async function updateBookingStatusAction(input: UpdateBookingStatusInput): Promise<Result> {
   try {
-    const session = await auth()
-
-    if (!session?.user?.tenantId || !isManagerRole(session.user.role)) {
-      throw new AppError('You do not have permission to update bookings.', 403, 'FORBIDDEN')
-    }
-
+    const session = await requireBookingManager()
     const parsed = updateBookingStatusSchema.safeParse(input)
 
     if (!parsed.success) {
@@ -57,7 +60,7 @@ export async function updateBookingStatusAction(input: UpdateBookingStatusInput)
     }
 
     const booking = await bookingService.updateStatus(
-      session.user.tenantId,
+      session.user.tenantId!,
       parsed.data.bookingId,
       parsed.data.status,
       session.user.id,
@@ -81,19 +84,14 @@ export async function updateBookingStatusAction(input: UpdateBookingStatusInput)
 
 export async function sendBookingNotificationAction(bookingId: string): Promise<NotificationResult> {
   try {
-    const session = await auth()
-
-    if (!session?.user?.tenantId || !isManagerRole(session.user.role)) {
-      throw new AppError('You do not have permission to send booking notifications.', 403, 'FORBIDDEN')
-    }
-
+    const session = await requireBookingManager()
     const parsed = bookingIdSchema.safeParse({ bookingId })
 
     if (!parsed.success) {
       return { success: false, error: 'Invalid booking' }
     }
 
-    await bookingService.sendBookingNotification(session.user.tenantId, parsed.data.bookingId)
+    await bookingService.sendBookingNotification(session.user.tenantId!, parsed.data.bookingId)
 
     return { success: true }
   } catch (error) {

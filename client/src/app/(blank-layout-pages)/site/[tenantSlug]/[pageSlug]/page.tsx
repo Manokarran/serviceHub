@@ -11,6 +11,7 @@ import { normalizeBlocks } from '@/features/your-space/utils/blockMigration'
 import { mergeSiteStyles } from '@/features/your-space/utils/siteStylesHelpers'
 import { isHomePageSlug } from '@/lib/utils/page-slug'
 import { sitePageService } from '@/services/site-page'
+import { tenantRepository } from '@/repositories'
 
 type PageProps = {
   params: Promise<{ tenantSlug: string; pageSlug: string }>
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const site = await sitePageService.getPublicPageByTenantSlug(tenantSlug, pageSlug)
 
   if (!site) {
-    return { title: 'Page not found' }
+    return { title: 'Sidhiyana' }
   }
 
   return {
@@ -39,6 +40,12 @@ export default async function PublicSiteSubPage({ params }: PageProps) {
   const { tenantSlug, pageSlug } = await params
 
   if (isHomePageSlug(pageSlug)) {
+    notFound()
+  }
+
+  const tenant = await tenantRepository.findBySlug(tenantSlug)
+
+  if (!tenant || tenant.status === 'suspended') {
     notFound()
   }
 

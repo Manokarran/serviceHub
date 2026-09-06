@@ -10,6 +10,7 @@ import { mergeSiteStyles } from '@/features/your-space/utils/siteStylesHelpers'
 import type { DesignProposal, RewordResult } from '@/lib/ai-design-studio/types'
 import { auth } from '@/lib/auth'
 import { formatActionError } from '@/lib/auth/resolve-session-user-id'
+import { hasUnlimitedCredits } from '@/lib/credits/has-unlimited-credits'
 import { serializeForClient } from '@/lib/utils/plain-json'
 import { aiDesignStudioService } from '@/services/ai-design-studio/ai-design-studio.service'
 
@@ -33,23 +34,34 @@ const restyleSchema = requestSchema.extend({
   siteStyles: z.record(z.string(), z.unknown())
 })
 
-type ProposeResult = { success: true; proposal: DesignProposal } | { success: false; error: string }
-type RewordActionResult = { success: true; result: RewordResult } | { success: false; error: string }
+type ProposeResult =
+  | { success: true; proposal: DesignProposal; creditsRemaining?: number }
+  | { success: false; error: string }
+type RewordActionResult =
+  | { success: true; result: RewordResult; creditsRemaining?: number }
+  | { success: false; error: string }
 
-async function requireTenantId(): Promise<string> {
+async function requireTenantId(): Promise<{ tenantId: string; userId: string; unlimited: boolean }> {
   const session = await auth()
 
-  if (!session?.user?.tenantId) {
+  if (!session?.user?.tenantId || !session.user.id) {
     throw new Error('You must be signed in with an organization.')
   }
 
-  return session.user.tenantId
+  return {
+    tenantId: session.user.tenantId,
+    userId: session.user.id,
+    unlimited: hasUnlimitedCredits(session.user)
+  }
 }
 
 export async function proposeDesignRestyleAction(input: unknown): Promise<ProposeResult> {
   try {
-    const tenantId = await requireTenantId()
+    const { tenantId, userId, unlimited } = await requireTenantId()
     const parsed = restyleSchema.parse(input)
+    const { creditsService } = await import('@/services/credits')
+
+    await creditsService.assertCanAfford(tenantId, 'major_redesign', { unlimited })
 
     const proposal = await aiDesignStudioService.proposeRestyle({
       scope: parsed.scope,
@@ -62,7 +74,15 @@ export async function proposeDesignRestyleAction(input: unknown): Promise<Propos
       tenantId
     })
 
-    return { success: true, proposal: serializeForClient(proposal) }
+    const spent = await creditsService.spend({
+      tenantId,
+      feature: 'major_redesign',
+      actorUserId: userId,
+      description: `Major redesign (${parsed.scope})`,
+      unlimited
+    })
+
+    return { success: true, proposal: serializeForClient(proposal), creditsRemaining: spent.balance }
   } catch (error) {
     console.error('[proposeDesignRestyleAction]', error)
 
@@ -72,8 +92,11 @@ export async function proposeDesignRestyleAction(input: unknown): Promise<Propos
 
 export async function rewordDesignScopeAction(input: unknown): Promise<RewordActionResult> {
   try {
-    const tenantId = await requireTenantId()
+    const { tenantId, userId, unlimited } = await requireTenantId()
     const parsed = requestSchema.parse(input)
+    const { creditsService } = await import('@/services/credits')
+
+    await creditsService.assertCanAfford(tenantId, 'rewrite_text', { unlimited })
 
     const result = await aiDesignStudioService.reword({
       scope: parsed.scope,
@@ -84,7 +107,15 @@ export async function rewordDesignScopeAction(input: unknown): Promise<RewordAct
       tenantId
     })
 
-    return { success: true, result: serializeForClient(result) }
+    const spent = await creditsService.spend({
+      tenantId,
+      feature: 'rewrite_text',
+      actorUserId: userId,
+      description: `Rewrite text (${parsed.scope})`,
+      unlimited
+    })
+
+    return { success: true, result: serializeForClient(result), creditsRemaining: spent.balance }
   } catch (error) {
     console.error('[rewordDesignScopeAction]', error)
 

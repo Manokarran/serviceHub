@@ -1,4 +1,5 @@
 // MUI Imports
+import Tooltip from '@mui/material/Tooltip'
 import { useTheme } from '@mui/material/styles'
 
 // Third-party Imports
@@ -59,10 +60,22 @@ const HorizontalMenu = () => {
   const { data: session } = useSession()
   const canManageLeads = isManagerRole(session?.user?.role)
   const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  const workspaceOpen = session?.user?.tenantWorkspaceOpen !== false
+  const lockedTitle = 'Access declined'
 
   // Vars
   const { skin } = settings
   const { transitionDuration } = verticalNavOptions
+
+  const lockedItem = (label: string, icon: string) => (
+    <Tooltip title={lockedTitle}>
+      <span>
+        <MenuItem disabled icon={<i className={icon} />}>
+          {label}
+        </MenuItem>
+      </span>
+    </Tooltip>
+  )
 
   return (
     <HorizontalNav
@@ -95,23 +108,39 @@ const HorizontalMenu = () => {
         <MenuItem href='/home' icon={<i className='ri-home-smile-line' />}>
           Home
         </MenuItem>
-        <MenuItem href='/your-space' icon={<i className='ri-layout-masonry-line' />}>
-          Your Space
-        </MenuItem>
-        {canManageLeads ? (
-          <MenuItem href='/services' icon={<i className='ri-calendar-check-line' />}>
-            Services
+        {workspaceOpen ? (
+          <MenuItem href='/your-space' icon={<i className='ri-layout-masonry-line' />}>
+            Your Space
           </MenuItem>
+        ) : (
+          lockedItem('Your Space', 'ri-layout-masonry-line')
+        )}
+        {canManageLeads ? (
+          workspaceOpen ? (
+            <MenuItem href='/services' icon={<i className='ri-calendar-check-line' />}>
+              Services
+            </MenuItem>
+          ) : (
+            lockedItem('Services', 'ri-calendar-check-line')
+          )
         ) : null}
         {canManageLeads ? (
-          <MenuItem href='/bookings' icon={<i className='ri-calendar-todo-line' />}>
-            Bookings
-          </MenuItem>
+          workspaceOpen ? (
+            <MenuItem href='/bookings' icon={<i className='ri-calendar-todo-line' />}>
+              Bookings
+            </MenuItem>
+          ) : (
+            lockedItem('Bookings', 'ri-calendar-todo-line')
+          )
         ) : null}
         {canManageLeads ? (
-          <MenuItem href='/leads' icon={<i className='ri-mail-line' />}>
-            Leads
-          </MenuItem>
+          workspaceOpen ? (
+            <MenuItem href='/leads' icon={<i className='ri-mail-line' />}>
+              Leads
+            </MenuItem>
+          ) : (
+            lockedItem('Leads', 'ri-mail-line')
+          )
         ) : null}
         <MenuItem href='/about' icon={<i className='ri-information-line' />}>
           About
@@ -120,6 +149,12 @@ const HorizontalMenu = () => {
           <MenuSection label='Super Admin'>
             <MenuItem href='/super-admin' icon={<i className='ri-shield-star-line' />}>
               Dashboard
+            </MenuItem>
+            <MenuItem href='/super-admin/requests' icon={<i className='ri-user-follow-line' />}>
+              Registration requests
+            </MenuItem>
+            <MenuItem href='/super-admin/credits' icon={<i className='ri-coin-line' />}>
+              AI credits
             </MenuItem>
             <MenuItem href='/super-admin/studio' icon={<i className='ri-palette-line' />}>
               Design studio
@@ -130,27 +165,6 @@ const HorizontalMenu = () => {
           </MenuSection>
         ) : null}
       </Menu>
-
-      {/* <Menu
-        rootStyles={menuRootStyles(theme)}
-        renderExpandIcon={({ level }) => <RenderExpandIcon level={level} />}
-        renderExpandedMenuItemIcon={{ icon: <i className='ri-circle-line' /> }}
-        menuItemStyles={menuItemStyles(theme, 'ri-circle-line')}
-        popoutMenuOffset={{
-          mainAxis: ({ level }) => (level && level > 0 ? 4 : 16),
-          alignmentAxis: 0
-        }}
-        verticalMenuProps={{
-          menuItemStyles: verticalMenuItemStyles(verticalNavOptions, theme),
-          renderExpandIcon: ({ open }) => (
-            <RenderVerticalExpandIcon open={open} transitionDuration={transitionDuration} />
-          ),
-          renderExpandedMenuItemIcon: { icon: <i className='ri-circle-line' /> },
-          menuSectionStyles: verticalMenuSectionStyles(verticalNavOptions, theme)
-        }}
-      >
-        <GenerateHorizontalMenu menuData={menuData(dictionary)} />
-      </Menu> */}
     </HorizontalNav>
   )
 }

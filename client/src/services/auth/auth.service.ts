@@ -1,5 +1,13 @@
+import { Types } from 'mongoose'
+
 import { AppError } from '@/lib/errors'
-import type { TenantPlan } from '@/lib/constants/tenant'
+import {
+  isTenantApproved,
+  isTenantWorkspaceOpen,
+  resolveTenantApprovalStatus,
+  type TenantApprovalStatus,
+  type TenantPlan
+} from '@/lib/constants/tenant'
 import type { UserRole } from '@/lib/constants/roles'
 import { siteCustomerRepository, tenantRepository, userRepository } from '@/repositories'
 
@@ -20,6 +28,9 @@ export type AuthUserProfile = {
   tenantName?: string
   tenantSlug?: string
   tenantPlan?: TenantPlan
+  tenantApproved: boolean
+  tenantApprovalStatus?: TenantApprovalStatus
+  tenantWorkspaceOpen: boolean
   registrationComplete: boolean
 }
 
@@ -35,31 +46,104 @@ export type AuthCustomerProfile = {
   context: 'customer'
 }
 
-function mapUserProfile(user: NonNullable<Awaited<ReturnType<typeof userRepository.findById>>>): AuthUserProfile {
-  const tenant = user.tenantId as unknown as
-    | {
-        _id: { toString(): string }
-        name: string
-        slug: string
-        status: string
-        plan: TenantPlan
+/** Resolve a Mongo ObjectId string from a raw or populated tenantId ref. */
+function resolveTenantObjectId(tenantId: unknown): string | null {
+  if (!tenantId) {
+    return null
+  }
+
+  if (typeof tenantId === 'string') {
+    return Types.ObjectId.isValid(tenantId) ? tenantId : null
+  }
+
+  if (typeof tenantId === 'object') {
+    const asRecord = tenantId as { _id?: unknown; toHexString?: () => string }
+
+    // Populated tenant document
+    if (asRecord._id != null) {
+      const nested = asRecord._id
+
+      if (typeof nested === 'string' && Types.ObjectId.isValid(nested)) {
+        return nested
       }
-    | undefined
 
-  const registrationComplete = Boolean(user.tenantId)
-  const populatedTenant = tenant && typeof tenant === 'object' && '_id' in tenant ? tenant : undefined
+      if (nested && typeof nested === 'object' && 'toHexString' in nested) {
+        return (nested as { toHexString: () => string }).toHexString()
+      }
 
-  return {
+      if (nested && typeof (nested as { toString?: () => string }).toString === 'function') {
+        const value = (nested as { toString: () => string }).toString()
+
+        return Types.ObjectId.isValid(value) ? value : null
+      }
+    }
+
+    // Unpopulated ObjectId
+    if (typeof asRecord.toHexString === 'function') {
+      return asRecord.toHexString()
+    }
+  }
+
+  return null
+}
+
+async function mapUserProfile(
+  user: NonNullable<Awaited<ReturnType<typeof userRepository.findById>>>
+): Promise<AuthUserProfile> {
+  const base = {
     id: user._id.toString(),
     email: user.email,
     name: user.name,
-    image: user.image,
-    role: registrationComplete ? user.role : undefined,
-    tenantId: populatedTenant?._id.toString(),
-    tenantName: populatedTenant?.name,
-    tenantSlug: populatedTenant?.slug,
-    tenantPlan: populatedTenant?.plan,
-    registrationComplete
+    image: user.image
+  }
+
+  if (!user.tenantId) {
+    return {
+      ...base,
+      tenantApproved: false,
+      tenantWorkspaceOpen: false,
+      registrationComplete: false
+    }
+  }
+
+  const tenantId = resolveTenantObjectId(user.tenantId)
+
+  if (!tenantId) {
+    await userRepository.clearTenant(user._id.toString())
+
+    return {
+      ...base,
+      tenantApproved: false,
+      tenantWorkspaceOpen: false,
+      registrationComplete: false
+    }
+  }
+
+  // Always read approval from the tenant document (populate can be stale / incomplete)
+  const loaded = await tenantRepository.findById(tenantId)
+
+  if (!loaded) {
+    await userRepository.clearTenant(user._id.toString())
+
+    return {
+      ...base,
+      tenantApproved: false,
+      tenantWorkspaceOpen: false,
+      registrationComplete: false
+    }
+  }
+
+  return {
+    ...base,
+    role: user.role,
+    tenantId: loaded._id.toString(),
+    tenantName: loaded.name,
+    tenantSlug: loaded.slug,
+    tenantPlan: loaded.plan,
+    tenantApproved: isTenantApproved(loaded.approvalStatus, loaded.createdAt),
+    tenantApprovalStatus: resolveTenantApprovalStatus(loaded.approvalStatus, loaded.createdAt),
+    tenantWorkspaceOpen: isTenantWorkspaceOpen(loaded.approvalStatus, loaded.createdAt),
+    registrationComplete: true
   }
 }
 
@@ -174,33 +258,53 @@ export class AuthService {
       throw new AppError('Your account is inactive', 403, 'USER_INACTIVE')
     }
 
-    const tenant = user.tenantId as unknown as { status?: string } | undefined
+    const profile = await mapUserProfile(user)
 
-    if (tenant?.status === 'suspended') {
-      throw new AppError('Your organization account is not active', 403, 'TENANT_INACTIVE')
+    if (profile.registrationComplete && profile.tenantId) {
+      const tenant = await tenantRepository.findById(profile.tenantId)
+
+      if (tenant?.status === 'suspended') {
+        throw new AppError('Your organization account is not active', 403, 'TENANT_INACTIVE')
+      }
     }
 
-    return mapUserProfile(user)
+    return profile
   }
 
   async getUserProfile(userId: string): Promise<AuthUserProfile | null> {
-    const user = await userRepository.findById(userId)
-
-    if (!user || !user.isActive) {
+    if (!/^[a-fA-F0-9]{24}$/.test(userId)) {
       return null
     }
 
-    return mapUserProfile(user)
+    try {
+      const user = await userRepository.findById(userId)
+
+      if (!user || !user.isActive) {
+        return null
+      }
+
+      return await mapUserProfile(user)
+    } catch (error) {
+      console.error('[AuthService.getUserProfile]', error)
+
+      return null
+    }
   }
 
   async getUserProfileByEmail(email: string): Promise<AuthUserProfile | null> {
-    const user = await userRepository.findByEmail(email)
+    try {
+      const user = await userRepository.findByEmail(email)
 
-    if (!user || !user.isActive) {
+      if (!user || !user.isActive) {
+        return null
+      }
+
+      return await mapUserProfile(user)
+    } catch (error) {
+      console.error('[AuthService.getUserProfileByEmail]', error)
+
       return null
     }
-
-    return mapUserProfile(user)
   }
 }
 

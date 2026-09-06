@@ -30,6 +30,14 @@ export type BookingEmailPayload = {
   onlineUrl?: string
 }
 
+export type RegistrationRequestEmailPayload = {
+  tenantName: string
+  tenantSlug: string
+  ownerName: string
+  ownerEmail: string
+  reviewUrl: string
+}
+
 function sender(displayName?: string): { name: string; address: string } {
   return {
     name: displayName?.trim() || serverEnv.emailFromName,
@@ -253,6 +261,39 @@ export class EmailService {
       ].join('\n'),
       payload
     )
+  }
+
+  async sendRegistrationRequestNotification(
+    to: string,
+    payload: RegistrationRequestEmailPayload
+  ): Promise<boolean> {
+    const transporter = this.getTransporter()
+
+    if (!transporter) {
+      console.warn('[EmailService] SMTP not configured — skipping registration request email')
+
+      return false
+    }
+
+    const subject = `New organization registration — ${payload.tenantName}`
+    const text = [
+      'A new organization has registered and is waiting for approval.',
+      '',
+      `Organization: ${payload.tenantName}`,
+      `Slug: ${payload.tenantSlug}`,
+      `Owner: ${payload.ownerName} <${payload.ownerEmail}>`,
+      '',
+      `Review requests: ${payload.reviewUrl}`
+    ].join('\n')
+
+    await transporter.sendMail({
+      from: sender(),
+      to,
+      subject,
+      text
+    })
+
+    return true
   }
 
   private async sendBookingEmail(

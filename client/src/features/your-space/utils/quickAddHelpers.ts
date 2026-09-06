@@ -1,9 +1,12 @@
+import type { AiBuilderInsertAt } from '@/lib/ai-builder/types'
+
 import { PALETTE_ITEMS } from '../constants'
 import type { Block, BlockType, CarouselBlockProps, PaletteItem, SectionBlockProps, TabsBlockProps } from '../types'
 import {
   canNestInCarousel,
   canNestInSection,
   canNestInTabs,
+  findBlockInTree,
   getCarouselSlideChildren,
   getSectionColumnChildren,
   getTabPanelChildren,
@@ -86,6 +89,180 @@ export function toBlockLocation(location: QuickAddLocation, index: number): Bloc
     tabsId: location.tabsId,
     panelId: location.panelId,
     index
+  }
+}
+
+export function getChildrenAtQuickAddLocation(blocks: Block[], location: QuickAddLocation): Block[] {
+  if (location.container === 'root') {
+    return blocks
+  }
+
+  if (location.container === 'section') {
+    const section = findBlockInTree(blocks, location.sectionId)
+
+    return section ? getSectionColumnChildren(section, location.column) : []
+  }
+
+  if (location.container === 'carousel') {
+    const carousel = findBlockInTree(blocks, location.carouselId)
+
+    return carousel ? getCarouselSlideChildren(carousel, location.slideId) : []
+  }
+
+  const tabs = findBlockInTree(blocks, location.tabsId)
+
+  return tabs ? getTabPanelChildren(tabs, location.panelId) : []
+}
+
+function humanizeBlockType(type: BlockType): string {
+  const paletteLabel = PALETTE_ITEMS.find(item => item.type === type)?.label
+
+  if (paletteLabel) {
+    return paletteLabel
+  }
+
+  return type
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, char => char.toUpperCase())
+    .trim()
+}
+
+const LABEL_KEYS = ['title', 'text', 'logoText', 'copyrightText', 'eyebrow', 'alt', 'ctaLabel'] as const
+
+export function describeBlockForInsert(block: Block): string {
+  const props = block.props as unknown as Record<string, unknown>
+
+  for (const key of LABEL_KEYS) {
+    const value = props[key]
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+      const trimmed = value.trim().replace(/\s+/g, ' ')
+
+      return trimmed.length > 28 ? `${trimmed.slice(0, 28)}…` : trimmed
+    }
+  }
+
+  return humanizeBlockType(block.type)
+}
+
+function containerInsertLabel(blocks: Block[], location: QuickAddLocation): string {
+  if (location.container === 'root') {
+    return 'page end'
+  }
+
+  if (location.container === 'section') {
+    const section = findBlockInTree(blocks, location.sectionId)
+    const props = section?.props as SectionBlockProps | undefined
+    const layout = props?.layout ?? 'single'
+
+    if (location.column === 'secondary') {
+      return layout === 'split-vertical' ? 'bottom row' : 'right column'
+    }
+
+    if (location.column === 'primary') {
+      return layout === 'split-vertical' ? 'top row' : 'left column'
+    }
+
+    return section ? describeBlockForInsert(section) : 'section'
+  }
+
+  if (location.container === 'carousel') {
+    const carousel = findBlockInTree(blocks, location.carouselId)
+    const props = carousel?.props as CarouselBlockProps | undefined
+    const slideIndex = props?.slides.findIndex(slide => slide.id === location.slideId) ?? -1
+
+    return slideIndex >= 0 ? `Slide ${slideIndex + 1}` : 'carousel'
+  }
+
+  const tabs = findBlockInTree(blocks, location.tabsId)
+  const props = tabs?.props as TabsBlockProps | undefined
+  const panel = props?.tabs.find(entry => entry.id === location.panelId)
+
+  return panel?.label?.trim() || 'tab'
+}
+
+function containerBlockId(location: QuickAddLocation): string | null {
+  if (location.container === 'root') {
+    return null
+  }
+
+  if (location.container === 'section') {
+    return location.sectionId
+  }
+
+  if (location.container === 'carousel') {
+    return location.carouselId
+  }
+
+  return location.tabsId
+}
+
+export type AiInsertTargetResolution = {
+  at: AiBuilderInsertAt
+  label: string
+  blockLocation: BlockLocation
+}
+
+/** Map a quick-add slot to an AI insert `at` plus a short chip label. */
+export function resolveAiInsertTarget(
+  blocks: Block[],
+  location: QuickAddLocation,
+  index: number,
+  idToRef: Record<string, string>
+): AiInsertTargetResolution | null {
+  const children = getChildrenAtQuickAddLocation(blocks, location)
+  const clampedIndex = Math.max(0, Math.min(index, children.length))
+  const blockLocation = toBlockLocation(location, clampedIndex)
+
+  if (clampedIndex < children.length) {
+    const neighbor = children[clampedIndex]
+    const ref = idToRef[neighbor.id]
+
+    if (!ref) {
+      return null
+    }
+
+    return {
+      at: { position: 'before', ref },
+      label: `above ${describeBlockForInsert(neighbor)}`,
+      blockLocation
+    }
+  }
+
+  if (children.length > 0) {
+    const neighbor = children[children.length - 1]
+    const ref = idToRef[neighbor.id]
+
+    if (!ref) {
+      return null
+    }
+
+    return {
+      at: { position: 'after', ref },
+      label: `below ${describeBlockForInsert(neighbor)}`,
+      blockLocation
+    }
+  }
+
+  if (location.container === 'root') {
+    return {
+      at: { position: 'page-end' },
+      label: 'at page end',
+      blockLocation
+    }
+  }
+
+  const parentId = containerBlockId(location)
+  const ref = parentId ? idToRef[parentId] : undefined
+
+  if (!ref) {
+    return null
+  }
+
+  return {
+    at: { position: 'inside-end', ref },
+    label: `into ${containerInsertLabel(blocks, location)}`,
+    blockLocation
   }
 }
 

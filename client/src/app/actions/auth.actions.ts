@@ -1,7 +1,7 @@
 'use server'
 
 import { auth } from '@/lib/auth'
-import { AppError } from '@/lib/errors'
+import { formatActionError, resolveSessionUserId } from '@/lib/auth/resolve-session-user-id'
 import type { CompleteRegistrationInput } from '@/lib/validators'
 import { tenantService } from '@/services/tenant'
 
@@ -15,7 +15,7 @@ export async function completeRegistrationAction(
   try {
     const session = await auth()
 
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return { success: false, error: 'You must sign in with Google first.' }
     }
 
@@ -23,7 +23,8 @@ export async function completeRegistrationAction(
       return { success: false, error: 'Registration is already complete.' }
     }
 
-    const result = await tenantService.completeRegistration(session.user.id, input)
+    const userId = await resolveSessionUserId(session)
+    const result = await tenantService.completeRegistration(userId, input)
 
     return {
       success: true,
@@ -31,10 +32,8 @@ export async function completeRegistrationAction(
       tenantName: input.companyName
     }
   } catch (error) {
-    if (error instanceof AppError) {
-      return { success: false, error: error.message }
-    }
+    console.error('[completeRegistrationAction]', error)
 
-    return { success: false, error: 'Registration failed. Please try again.' }
+    return { success: false, error: formatActionError(error, 'Registration failed. Please try again.') }
   }
 }

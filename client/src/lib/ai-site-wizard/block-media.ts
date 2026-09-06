@@ -502,4 +502,55 @@ export function countFilledPhotos(slots: BlockMediaSlot[], fills: Map<string, Me
   return slots.filter(slot => fills.has(slot.path) && fills.get(slot.path)?.url).length
 }
 
+/** Collect unique photo URLs from a restyled tree for proposal review thumbnails. */
+export function collectProposalPhotoPreviews(
+  pageSlug: string,
+  blocks: Block[],
+  limit = 6
+): Array<{ url: string; alt: string; label: string }> {
+  const previews: Array<{ url: string; alt: string; label: string }> = []
+  const seen = new Set<string>()
+
+  const push = (url: string, alt: string, label: string) => {
+    const trimmed = url.trim()
+
+    if (!trimmed || seen.has(trimmed) || previews.length >= limit) {
+      return
+    }
+
+    if (!/^https?:\/\//i.test(trimmed) && !trimmed.startsWith('blob:')) {
+      return
+    }
+
+    seen.add(trimmed)
+    previews.push({ url: trimmed, alt: alt.trim() || label, label })
+  }
+
+  walkBlocks(blocks, pageSlug, '/blocks', (block, _path, props) => {
+    if (readString(props.backgroundType) === 'photo') {
+      push(readString(props.background), `${block.type} background`, 'Background')
+    }
+
+    if (block.type === 'image' || block.type === 'logo') {
+      push(readString(props.src), readString(props.alt) || block.type, block.type === 'logo' ? 'Logo' : 'Image')
+    }
+
+    if (block.type === 'showcase') {
+      const items = (props.items as ShowcaseBlockProps['items'] | undefined) ?? []
+
+      for (const item of items) {
+        if (item?.imageSrc?.trim()) {
+          push(item.imageSrc, item.imageAlt || item.title || 'Showcase', 'Showcase')
+        }
+      }
+    }
+
+    if (block.type === 'header' || block.type === 'footer') {
+      push(readString(props.logoUrl), `${block.type} logo`, 'Logo')
+    }
+  })
+
+  return previews
+}
+
 export type { HeaderBlockProps }

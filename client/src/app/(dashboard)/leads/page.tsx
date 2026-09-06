@@ -1,20 +1,12 @@
 import { redirect } from 'next/navigation'
 
-import { auth } from '@/lib/auth'
 import { isManagerRole } from '@/lib/constants/roles'
+import { requireOpenTenantOrRedirect } from '@/lib/auth/require-approved-tenant-page'
 import { contactService } from '@/services/contact/contact.service'
 import { LeadsPageClient } from '@/features/leads/components/LeadsPageClient'
 
 export default async function LeadsPage() {
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect('/login')
-  }
-
-  if (!session.user.registrationComplete) {
-    redirect('/register')
-  }
+  const { session } = await requireOpenTenantOrRedirect()
 
   if (!session.user.tenantId || !isManagerRole(session.user.role)) {
     redirect('/home')

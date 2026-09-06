@@ -4,7 +4,7 @@ import type { Block } from '@/features/your-space/types'
 import type { TenantLocation } from '@/lib/location/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
 import { WebsiteBuilderLoader } from '@/features/your-space/components/WebsiteBuilderLoader'
-import { auth } from '@/lib/auth'
+import { requireOpenTenantOrRedirect } from '@/lib/auth/require-approved-tenant-page'
 import { requireIsoString, serializeForClient, toIsoString } from '@/lib/utils/plain-json'
 import { sitePageService } from '@/services/site-page'
 import { siteWorkspaceService } from '@/services/site-workspace'
@@ -18,16 +18,7 @@ type PageProps = {
 }
 
 export default async function YourSpacePage({ searchParams }: PageProps) {
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect('/login')
-  }
-
-  if (!session.user.registrationComplete) {
-    redirect('/register')
-  }
-
+  const { session, tenantApproved } = await requireOpenTenantOrRedirect()
   const { user } = session
   const resolvedSearchParams = (await searchParams) ?? {}
   const initialPageSlug = resolvedSearchParams.p?.trim() || 'home'
@@ -83,6 +74,7 @@ export default async function YourSpacePage({ searchParams }: PageProps) {
     tenantSlug,
     tenantName: user.tenantName ?? 'Your Workspace',
     tenantLocation,
+    tenantApproved,
     initialPageSlug: activeSlug,
     initialPages,
     initialPageTitle,

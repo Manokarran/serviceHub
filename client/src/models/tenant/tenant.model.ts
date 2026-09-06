@@ -1,6 +1,6 @@
 import mongoose, { Schema, type Model } from 'mongoose'
 
-import { TENANT_PLANS, TENANT_STATUSES } from '@/models/shared/enums'
+import { TENANT_APPROVAL_STATUSES, TENANT_PLANS, TENANT_STATUSES } from '@/models/shared/enums'
 
 import type { ITenantDocument } from './tenant.types'
 
@@ -31,6 +31,21 @@ const tenantSchema = new Schema<ITenantDocument>(
       type: String,
       enum: TENANT_PLANS,
       default: 'free',
+      required: true
+    },
+    approvalStatus: {
+      type: String,
+      enum: TENANT_APPROVAL_STATUSES,
+      default: 'pending'
+    },
+    approvedAt: { type: Date },
+    approvedByEmail: { type: String, trim: true, lowercase: true, maxlength: 254 },
+    rejectedAt: { type: Date },
+    creditsBalance: {
+      type: Number,
+      min: 0,
+      max: 1_000_000,
+      default: 0,
       required: true
     },
     settings: {
@@ -66,7 +81,15 @@ const tenantSchema = new Schema<ITenantDocument>(
 )
 
 tenantSchema.index({ status: 1 })
+tenantSchema.index({ approvalStatus: 1, createdAt: -1 })
 tenantSchema.index({ 'settings.customDomain': 1 }, { sparse: true })
+
+const existingTenantModel = mongoose.models.Tenant as Model<ITenantDocument> | undefined
+
+// Dev hot-reload: rebuild if an older schema was registered without creditsBalance
+if (process.env.NODE_ENV === 'development' && existingTenantModel && !existingTenantModel.schema.path('creditsBalance')) {
+  mongoose.deleteModel('Tenant')
+}
 
 export const TenantModel: Model<ITenantDocument> =
   mongoose.models.Tenant ?? mongoose.model<ITenantDocument>('Tenant', tenantSchema)

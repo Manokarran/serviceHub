@@ -38,15 +38,23 @@ import { AiWebsiteChat } from './AiWebsiteChat'
 import { PropertyPanel } from './PropertyPanel'
 import type { PropertyPanelTab } from '../components/property/PropertyPanelUi'
 import { BuilderShellProvider } from '../context/BuilderShellContext'
+import { BuilderOverlayProvider, OverlayPanelSync, useBuilderOverlay } from '../context/BuilderOverlayContext'
 import { useBuilderFullscreen } from '../hooks/useBuilderFullscreen'
 import { useBuilderLeftChrome } from '../hooks/useBuilderLeftChrome'
 import { useBuilderPropertyChrome } from '../hooks/useBuilderPropertyChrome'
+import { useBuilderAiChrome } from '../hooks/useBuilderAiChrome'
 import { useFloatingPanelRect } from '../hooks/useFloatingPanelRect'
 import { BUILDER_AI_CHAT_FRAME_KEY, BUILDER_LEFT_FRAME_KEY } from '../utils/builderPanelFrame'
 import { BuilderTemplateLauncher } from '@/features/site-templates/components/BuilderTemplateLauncher'
 import { TenantLocationScope } from './TenantLocationScope'
 
-function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
+function WebsiteBuilderInner({
+  tenantName,
+  tenantApproved
+}: {
+  tenantName: string
+  tenantApproved?: boolean
+}) {
   const theme = useTheme()
   const isMobileLayout = useMediaQuery(theme.breakpoints.down('lg'))
   const searchParams = useSearchParams()
@@ -60,8 +68,19 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   const [pagesOpen, setPagesOpen] = useState(false)
   const [propertiesOpen, setPropertiesOpen] = useState(false)
   const [stylesOpen, setStylesOpen] = useState(false)
-  const [aiChatOpen, setAiChatOpen] = useState(() => searchParams.get('aiChat') === '1')
-  const [aiChatPinned, setAiChatPinned] = useState(false)
+  const forceAiFromQuery = searchParams.get('aiChat') === '1'
+  const {
+    aiChatOpen,
+    setAiChatOpen,
+    aiChatPinned,
+    setAiChatPinned,
+    aiChromeReady,
+    openAiChat,
+    closeAiChat
+  } = useBuilderAiChrome(forceAiFromQuery)
+  const overlay = useBuilderOverlay()
+  const overlayRef = useRef(overlay)
+  overlayRef.current = overlay
   const { leftPanel, leftPinned, chromeReady, togglePanel, closePanel, togglePinned } = useBuilderLeftChrome()
   const leftFrame = useFloatingPanelRect(BUILDER_LEFT_FRAME_KEY, 'left')
   const aiChatFrame = useFloatingPanelRect(BUILDER_AI_CHAT_FRAME_KEY, 'left')
@@ -84,11 +103,19 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
     },
     [isMobileLayout]
   )
+  const handleTogglePanel = useCallback(
+    (panel: Parameters<typeof togglePanel>[0]) => {
+      if (leftPanel === panel && !leftPinned && overlay && !overlay.isFocused('left')) {
+        overlay.focus('left')
+        overlay.relayout('activate', 'left')
 
-  const openAiChat = useCallback(() => {
-    closePanel()
-    setAiChatOpen(true)
-  }, [closePanel])
+        return
+      }
+
+      togglePanel(panel)
+    },
+    [leftPanel, leftPinned, overlay, togglePanel]
+  )
 
   const isEditMode = mode === 'edit'
 
@@ -105,11 +132,25 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
 
       if (isMobileLayout) {
         setPropertiesOpen(true)
+      } else if (!propertyPinned) {
+        overlayRef.current?.focus('property')
+        overlayRef.current?.relayout('activate', 'property')
       }
 
       lastOpenedBlockId.current = selectedBlock.id
     }
-  }, [selectedBlock, isMobileLayout, isEditMode])
+  }, [selectedBlock, isMobileLayout, isEditMode, propertyPinned])
+
+  // Keep Properties docked and visible by default in desktop edit mode
+  useEffect(() => {
+    if (isEditMode && !isMobileLayout && propertyChromeReady && propertyPinned) {
+      setPropertyPanelOpen(true)
+    }
+
+    if (!isEditMode) {
+      setPropertyPanelOpen(false)
+    }
+  }, [isEditMode, isMobileLayout, propertyChromeReady, propertyPinned])
 
   useEffect(() => {
     if (!isEditMode) {
@@ -117,8 +158,6 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
       setPagesOpen(false)
       setPropertiesOpen(false)
       setStylesOpen(false)
-      setPropertyPanelOpen(false)
-      setAiChatOpen(false)
     }
   }, [isEditMode])
 
@@ -164,13 +203,13 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
 
       if (key === 'b') {
         event.preventDefault()
-        togglePanel('blocks')
+        handleTogglePanel('blocks')
       } else if (key === 'p') {
         event.preventDefault()
-        togglePanel('pages')
+        handleTogglePanel('pages')
       } else if (key === 's') {
         event.preventDefault()
-        togglePanel('design')
+        handleTogglePanel('design')
       }
     }
 
@@ -179,7 +218,7 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
     return () => {
       window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [closePanel, isEditMode, isMobileLayout, leftPanel, leftPinned, propertyPanelOpen, propertyPinned, togglePanel])
+  }, [closePanel, handleTogglePanel, isEditMode, isMobileLayout, leftPanel, leftPinned, propertyPanelOpen, propertyPinned])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -247,7 +286,25 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
   }, [setCanvasDragging])
 
   return (
-    <BuilderShellProvider openPropertyPanel={openPropertyPanel}>
+    <BuilderShellProvider openPropertyPanel={openPropertyPanel} openAiChat={openAiChat}>
+      <OverlayPanelSync
+        id='left'
+        visible={Boolean(isEditMode && !isMobileLayout && chromeReady && leftPanel !== null && !leftPinned)}
+        overlay
+        rect={leftFrame.rect}
+        corner='left'
+        applyLayout={leftFrame.layoutCommit}
+        restoreUser={leftFrame.restoreUser}
+      />
+      <OverlayPanelSync
+        id='ai'
+        visible={Boolean(isEditMode && !isMobileLayout && aiChatOpen && !aiChatPinned)}
+        overlay
+        rect={aiChatFrame.rect}
+        corner='left'
+        applyLayout={aiChatFrame.layoutCommit}
+        restoreUser={aiChatFrame.restoreUser}
+      />
       <Box sx={{ position: 'relative', width: '100%' }}>
         <DndContext
           sensors={sensors}
@@ -272,11 +329,12 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
           >
           <BuilderToolbar
             tenantName={tenantName}
+            tenantApproved={tenantApproved}
             isFullscreen={isFullscreen}
             onToggleFullscreen={() => void toggleFullscreen(builderRootRef.current)}
           />
           <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-            {isEditMode && !isMobileLayout && aiChatOpen && aiChatPinned && (
+            {isEditMode && !isMobileLayout && aiChromeReady && aiChatOpen && aiChatPinned && (
               <AiWebsiteChat
                 open
                 pinned
@@ -285,11 +343,11 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
                 onEnsureLayout={aiChatFrame.ensureLayout}
                 onMaximize={aiChatFrame.maximize}
                 onPinnedChange={setAiChatPinned}
-                onClose={() => setAiChatOpen(false)}
+                onClose={closeAiChat}
               />
             )}
 
-            {isEditMode && !isMobileLayout && <BuilderSidebar activePanel={leftPanel} onToggle={togglePanel} />}
+            {isEditMode && !isMobileLayout && <BuilderSidebar activePanel={leftPanel} onToggle={handleTogglePanel} />}
 
             {isEditMode && !isMobileLayout && chromeReady && leftPanel !== null && leftPinned && (
               <BuilderDockPanel
@@ -335,14 +393,14 @@ function WebsiteBuilderInner({ tenantName }: { tenantName: string }) {
 
               {(!aiChatPinned || isMobileLayout) && (
                 <AiWebsiteChat
-                  open={aiChatOpen}
+                  open={aiChatOpen && (isMobileLayout || aiChromeReady)}
                   pinned={false}
                   rect={aiChatFrame.rect}
                   onCommit={aiChatFrame.commit}
                   onEnsureLayout={aiChatFrame.ensureLayout}
                   onMaximize={aiChatFrame.maximize}
                   onPinnedChange={setAiChatPinned}
-                  onClose={() => setAiChatOpen(false)}
+                  onClose={closeAiChat}
                 />
               )}
 
@@ -441,7 +499,8 @@ function WebsiteBuilderContent({
   initialPublishedSiteStyles,
   initialVersions,
   isSiteStarted,
-  extraPageCount
+  extraPageCount,
+  tenantApproved
 }: WebsiteBuilderProps) {
   const builder = (
     <BuilderProvider
@@ -461,7 +520,9 @@ function WebsiteBuilderContent({
       initialVersions={initialVersions}
     >
       <BuilderNestTargetsProvider>
-        <WebsiteBuilderInner tenantName={tenantName} />
+        <BuilderOverlayProvider>
+          <WebsiteBuilderInner tenantName={tenantName} tenantApproved={tenantApproved} />
+        </BuilderOverlayProvider>
       </BuilderNestTargetsProvider>
     </BuilderProvider>
   )

@@ -166,7 +166,7 @@ export function buildAiBuilderContext(input: {
         : null
   }
 
-  return { context, refToId: state.refToId }
+  return { context, refToId: state.refToId, idToRef: state.idToRef }
 }
 
 /** Control types the model may need capabilities for: what is selected, its neighbours, and its parent. */

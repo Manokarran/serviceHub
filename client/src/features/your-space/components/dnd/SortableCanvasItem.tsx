@@ -398,32 +398,34 @@ export function SortableCanvasItem({
                 />
               </MenuItem>
             ))}
-            {listLocation != null && blockIndex != null && (
-              <>
-                <MenuItem
-                  onClick={() => openQuickAdd(listLocation, blockIndex, 'Add block above')}
-                >
-                  <ListItemIcon sx={{ minWidth: 28 }}>
-                    <i className='ri-arrow-up-line' style={{ fontSize: '1rem' }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary='Add block above'
-                    slotProps={{ primary: { sx: { fontSize: '0.8125rem', fontWeight: 600 } } }}
-                  />
-                </MenuItem>
-                <MenuItem
-                  onClick={() => openQuickAdd(listLocation, blockIndex + 1, 'Add block below')}
-                >
-                  <ListItemIcon sx={{ minWidth: 28 }}>
-                    <i className='ri-arrow-down-line' style={{ fontSize: '1rem' }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary='Add block below'
-                    slotProps={{ primary: { sx: { fontSize: '0.8125rem', fontWeight: 600 } } }}
-                  />
-                </MenuItem>
-              </>
-            )}
+            {listLocation != null && blockIndex != null
+              ? [
+                  <MenuItem
+                    key='add-block-above'
+                    onClick={() => openQuickAdd(listLocation, blockIndex, 'Add block above')}
+                  >
+                    <ListItemIcon sx={{ minWidth: 28 }}>
+                      <i className='ri-arrow-up-line' style={{ fontSize: '1rem' }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary='Add block above'
+                      slotProps={{ primary: { sx: { fontSize: '0.8125rem', fontWeight: 600 } } }}
+                    />
+                  </MenuItem>,
+                  <MenuItem
+                    key='add-block-below'
+                    onClick={() => openQuickAdd(listLocation, blockIndex + 1, 'Add block below')}
+                  >
+                    <ListItemIcon sx={{ minWidth: 28 }}>
+                      <i className='ri-arrow-down-line' style={{ fontSize: '1rem' }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary='Add block below'
+                      slotProps={{ primary: { sx: { fontSize: '0.8125rem', fontWeight: 600 } } }}
+                    />
+                  </MenuItem>
+                ]
+              : null}
           </Menu>
           <BlockQuickAddPicker
             anchorEl={quickAdd?.anchor ?? null}

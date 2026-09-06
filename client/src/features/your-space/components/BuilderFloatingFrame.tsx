@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
@@ -9,8 +10,11 @@ import { alpha, useTheme } from '@mui/material/styles'
 
 import { BUILDER_Z_INDEX } from '../constants/builderLayout'
 import { builderFloatingCardSx, builderSidePanelSx } from '../constants/builderChrome'
+import { useBuilderOverlay } from '../context/BuilderOverlayContext'
+import type { OverlayPanelId } from '../utils/builderOverlayLayout'
 import {
   resizePanelRect,
+  viewportPanelSize,
   type PanelRect,
   type PanelSize,
   type ResizeHandle
@@ -80,6 +84,7 @@ type Props = {
   overlay: boolean
   rect: PanelRect | null
   zIndex?: number
+  overlayId?: OverlayPanelId
   /** Which side of the canvas a docked panel sits on */
   side?: 'left' | 'right'
   onCommit: (next: PanelRect, parent: PanelSize) => void
@@ -91,11 +96,14 @@ export function BuilderFloatingFrame({
   overlay,
   rect,
   zIndex = BUILDER_Z_INDEX.dockOverlay,
+  overlayId,
   side = 'left',
   onCommit,
   onEnsureLayout,
   children
 }: Props) {
+  const overlayStack = useBuilderOverlay()
+  const frameZIndex = overlayId && overlayStack ? overlayStack.zIndexFor(overlayId) : zIndex
   const theme = useTheme()
   const frameRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{
@@ -105,25 +113,28 @@ export function BuilderFloatingFrame({
     origin: PanelRect
   } | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [portalReady, setPortalReady] = useState(false)
   const rectRef = useRef(rect)
   const onCommitRef = useRef(onCommit)
   rectRef.current = rect
   onCommitRef.current = onCommit
 
+  useEffect(() => {
+    setPortalReady(true)
+  }, [])
+
   const getParentSize = useCallback((): PanelSize => {
+    if (overlay) {
+      return viewportPanelSize()
+    }
+
     const el = frameRef.current
 
-    if (!el) {
+    if (!el?.parentElement) {
       return { width: 0, height: 0 }
     }
 
-    const parent = overlay ? (el.offsetParent as HTMLElement | null) : el.parentElement
-
-    if (!parent) {
-      return { width: 0, height: 0 }
-    }
-
-    return { width: parent.clientWidth, height: parent.clientHeight }
+    return { width: el.parentElement.clientWidth, height: el.parentElement.clientHeight }
   }, [overlay])
 
   useEffect(() => {
@@ -131,20 +142,30 @@ export function BuilderFloatingFrame({
 
     sync()
 
-    const parent = overlay
-      ? (frameRef.current?.offsetParent as HTMLElement | null)
-      : frameRef.current?.parentElement
+    window.addEventListener('resize', sync)
 
+    if (overlay) {
+      return () => {
+        window.removeEventListener('resize', sync)
+      }
+    }
+
+    const parent = frameRef.current?.parentElement
     const observer = parent ? new ResizeObserver(sync) : null
 
     observer?.observe(parent as Element)
-    window.addEventListener('resize', sync)
 
     return () => {
       observer?.disconnect()
       window.removeEventListener('resize', sync)
     }
   }, [getParentSize, onEnsureLayout, overlay])
+
+  const activateFrame = () => {
+    if (overlayId) {
+      overlayStack?.focus(overlayId)
+    }
+  }
 
   const beginGesture = (event: React.PointerEvent<HTMLElement>, kind: 'move' | ResizeHandle) => {
     if (!rectRef.current || event.button !== 0) {
@@ -222,21 +243,22 @@ export function BuilderFloatingFrame({
     ? {
         display: { xs: 'none' as const, lg: 'flex' as const },
         flexDirection: 'column' as const,
-        position: 'absolute' as const,
+        position: 'fixed' as const,
         top: rect.y,
         left: rect.x,
         width: rect.width,
         height: rect.height,
-        zIndex,
+        zIndex: frameZIndex,
         userSelect: dragging ? ('none' as const) : undefined,
+        transition: dragging ? undefined : 'top 180ms ease, left 180ms ease, width 180ms ease, height 180ms ease',
         ...builderFloatingCardSx(theme)
       }
     : {
         display: { xs: 'none' as const, lg: 'flex' as const },
         flexDirection: 'column' as const,
-        position: 'absolute' as const,
+        position: 'fixed' as const,
         inset: 8,
-        zIndex,
+        zIndex: frameZIndex,
         ...builderFloatingCardSx(theme)
       }
 
@@ -254,11 +276,13 @@ export function BuilderFloatingFrame({
   const dockedHandle: ResizeHandle = side === 'right' ? 'w' : 'e'
   const handles = overlay ? OVERLAY_HANDLES : OVERLAY_HANDLES.filter(handle => handle.id === dockedHandle)
 
-  return (
+  const frame = (
     <Box ref={frameRef} sx={overlay ? overlaySx : dockedSx}>
       <Box
         sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}
         onPointerDown={event => {
+          activateFrame()
+
           if ((event.target as HTMLElement).closest('[data-panel-drag]')) {
             beginGesture(event, 'move')
           }
@@ -270,7 +294,10 @@ export function BuilderFloatingFrame({
       {handles.map(handle => (
         <Box
           key={handle.id}
-          onPointerDown={event => beginGesture(event, handle.id)}
+          onPointerDown={event => {
+            activateFrame()
+            beginGesture(event, handle.id)
+          }}
           sx={{
             position: 'absolute',
             ...handle.sx,
@@ -319,4 +346,14 @@ export function BuilderFloatingFrame({
       )}
     </Box>
   )
+
+  if (overlay) {
+    if (!portalReady) {
+      return null
+    }
+
+    return createPortal(frame, document.body)
+  }
+
+  return frame
 }

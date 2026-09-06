@@ -47,6 +47,10 @@ export type DesignProposal = {
 
   rewordedFields: number
   photoCount: number
+
+  /** Photo URLs chosen for this proposal — shown in chat before the user applies. */
+  photoPreviews: Array<{ url: string; alt: string; label: string }>
+
   usedOpenAi: boolean
 }
 

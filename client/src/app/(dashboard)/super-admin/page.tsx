@@ -6,12 +6,14 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
+import Chip from '@mui/material/Chip'
 import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
 
 import { auth } from '@/lib/auth'
 import { isSuperAdminEmail } from '@/lib/auth/super-admin'
 import { listAllSiteTemplatesAction } from '@/app/actions/site-template.actions'
+import { listTenantRegistrationRequestsAction } from '@/app/actions/tenant-approval.actions'
 import { getAdminResourceOverview } from '@/services/admin/admin-resource.service'
 import { SuperAdminResourceOverview } from '@/features/site-templates/components/SuperAdminResourceOverview'
 
@@ -22,12 +24,18 @@ export default async function SuperAdminPage() {
     redirect('/home')
   }
 
-  const [templatesResult, resourceOverview] = await Promise.all([listAllSiteTemplatesAction(), getAdminResourceOverview()])
+  const [templatesResult, resourceOverview, requestsResult] = await Promise.all([
+    listAllSiteTemplatesAction(),
+    getAdminResourceOverview(),
+    listTenantRegistrationRequestsAction('all')
+  ])
   const templateCount = templatesResult.success ? templatesResult.templates.length : 0
 
   const publishedCount = templatesResult.success
     ? templatesResult.templates.filter(template => template.status === 'published').length
     : 0
+
+  const pendingCount = requestsResult.success ? requestsResult.pendingCount : 0
 
   return (
     <Grid container spacing={6}>
@@ -45,7 +53,57 @@ export default async function SuperAdminPage() {
         <SuperAdminResourceOverview overview={resourceOverview} />
       </Grid>
 
-      <Grid size={{ xs: 12, md: 6 }}>
+      <Grid size={{ xs: 12, md: 4 }}>
+        <Card sx={{ height: '100%' }}>
+          <CardContent className='flex flex-col gap-4 h-full'>
+            <Box className='flex items-center gap-2'>
+              <i className='ri-user-follow-line text-warning text-2xl' />
+              <Typography variant='h6'>Registration requests</Typography>
+            </Box>
+            <Typography color='text.secondary'>
+              Review new organizations, unlock publishing, top up AI credits, revoke approval, or delete a tenant and
+              all linked data. Pending orgs can already edit and preview.
+            </Typography>
+            <Box className='flex items-center gap-2'>
+              <Chip
+                size='small'
+                color={pendingCount > 0 ? 'warning' : 'default'}
+                label={`${pendingCount} pending`}
+              />
+            </Box>
+            <Box className='mt-auto'>
+              <Link href='/super-admin/requests' style={{ textDecoration: 'none' }}>
+                <Button variant='contained' color='warning' startIcon={<i className='ri-arrow-right-line' />}>
+                  Manage requests
+                </Button>
+              </Link>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      <Grid size={{ xs: 12, md: 4 }}>
+        <Card sx={{ height: '100%' }}>
+          <CardContent className='flex flex-col gap-4 h-full'>
+            <Box className='flex items-center gap-2'>
+              <i className='ri-coin-line text-info text-2xl' />
+              <Typography variant='h6'>AI credits</Typography>
+            </Box>
+            <Typography color='text.secondary'>
+              Set the welcome credit pack for new signups and how many credits each AI action or service setup costs.
+            </Typography>
+            <Box className='mt-auto'>
+              <Link href='/super-admin/credits' style={{ textDecoration: 'none' }}>
+                <Button variant='outlined' color='info' startIcon={<i className='ri-settings-3-line' />}>
+                  Configure credits
+                </Button>
+              </Link>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      <Grid size={{ xs: 12, md: 4 }}>
         <Card sx={{ height: '100%' }}>
           <CardContent className='flex flex-col gap-4 h-full'>
             <Box className='flex items-center gap-2'>
@@ -67,7 +125,7 @@ export default async function SuperAdminPage() {
         </Card>
       </Grid>
 
-      <Grid size={{ xs: 12, md: 6 }}>
+      <Grid size={{ xs: 12, md: 4 }}>
         <Card sx={{ height: '100%' }}>
           <CardContent className='flex flex-col gap-4 h-full'>
             <Box className='flex items-center gap-2'>

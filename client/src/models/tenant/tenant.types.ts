@@ -1,6 +1,6 @@
 import type { Document } from 'mongoose'
 
-import type { TenantPlan, TenantStatus } from '@/models/shared/enums'
+import type { TenantApprovalStatus, TenantPlan, TenantStatus } from '@/models/shared/enums'
 import type { TenantLocation } from '@/lib/location/types'
 
 export type TenantKind = 'base_template'
@@ -30,6 +30,13 @@ export interface ITenant {
   slug: string
   status: TenantStatus
   plan: TenantPlan
+  /** Missing on legacy tenants — treat as approved at read time. */
+  approvalStatus?: TenantApprovalStatus
+  approvedAt?: Date
+  approvedByEmail?: string
+  rejectedAt?: Date
+  /** Remaining AI / setup credits for this organization. */
+  creditsBalance: number
   settings: ITenantSettings
   createdAt: Date
   updatedAt: Date

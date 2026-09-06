@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from '@/lib/auth'
+import { requireTenantWorkspace } from '@/lib/auth/require-tenant-workspace'
 import { AppError } from '@/lib/errors'
 import { isManagerRole } from '@/lib/constants/roles'
 import type { ContactLeadFilter, ContactSubmissionSummary } from '@/models/contact-submission'
@@ -14,10 +14,14 @@ import type { ContactSettingsView } from '@/services/contact/contact.service'
 import { contactService } from '@/services/contact/contact.service'
 import { tenantSettingsService } from '@/services/tenant/tenant-settings.service'
 
-function assertManagerAccess(role?: string) {
-  if (!isManagerRole(role)) {
+async function requireLeadManager() {
+  const session = await requireTenantWorkspace()
+
+  if (!session.user.tenantId || !isManagerRole(session.user.role)) {
     throw new AppError('You do not have permission to manage contact settings', 403, 'FORBIDDEN')
   }
+
+  return session
 }
 
 type LeadsResult =
@@ -41,21 +45,14 @@ type LeadStatusResult =
 
 export async function getContactLeadsAction(filter: ContactLeadFilterInput = 'all'): Promise<LeadsResult> {
   try {
-    const session = await auth()
-
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in.' }
-    }
-
-    assertManagerAccess(session.user.role)
+    const session = await requireLeadManager()
 
     const [allLeads, settings] = await Promise.all([
-      contactService.listSubmissions(session.user.tenantId, 'all'),
-      contactService.getContactSettings(session.user.tenantId)
+      contactService.listSubmissions(session.user.tenantId!, 'all'),
+      contactService.getContactSettings(session.user.tenantId!)
     ])
 
-    const leads =
-      filter === 'all' ? allLeads : allLeads.filter(lead => lead.status === filter)
+    const leads = filter === 'all' ? allLeads : allLeads.filter(lead => lead.status === filter)
 
     const counts = {
       all: allLeads.length,
@@ -80,16 +77,10 @@ export async function updateContactSettingsAction(
   input: TenantContactSettingsInput
 ): Promise<SettingsResult> {
   try {
-    const session = await auth()
+    const session = await requireLeadManager()
 
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in.' }
-    }
-
-    assertManagerAccess(session.user.role)
-
-    await tenantSettingsService.updateContactSettings(session.user.tenantId, input)
-    const settings = await contactService.getContactSettings(session.user.tenantId)
+    await tenantSettingsService.updateContactSettings(session.user.tenantId!, input)
+    const settings = await contactService.getContactSettings(session.user.tenantId!)
 
     return { success: true, settings }
   } catch (error) {
@@ -105,14 +96,7 @@ export async function updateContactSettingsAction(
 
 export async function updateLeadStatusAction(input: UpdateLeadStatusInput): Promise<LeadStatusResult> {
   try {
-    const session = await auth()
-
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in.' }
-    }
-
-    assertManagerAccess(session.user.role)
-
+    const session = await requireLeadManager()
     const parsed = updateLeadStatusSchema.safeParse(input)
 
     if (!parsed.success) {
@@ -120,7 +104,7 @@ export async function updateLeadStatusAction(input: UpdateLeadStatusInput): Prom
     }
 
     const lead = await contactService.updateLeadStatus(
-      session.user.tenantId,
+      session.user.tenantId!,
       parsed.data.leadId,
       parsed.data.status
     )
@@ -139,15 +123,8 @@ export async function updateLeadStatusAction(input: UpdateLeadStatusInput): Prom
 
 export async function exportContactLeadsAction(filter: ContactLeadFilterInput = 'all'): Promise<ExportResult> {
   try {
-    const session = await auth()
-
-    if (!session?.user?.tenantId) {
-      return { success: false, error: 'You must be signed in.' }
-    }
-
-    assertManagerAccess(session.user.role)
-
-    const leads = await contactService.listSubmissions(session.user.tenantId, filter as ContactLeadFilter)
+    const session = await requireLeadManager()
+    const leads = await contactService.listSubmissions(session.user.tenantId!, filter as ContactLeadFilter)
     const csv = contactService.exportSubmissionsCsv(leads)
     const slug = session.user.tenantSlug ?? 'leads'
     const date = new Date().toISOString().slice(0, 10)

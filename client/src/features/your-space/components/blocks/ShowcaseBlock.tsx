@@ -75,6 +75,7 @@ function ShowcaseVisual({
   const imageSrc = item.imageSrc?.trim() ? getDisplayImageUrl(item.imageSrc, 1400, { quality: 92 }) : ''
   const logoSrc = item.logoSrc?.trim() ? getDisplayImageUrl(item.logoSrc, 640, { quality: 92 }) : ''
   const overlaySx = alwaysOverlay || kind === 'image' ? getHeroMediaOverlaySx(overlay ?? 'gradient', true) : null
+  const resolvedHoverEffect = item.imageHoverEffect ?? hoverEffect
 
   return (
     <Box
@@ -87,7 +88,9 @@ function ShowcaseVisual({
         borderRadius: `${radius}px`,
         backgroundColor: alpha(accentColor, 0.08),
         boxShadow: radius > 0 ? '0 20px 48px rgba(15, 23, 42, 0.12)' : 'none',
-        ...(kind === 'image' ? getMediaHoverSx(hoverEffect) : {})
+        ...(kind === 'image'
+          ? getMediaHoverSx(resolvedHoverEffect, { groupRoot: '.showcase-hover-root' })
+          : {})
       }}
     >
       {kind === 'image' && imageSrc && (
@@ -102,7 +105,8 @@ function ShowcaseVisual({
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            display: 'block'
+            display: 'block',
+            willChange: 'transform, filter, opacity'
           }}
         />
       )}
@@ -358,6 +362,7 @@ function ShowcaseLayeredCard({
 }) {
   return (
     <Box
+      className='showcase-hover-root'
       sx={{
         position: 'relative',
         overflow: 'hidden',
@@ -442,7 +447,7 @@ function ShowcaseStackedCard({
   )
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, height: '100%' }}>
+    <Box className='showcase-hover-root' sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, height: '100%' }}>
       {visualFirst ? (
         <>
           <Box sx={{ minHeight: 220, aspectRatio: '16 / 10' }}>{visual}</Box>
@@ -483,6 +488,7 @@ function ShowcaseSplitLayout({
 
   return (
     <Box
+      className='showcase-hover-root'
       sx={{
         display: 'flex',
         ...splitStackSx,

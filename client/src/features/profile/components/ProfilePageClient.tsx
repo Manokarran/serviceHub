@@ -42,6 +42,7 @@ type Props = {
   userRole: string
   canEdit: boolean
   siteUrlPrefix: string
+  siteUrlSuffix?: string
   liveSitePath: string
   profile: TenantProfileView
 }
@@ -126,6 +127,7 @@ export function ProfilePageClient({
   userRole,
   canEdit,
   siteUrlPrefix,
+  siteUrlSuffix = '',
   liveSitePath,
   profile
 }: Props) {
@@ -196,7 +198,7 @@ export function ProfilePageClient({
     !locationIncomplete &&
     (!slugChanged || slugStatus === 'available')
 
-  const livePreviewUrl = `${siteUrlPrefix}${normalizedSlug || savedProfile.slug}`
+  const livePreviewUrl = `${siteUrlPrefix}${normalizedSlug || savedProfile.slug}${siteUrlSuffix}`
   const logoPreview = logoUrl ? getDisplayImageUrl(logoUrl, 160, { quality: 92 }) : ''
 
   const slugHelperColor = useMemo(() => {
@@ -809,15 +811,20 @@ export function ProfilePageClient({
             fullWidth
             slotProps={{
               input: {
-                startAdornment: (
+                startAdornment: siteUrlPrefix ? (
                   <InputAdornment position='start'>
                     <Typography variant='body2' color='text.secondary' noWrap sx={{ maxWidth: { xs: 120, sm: 220 } }}>
                       {siteUrlPrefix}
                     </Typography>
                   </InputAdornment>
-                ),
+                ) : undefined,
                 endAdornment: (
-                  <InputAdornment position='end'>
+                  <InputAdornment position='end' sx={{ gap: 1 }}>
+                    {siteUrlSuffix ? (
+                      <Typography variant='body2' color='text.secondary' noWrap>
+                        {siteUrlSuffix}
+                      </Typography>
+                    ) : null}
                     {slugStatus === 'checking' ? (
                       <CircularProgress size={16} />
                     ) : slugStatus === 'available' || slugStatus === 'current' ? (
@@ -1041,6 +1048,7 @@ export function ProfilePageClient({
             <strong>
               {siteUrlPrefix}
               {savedProfile.slug}
+              {siteUrlSuffix}
             </strong>
           </Typography>
           <Typography variant='body2' color='text.secondary'>

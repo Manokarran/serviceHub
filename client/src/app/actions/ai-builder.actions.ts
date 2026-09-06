@@ -4,6 +4,8 @@ import { z } from 'zod'
 
 import { auth } from '@/lib/auth'
 import { formatActionError } from '@/lib/auth/resolve-session-user-id'
+import { AppError } from '@/lib/errors'
+import { hasUnlimitedCredits } from '@/lib/credits/has-unlimited-credits'
 import { BLOCK_TYPES, type BlockType } from '@/features/your-space/types'
 import { PALETTE_ITEMS } from '@/features/your-space/constants'
 import { SITE_THEME_PRESETS } from '@/features/your-space/constants/siteStylePresets'
@@ -267,7 +269,8 @@ ${selected}${REDESIGN_INTENT_PATTERN.test(prompt) ? '\n\nThe user asked for a re
 }
 
 export async function planAiBuilderCommandAction(input: unknown): Promise<
-  { success: true; plan: AiBuilderPlan; usedOpenAi: boolean } | { success: false; error: string }
+  | { success: true; plan: AiBuilderPlan; usedOpenAi: boolean; creditsRemaining?: number }
+  | { success: false; error: string }
 > {
   const parsed = inputSchema.safeParse(input)
 
@@ -289,6 +292,13 @@ export async function planAiBuilderCommandAction(input: unknown): Promise<
       return { success: true, plan: fallback, usedOpenAi: false }
     }
 
+    const { creditsService } = await import('@/services/credits')
+    const isMajor = REDESIGN_INTENT_PATTERN.test(prompt)
+    const feature = creditsService.resolveChatFeature(prompt, isMajor)
+    const unlimited = hasUnlimitedCredits(session.user)
+
+    await creditsService.assertCanAfford(session.user.tenantId, feature, { unlimited })
+
     const result = await createJsonCompletion<unknown>({
       system: createSystemPrompt(prompt, context),
       user: createUserPrompt(prompt, context),
@@ -303,8 +313,20 @@ export async function planAiBuilderCommandAction(input: unknown): Promise<
       return { success: true, plan: fallback, usedOpenAi: false }
     }
 
-    return { success: true, plan: validated.data, usedOpenAi: true }
+    const spent = await creditsService.spend({
+      tenantId: session.user.tenantId,
+      feature,
+      actorUserId: session.user.id,
+      description: `AI chat: ${prompt.slice(0, 80)}`,
+      unlimited
+    })
+
+    return { success: true, plan: validated.data, usedOpenAi: true, creditsRemaining: spent.balance }
   } catch (error) {
+    if (error instanceof AppError && error.code === 'INSUFFICIENT_CREDITS') {
+      return { success: false, error: error.message }
+    }
+
     if (parsed.success) {
       return {
         success: true,

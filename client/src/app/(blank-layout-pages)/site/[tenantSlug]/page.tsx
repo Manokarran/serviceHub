@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const site = await sitePageService.getPublicPageByTenantSlug(tenantSlug, 'home')
 
   if (!site) {
-    return { title: 'Site not found' }
+    return { title: 'Sidhiyana' }
   }
 
   return {

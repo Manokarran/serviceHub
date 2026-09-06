@@ -9,6 +9,9 @@ import {
 } from '@/lib/site-template/resolve-builder-tenant'
 import type { Block } from '@/features/your-space/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
+import { DEFAULT_SITE_STYLES } from '@/features/your-space/constants/siteStylePresets'
+import { mergeSiteStyles } from '@/features/your-space/utils/siteStylesHelpers'
+import type { SuggestedBasePage } from '@/lib/ai-builder/suggested-base-pages'
 import type { PublishedVersionSummary, SitePageSummary } from '@/models/site-page'
 import { sitePageService } from '@/services/site-page'
 import { siteTemplateService } from '@/services/site-template'
@@ -178,7 +181,16 @@ export async function publishAllSitePagesAction(
       return { success: true, publishedAt, versions: [] }
     }
 
-    const { tenantId, userId } = await resolveBuilderTenant(scope)
+    const { tenantId, userId, tenantApproved } = await resolveBuilderTenant(scope)
+
+    if (!tenantApproved) {
+      throw new AppError(
+        'Publishing goes live after a super admin approves your organization. You can keep editing and previewing in the meantime.',
+        403,
+        'TENANT_NOT_APPROVED'
+      )
+    }
+
     const { publishedAt } = await sitePageService.publishAll(tenantId, userId)
     const versions = await sitePageService.listPublishedVersions(tenantId, 'home')
 
@@ -209,7 +221,16 @@ export async function publishSitePageAction(
       return { success: true, publishedAt: publishedAt || saved.savedAt, versions: [] }
     }
 
-    const { tenantId, userId } = await resolveBuilderTenant(scope)
+    const { tenantId, userId, tenantApproved } = await resolveBuilderTenant(scope)
+
+    if (!tenantApproved) {
+      throw new AppError(
+        'Publishing goes live after a super admin approves your organization. You can keep editing and previewing in the meantime.',
+        403,
+        'TENANT_NOT_APPROVED'
+      )
+    }
+
     const page = await sitePageService.publish(tenantId, userId, pageSlug, blocks, siteStyles)
     const versions = await sitePageService.listPublishedVersions(tenantId, pageSlug)
 
@@ -432,4 +453,67 @@ export async function duplicateSitePageAction(
 /** @deprecated Use saveSitePageDraftAction(pageSlug, blocks) */
 export async function saveSitePageAction(blocks: Block[]): Promise<SaveDraftResult> {
   return saveSitePageDraftAction('home', blocks)
+}
+
+type SuggestedBasePagesResult =
+  | { success: true; pages: SuggestedBasePage[] }
+  | { success: false; error: string }
+
+type AddBasePageResult =
+  | {
+      success: true
+      page: SitePageSummary
+      themed: boolean
+      source: 'base_template' | 'starter'
+    }
+  | { success: false; error: string }
+
+/**
+ * Base pages the master template offers that this site does not have yet.
+ * Hidden for library-template editing and when editing the master base itself.
+ */
+export async function listSuggestedBasePagesAction(
+  scope: BuilderScope = 'organization'
+): Promise<SuggestedBasePagesResult> {
+  try {
+    if (scope === 'library_template' || scope === 'base_template') {
+      return { success: true, pages: [] }
+    }
+
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const pages = await sitePageService.listSuggestedBasePages(tenantId)
+
+    return { success: true, pages }
+  } catch (error) {
+    return formatScopeError(error, 'Failed to load suggested pages.')
+  }
+}
+
+/**
+ * Clone a missing page from the super-admin base (or starter), matched to the
+ * site’s current theme and background, and update navigation on existing pages.
+ */
+export async function addBasePageFromTemplateAction(
+  slug: string,
+  siteStylesInput: SiteStyles,
+  scope: BuilderScope = 'organization'
+): Promise<AddBasePageResult> {
+  try {
+    if (scope === 'library_template' || scope === 'base_template') {
+      return { success: false, error: 'Suggested pages are only available in your organization site.' }
+    }
+
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const siteStyles = mergeSiteStyles(siteStylesInput as Partial<SiteStyles>, DEFAULT_SITE_STYLES)
+    const result = await sitePageService.addPageFromBaseTemplate(tenantId, slug, siteStyles)
+
+    return {
+      success: true,
+      page: result.page,
+      themed: result.themed,
+      source: result.source
+    }
+  } catch (error) {
+    return formatScopeError(error, 'Failed to add that page.')
+  }
 }

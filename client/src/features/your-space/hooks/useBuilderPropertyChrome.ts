@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { readBuilderPropertyChrome, writeBuilderPropertyChrome } from '../utils/builderContainerChrome'
 
 export function useBuilderPropertyChrome() {
-  const [propertyPinned, setPropertyPinned] = useState(false)
+  const [propertyPinned, setPropertyPinned] = useState(true)
   const [chromeReady, setChromeReady] = useState(false)
   const skipWrite = useRef(true)
 

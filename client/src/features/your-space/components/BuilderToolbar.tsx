@@ -3,6 +3,7 @@
 import { useState } from 'react'
 
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -19,7 +20,7 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
-import { getPublicPagePath } from '@/lib/utils/public-site-url'
+import { getPublicPageDisplayUrl, getPublicPageUrl } from '@/lib/utils/public-site-url'
 import { useSiteWorkspaceOptional } from '@/features/site-templates/context/SiteWorkspaceContext'
 import { usePublishedTemplates } from '@/features/site-templates/hooks/usePublishedTemplates'
 
@@ -38,6 +39,8 @@ type Props = {
   tenantName: string
   isFullscreen: boolean
   onToggleFullscreen: () => void
+  /** When false, publish is blocked until super-admin approval. */
+  tenantApproved?: boolean
 }
 
 const STATUS_ICONS: Record<string, string> = {
@@ -258,8 +261,14 @@ function PageSwitcher() {
   )
 }
 
-export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }: Props) {
+export function BuilderToolbar({
+  tenantName,
+  isFullscreen,
+  onToggleFullscreen,
+  tenantApproved
+}: Props) {
   const theme = useTheme()
+  const { data: session } = useSession()
   const isCompact = useMediaQuery(theme.breakpoints.down('md'))
   const isNarrow = useMediaQuery(theme.breakpoints.down('sm'))
 
@@ -298,9 +307,14 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
   const canBrowseTemplates = !isSystemBuilder && Boolean(workspace) && hasTemplates
   const canResetSite = !isSystemBuilder && Boolean(workspace?.isSiteStarted)
 
-  const pagePath = getPublicPagePath(tenantSlug, currentPageSlug)
-  const siteUrl = typeof window !== 'undefined' ? `${window.location.origin}${pagePath}` : pagePath
-  const displayUrl = typeof window !== 'undefined' ? `${window.location.host}${pagePath}` : pagePath
+  // Prefer explicit prop; fall back to session so pending orgs never look "approved by default"
+  const isTenantApproved =
+    typeof tenantApproved === 'boolean' ? tenantApproved : session?.user?.tenantApproved === true
+  const publishBlocked = !isLibraryTemplateBuilder && !isTenantApproved
+  const publishDisabled =
+    isPublishing || isSaving || publishBlocked || (!isLibraryTemplateBuilder && !hasUnpublishedChanges)
+  const siteUrl = getPublicPageUrl(tenantSlug, currentPageSlug)
+  const displayUrl = getPublicPageDisplayUrl(tenantSlug, currentPageSlug)
 
   const [versionsOpen, setVersionsOpen] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
@@ -487,35 +501,72 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
                 </Box>
               )}
 
-              <Box
-                component='button'
-                type='button'
-                onClick={() => void publishPage()}
-                disabled={isPublishing || isSaving || !hasUnpublishedChanges}
-                sx={{
-                  height: 32,
-                  border: 'none',
-                  cursor: isPublishing || isSaving || !hasUnpublishedChanges ? 'not-allowed' : 'pointer',
-                  ...BUILDER_TYPOGRAPHY.action,
-                  px: 1.75,
-                  borderRadius: 1.25,
-                  backgroundColor: 'text.primary',
-                  color: 'background.paper',
-                  transition: 'opacity 0.15s',
-                  opacity: isPublishing || isSaving || !hasUnpublishedChanges ? 0.4 : 1,
-                  '&:hover': {
-                    opacity: isPublishing || isSaving || !hasUnpublishedChanges ? 0.4 : 0.86
-                  }
-                }}
+              <Tooltip
+                title={
+                  publishBlocked
+                    ? 'Publishing unlocks after a super admin approves your organization. You can still edit and preview.'
+                    : !hasUnpublishedChanges && !isLibraryTemplateBuilder
+                      ? 'Nothing new to publish'
+                      : 'Publish this page to your live site'
+                }
               >
-                {isPublishing
-                  ? isLibraryTemplateBuilder
-                    ? 'Saving…'
-                    : 'Publishing'
-                  : isLibraryTemplateBuilder
-                    ? 'Save to library'
-                    : 'Publish'}
-              </Box>
+                <span>
+                  <Box
+                    component='button'
+                    type='button'
+                    onClick={() => {
+                      if (publishDisabled) return
+                      void publishPage()
+                    }}
+                    // Keep native `disabled` off when locked so custom lock styles stay visible
+                    disabled={!publishBlocked && publishDisabled}
+                    aria-disabled={publishDisabled}
+                    sx={{
+                      height: 32,
+                      minWidth: publishBlocked ? 118 : 84,
+                      border: publishBlocked
+                        ? `1px dashed ${alpha(theme.palette.warning.main, 0.75)}`
+                        : 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 0.75,
+                      cursor: publishDisabled ? 'not-allowed' : 'pointer',
+                      ...BUILDER_TYPOGRAPHY.action,
+                      fontWeight: 600,
+                      px: 1.75,
+                      borderRadius: 1.25,
+                      backgroundColor: publishBlocked
+                        ? alpha(theme.palette.warning.main, theme.palette.mode === 'dark' ? 0.22 : 0.14)
+                        : 'text.primary',
+                      color: publishBlocked
+                        ? theme.palette.mode === 'dark'
+                          ? theme.palette.warning.light
+                          : theme.palette.warning.dark
+                        : 'background.paper',
+                      boxShadow: publishBlocked ? 'none' : undefined,
+                      transition: 'opacity 0.15s, background-color 0.15s, border-color 0.15s',
+                      opacity: publishBlocked ? 1 : publishDisabled ? 0.45 : 1,
+                      pointerEvents: 'auto',
+                      '&:hover': {
+                        opacity: publishBlocked ? 1 : publishDisabled ? 0.45 : 0.86,
+                        backgroundColor: publishBlocked
+                          ? alpha(theme.palette.warning.main, theme.palette.mode === 'dark' ? 0.28 : 0.2)
+                          : undefined
+                      }
+                    }}
+                  >
+                    {publishBlocked ? <i className='ri-lock-2-line' style={{ fontSize: '0.95rem' }} /> : null}
+                    {isPublishing
+                      ? isLibraryTemplateBuilder
+                        ? 'Saving…'
+                        : 'Publishing'
+                      : isLibraryTemplateBuilder
+                        ? 'Save to library'
+                        : 'Publish'}
+                  </Box>
+                </span>
+              </Tooltip>
 
               <ToolbarIconButton
                 title='More actions'
@@ -527,10 +578,16 @@ export function BuilderToolbar({ tenantName, isFullscreen, onToggleFullscreen }:
           </Box>
         </Box>
 
-        <Collapse in={Boolean(saveError || publishError)}>
+        <Collapse in={Boolean(saveError || publishError || publishBlocked)}>
           <Box sx={{ px: { xs: 1.25, sm: 2 }, pb: 0.75 }}>
-            <Alert severity='error' variant='outlined' sx={{ py: 0, borderRadius: 1, fontSize: '0.75rem' }}>
-              {publishError ?? saveError}
+            <Alert
+              severity={publishBlocked && !publishError && !saveError ? 'info' : 'error'}
+              variant='outlined'
+              sx={{ py: 0, borderRadius: 1, fontSize: '0.75rem' }}
+            >
+              {publishError ??
+                saveError ??
+                'Preview anytime — publishing unlocks after super admin approval. Manual edits are free; AI uses credits.'}
             </Alert>
           </Box>
         </Collapse>

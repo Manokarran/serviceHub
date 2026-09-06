@@ -8,6 +8,7 @@ import NavToggle from './NavToggle'
 import Logo from '@components/layout/shared/Logo'
 import ModeDropdown from '@components/layout/shared/ModeDropdown'
 import UserDropdown from '@components/layout/shared/UserDropdown'
+import { CreditsBadge } from '@components/layout/shared/CreditsBadge'
 
 // Hook Imports
 import useHorizontalNav from '@menu/hooks/useHorizontalNav'
@@ -28,7 +29,8 @@ const NavbarContent = () => {
         {/* Hide Logo on Smaller screens */}
         {!isBreakpointReached && <Logo />}
       </div>
-      <div className='flex items-center'>
+      <div className='flex items-center gap-3'>
+        <CreditsBadge />
         <ModeDropdown />
         <UserDropdown />
       </div>

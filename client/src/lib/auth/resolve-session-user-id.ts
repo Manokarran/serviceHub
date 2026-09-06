@@ -2,26 +2,61 @@ import mongoose from 'mongoose'
 import type { Session } from 'next-auth'
 
 import { AppError } from '@/lib/errors'
-import { authService } from '@/services/auth'
+import { userRepository } from '@/repositories'
 
+/** Auth.js / Mongo ObjectIds are 24 hex chars. UUIDs must not pass. */
+export function isStrictMongoObjectId(value?: string | null): boolean {
+  return Boolean(value && /^[a-fA-F0-9]{24}$/.test(value))
+}
+
+/**
+ * Resolve the MongoDB staff user id for the current session.
+ * Recreates the user row when it was removed (e.g. tenant cascade delete)
+ * but the browser session is still signed in.
+ */
 export async function resolveSessionUserId(session: Session): Promise<string> {
   const sessionId = session.user?.id?.trim()
 
-  if (sessionId && mongoose.Types.ObjectId.isValid(sessionId)) {
-    return new mongoose.Types.ObjectId(sessionId).toString()
-  }
+  if (isStrictMongoObjectId(sessionId)) {
+    const existing = await userRepository.findById(sessionId!)
 
-  const email = session.user?.email?.trim()
-
-  if (email) {
-    const profile = await authService.getUserProfileByEmail(email)
-
-    if (profile?.id && mongoose.Types.ObjectId.isValid(profile.id)) {
-      return profile.id
+    if (existing?.isActive) {
+      return existing._id.toString()
     }
   }
 
-  throw new AppError('Could not resolve your user account. Sign out and sign in again.', 401, 'INVALID_USER_ID')
+  const email = session.user?.email?.trim().toLowerCase()
+
+  if (!email) {
+    throw new AppError('Could not resolve your user account. Sign out and sign in again.', 401, 'INVALID_USER_ID')
+  }
+
+  let user = await userRepository.findByEmail(email)
+
+  if (!user || !user.isActive) {
+    const googleId = session.user.googleId?.trim() || `recovered:${email}`
+
+    const byGoogle = session.user.googleId?.trim()
+      ? await userRepository.findByGoogleId(session.user.googleId.trim())
+      : null
+
+    if (byGoogle?.isActive) {
+      user = byGoogle
+    } else {
+      user = await userRepository.createFromGoogle({
+        googleId,
+        email,
+        name: session.user.name?.trim() || 'User',
+        image: session.user.image ?? undefined
+      })
+    }
+  }
+
+  if (!user?._id) {
+    throw new AppError('Could not resolve your user account. Sign out and sign in again.', 401, 'INVALID_USER_ID')
+  }
+
+  return user._id.toString()
 }
 
 export function formatActionError(error: unknown, fallback: string): string {

@@ -257,6 +257,8 @@ export interface ShowcaseItem {
   imageSrc: string
   imageAlt: string
   visualKind: ShowcaseVisualKind
+  /** Photo hover effect when visualKind is image */
+  imageHoverEffect?: ImageHoverEffect
   splitVisualAnimation: HeroSplitVisualAnimation
   splitVisualColorStart: string
   splitVisualColorEnd: string

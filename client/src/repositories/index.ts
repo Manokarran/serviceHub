@@ -20,3 +20,8 @@ export { siteCustomerRepository, SiteCustomerRepository } from './site-customer.
 export { bookingRepository, BookingRepository } from './booking.repository'
 export { waitlistRepository, WaitlistRepository } from './waitlist.repository'
 export { bookingHoldRepository, BookingHoldRepository } from './booking-hold.repository'
+export {
+  platformSettingsRepository,
+  PlatformSettingsRepository
+} from './platform-settings.repository'
+export { creditLedgerRepository, CreditLedgerRepository } from './credit-ledger.repository'

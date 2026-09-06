@@ -4,6 +4,9 @@ import { useEffect } from 'react'
 
 import { usePathname } from 'next/navigation'
 
+import { extractTenantSlugFromHostname, isPublicSiteHost } from '@/lib/utils/tenant-host'
+import { isHomePageSlug } from '@/lib/utils/page-slug'
+
 const VISITOR_STORAGE_KEY = 'sh.pub.vid'
 const VIEW_LOCK_PREFIX = 'sh.pub.viewlock'
 const CLICK_LOCK_KEY = 'sh.pub.clicklock'
@@ -11,15 +14,30 @@ const VIEW_LOCK_MS = 4000
 const CLICK_LOCK_MS = 1200
 
 function readPublicSiteContext(pathname: string | null): { tenantSlug: string; pageSlug: string } | null {
-  const match = pathname?.match(/^\/site\/([^/]+)(?:\/([^/]+))?/)
+  const pathMatch = pathname?.match(/^\/site\/([^/]+)(?:\/([^/]+))?/)
 
-  if (!match?.[1]) {
+  if (pathMatch?.[1]) {
+    return {
+      tenantSlug: pathMatch[1],
+      pageSlug: pathMatch[2] || 'home'
+    }
+  }
+
+  if (typeof window === 'undefined' || !isPublicSiteHost(window.location.host)) {
     return null
   }
 
+  const tenantSlug = extractTenantSlugFromHostname(window.location.host)
+
+  if (!tenantSlug) {
+    return null
+  }
+
+  const segment = pathname?.replace(/^\//, '').split('/')[0] || 'home'
+
   return {
-    tenantSlug: match[1],
-    pageSlug: match[2] || 'home'
+    tenantSlug,
+    pageSlug: isHomePageSlug(segment) || !segment ? 'home' : segment
   }
 }
 

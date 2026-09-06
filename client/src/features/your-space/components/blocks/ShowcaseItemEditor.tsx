@@ -54,6 +54,7 @@ export function ShowcaseItemEditor({ item, index, onChange, children }: Props) {
   return (
     <Box
       ref={cardRef}
+      className='showcase-hover-root'
       onClick={event => {
         event.stopPropagation()
         selectThisPanel()

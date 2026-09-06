@@ -96,7 +96,11 @@ const Register = ({ mode }: { mode: Mode }) => {
     await update({
       registrationComplete: true,
       tenantSlug: registration?.tenantSlug,
-      tenantName: registration?.tenantName
+      tenantName: registration?.tenantName,
+      // New registrations start pending — workspace open, publish locked
+      tenantApproved: false,
+      tenantApprovalStatus: 'pending',
+      tenantWorkspaceOpen: true
     })
 
     window.location.assign('/home')

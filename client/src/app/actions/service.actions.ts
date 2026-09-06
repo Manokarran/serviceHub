@@ -2,8 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { auth } from '@/lib/auth'
+import { requireTenantWorkspace } from '@/lib/auth/require-tenant-workspace'
 import { isManagerRole } from '@/lib/constants/roles'
+import { hasUnlimitedCredits } from '@/lib/credits/has-unlimited-credits'
 import { AppError } from '@/lib/errors'
 import {
   createServiceSchema,
@@ -31,7 +32,7 @@ import {
 } from '@/services/booking/service-catalog.service'
 import { slotMaterialiserService, type MaterialiseResult } from '@/services/booking/slot-materialiser.service'
 
-type TenantContext = { tenantId: string; userId: string }
+type TenantContext = { tenantId: string; userId: string; unlimited: boolean }
 
 type ActionFailure = { success: false; error: string }
 
@@ -47,11 +48,7 @@ type OneOffSessionResult = { success: true; materialisation: MaterialiseResult }
 type DeleteResult = { success: true; deletion: DeleteServiceResult } | ActionFailure
 
 async function requireManagerContext(): Promise<TenantContext> {
-  const session = await auth()
-
-  if (!session?.user?.id) {
-    throw new AppError('You must be signed in.', 401, 'UNAUTHENTICATED')
-  }
+  const session = await requireTenantWorkspace()
 
   if (!session.user.tenantId) {
     throw new AppError('Finish setting up your organization first.', 400, 'NO_TENANT')
@@ -61,7 +58,11 @@ async function requireManagerContext(): Promise<TenantContext> {
     throw new AppError('You do not have permission to manage services.', 403, 'FORBIDDEN')
   }
 
-  return { tenantId: session.user.tenantId, userId: session.user.id }
+  return {
+    tenantId: session.user.tenantId,
+    userId: session.user.id,
+    unlimited: hasUnlimitedCredits(session.user)
+  }
 }
 
 function toFailure(scope: string, error: unknown): ActionFailure {
@@ -101,14 +102,37 @@ export async function getServiceDetailAction(serviceId: string): Promise<Service
 
 export async function createServiceAction(input: CreateServiceInput): Promise<ServiceResult> {
   try {
-    const { tenantId, userId } = await requireManagerContext()
+    const { tenantId, userId, unlimited } = await requireManagerContext()
     const parsed = createServiceSchema.safeParse(input)
 
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid service details' }
     }
 
+    const { creditsService } = await import('@/services/credits')
+
+    await creditsService.assertCanAfford(tenantId, 'service_setup', { unlimited })
+
     const service = await serviceCatalogService.createService(tenantId, userId, parsed.data)
+
+    try {
+      await creditsService.spend({
+        tenantId,
+        feature: 'service_setup',
+        actorUserId: userId,
+        description: `Created service “${parsed.data.name}”`,
+        metadata: { serviceId: service.id },
+        unlimited
+      })
+    } catch (error) {
+      try {
+        await serviceCatalogService.deleteService(tenantId, service.id, userId)
+      } catch (cleanupError) {
+        console.error('[createServiceAction] Failed to roll back service after credit charge', cleanupError)
+      }
+
+      throw error
+    }
 
     revalidatePath('/services')
 

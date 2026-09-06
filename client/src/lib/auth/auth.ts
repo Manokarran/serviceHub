@@ -13,11 +13,31 @@ import { isSuperAdminEmail } from './super-admin'
 
 ensureAuthEnv()
 
+function isMongoUserId(value: unknown): value is string {
+  return typeof value === 'string' && /^[a-fA-F0-9]{24}$/.test(value)
+}
+
 function applyUserProfile(
   token: Record<string, unknown>,
   profile: Awaited<ReturnType<typeof authService.getUserProfile>> | null
 ) {
   if (!profile) {
+    // User was removed (e.g. tenant cascade delete) — drop staff claims
+    if (isMongoUserId(token.userId)) {
+      delete token.userId
+      token.registrationComplete = false
+      delete token.role
+      delete token.tenantId
+      delete token.tenantName
+      delete token.tenantSlug
+      delete token.tenantPlan
+      token.tenantApproved = false
+      delete token.tenantApprovalStatus
+      token.tenantWorkspaceOpen = false
+      token.context = 'staff'
+      delete token.customerId
+    }
+
     return
   }
 
@@ -28,6 +48,9 @@ function applyUserProfile(
   token.tenantName = profile.tenantName
   token.tenantSlug = profile.tenantSlug
   token.tenantPlan = profile.tenantPlan
+  token.tenantApproved = profile.tenantApproved
+  token.tenantApprovalStatus = profile.tenantApprovalStatus
+  token.tenantWorkspaceOpen = profile.tenantWorkspaceOpen
   token.context = 'staff'
   delete token.customerId
 }
@@ -50,6 +73,9 @@ function applyCustomerProfile(
   token.tenantSlug = profile.tenantSlug
   token.role = undefined
   token.tenantPlan = undefined
+  token.tenantApproved = undefined
+  delete token.tenantApprovalStatus
+  token.tenantWorkspaceOpen = undefined
 }
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
@@ -131,18 +157,47 @@ return '/login?error=AccessDenied'
     },
     async jwt({ token, account, trigger, session }) {
       try {
-        if (account?.provider === 'google' && token.email) {
-          const bookingTenant = (await cookies()).get('BOOKING_TENANT')?.value
-
-          if (bookingTenant) {
-            const customerProfile = await authService.getCustomerProfileByGoogleId(bookingTenant, account.providerAccountId ?? '')
-
-            applyCustomerProfile(token, customerProfile)
-          } else {
-            const profile = await authService.getUserProfileByEmail(token.email)
-
-            applyUserProfile(token, profile)
+        if (account?.provider === 'google') {
+          if (account.providerAccountId) {
+            token.googleId = account.providerAccountId
           }
+
+          if (token.email) {
+            const bookingTenant = (await cookies()).get('BOOKING_TENANT')?.value
+
+            if (bookingTenant) {
+              const customerProfile = await authService.getCustomerProfileByGoogleId(
+                bookingTenant,
+                account.providerAccountId ?? ''
+              )
+
+              applyCustomerProfile(token, customerProfile)
+            } else {
+              const profile = await authService.getUserProfileByEmail(token.email)
+
+              applyUserProfile(token, profile)
+            }
+          }
+        } else if (token.context !== 'customer') {
+          // Keep approval / registration fields in sync so revoke/approve takes effect without re-login
+          const userId = isMongoUserId(token.userId) ? token.userId : undefined
+          let profile = userId ? await authService.getUserProfile(userId) : null
+
+          if (!profile && token.email) {
+            profile = await authService.getUserProfileByEmail(token.email as string)
+          }
+
+          // Staff user row missing (cascade delete) — recreate from Google id when possible
+          if (!profile && token.email && token.googleId) {
+            profile = await authService.syncGoogleUser({
+              googleId: token.googleId as string,
+              email: token.email as string,
+              name: (token.name as string) || 'User',
+              image: (token.picture as string) || null
+            })
+          }
+
+          applyUserProfile(token, profile)
         }
 
         if (trigger === 'update') {
@@ -150,11 +205,11 @@ return '/login?error=AccessDenied'
             return token
           }
 
-          const userId = token.userId as string | undefined
+          const userId = isMongoUserId(token.userId) ? token.userId : undefined
           let profile = userId ? await authService.getUserProfile(userId) : null
 
           if (!profile && token.email) {
-            profile = await authService.getUserProfileByEmail(token.email)
+            profile = await authService.getUserProfileByEmail(token.email as string)
           }
 
           applyUserProfile(token, profile)
@@ -172,6 +227,23 @@ return '/login?error=AccessDenied'
 
             if (typeof sessionUpdate.tenantName === 'string') {
               token.tenantName = sessionUpdate.tenantName
+            }
+
+            if (typeof sessionUpdate.tenantApproved === 'boolean') {
+              // Prefer DB profile when present; only force false from client after fresh registration
+              if (sessionUpdate.tenantApproved === false) {
+                token.tenantApproved = false
+              } else if (token.tenantApproved !== true) {
+                token.tenantApproved = sessionUpdate.tenantApproved
+              }
+            }
+
+            if (sessionUpdate.tenantApprovalStatus === 'pending') {
+              token.tenantApprovalStatus = 'pending'
+            }
+
+            if (sessionUpdate.tenantWorkspaceOpen === true) {
+              token.tenantWorkspaceOpen = true
             }
           }
         }

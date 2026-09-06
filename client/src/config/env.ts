@@ -62,6 +62,9 @@ export const serverEnv = {
 
 export const publicEnv = {
   appUrl: optional(process.env.NEXT_PUBLIC_APP_URL, 'http://localhost:3000'),
+  rootDomain: optional(process.env.NEXT_PUBLIC_ROOT_DOMAIN, ''),
+  appSubdomain: optional(process.env.NEXT_PUBLIC_APP_SUBDOMAIN, 'app'),
+  platformSiteSlug: optional(process.env.NEXT_PUBLIC_PLATFORM_SITE_SLUG, ''),
   imagekitPublicKey: optional(process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY, ''),
   imagekitUrlEndpoint: optional(process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT, ''),
   unsplashKey: optional(process.env.NEXT_PUBLIC_UNSPLASH_KEY, '')

@@ -1,4 +1,5 @@
 // MUI Imports
+import Tooltip from '@mui/material/Tooltip'
 import { useTheme } from '@mui/material/styles'
 
 // Third-party Imports
@@ -46,15 +47,26 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
   const { data: session } = useSession()
   const canManageLeads = isManagerRole(session?.user?.role)
   const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  // Super admins still need org approval for publish; workspace opens while pending
+  const workspaceOpen = session?.user?.tenantWorkspaceOpen !== false
+  const lockedTitle = 'Access declined'
 
   // Vars
   const { isBreakpointReached, transitionDuration } = verticalNavOptions
 
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
 
+  const lockedItem = (label: string, icon: string) => (
+    <Tooltip title={lockedTitle} placement='right'>
+      <span>
+        <MenuItem disabled icon={<i className={icon} />}>
+          {label}
+        </MenuItem>
+      </span>
+    </Tooltip>
+  )
+
   return (
-    // eslint-disable-next-line lines-around-comment
-    /* Custom scrollbar instead of browser scroll, remove if you want browser scroll only */
     <ScrollWrapper
       {...(isBreakpointReached
         ? {
@@ -66,8 +78,6 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
             onScrollY: container => scrollMenu(container, true)
           })}
     >
-      {/* Incase you also want to scroll NavHeader to scroll with Vertical Menu, remove NavHeader from above and paste it below this comment */}
-      {/* Vertical Menu */}
       <Menu
         popoutMenuOffset={{ mainAxis: 10 }}
         menuItemStyles={menuItemStyles(verticalNavOptions, theme)}
@@ -78,23 +88,39 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
         <MenuItem href='/home' icon={<i className='ri-home-smile-line' />}>
           Home
         </MenuItem>
-        <MenuItem href='/your-space' icon={<i className='ri-layout-masonry-line' />}>
-          Your Space
-        </MenuItem>
-        {canManageLeads ? (
-          <MenuItem href='/services' icon={<i className='ri-calendar-check-line' />}>
-            Services
+        {workspaceOpen ? (
+          <MenuItem href='/your-space' icon={<i className='ri-layout-masonry-line' />}>
+            Your Space
           </MenuItem>
+        ) : (
+          lockedItem('Your Space', 'ri-layout-masonry-line')
+        )}
+        {canManageLeads ? (
+          workspaceOpen ? (
+            <MenuItem href='/services' icon={<i className='ri-calendar-check-line' />}>
+              Services
+            </MenuItem>
+          ) : (
+            lockedItem('Services', 'ri-calendar-check-line')
+          )
         ) : null}
         {canManageLeads ? (
-          <MenuItem href='/bookings' icon={<i className='ri-calendar-todo-line' />}>
-            Bookings
-          </MenuItem>
+          workspaceOpen ? (
+            <MenuItem href='/bookings' icon={<i className='ri-calendar-todo-line' />}>
+              Bookings
+            </MenuItem>
+          ) : (
+            lockedItem('Bookings', 'ri-calendar-todo-line')
+          )
         ) : null}
         {canManageLeads ? (
-          <MenuItem href='/leads' icon={<i className='ri-mail-line' />}>
-            Leads
-          </MenuItem>
+          workspaceOpen ? (
+            <MenuItem href='/leads' icon={<i className='ri-mail-line' />}>
+              Leads
+            </MenuItem>
+          ) : (
+            lockedItem('Leads', 'ri-mail-line')
+          )
         ) : null}
         <MenuItem href='/about' icon={<i className='ri-information-line' />}>
           About
@@ -103,6 +129,12 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
           <MenuSection label='Super Admin'>
             <MenuItem href='/super-admin' icon={<i className='ri-shield-star-line' />}>
               Dashboard
+            </MenuItem>
+            <MenuItem href='/super-admin/requests' icon={<i className='ri-user-follow-line' />}>
+              Registration requests
+            </MenuItem>
+            <MenuItem href='/super-admin/credits' icon={<i className='ri-coin-line' />}>
+              AI credits
             </MenuItem>
             <MenuItem href='/super-admin/studio' icon={<i className='ri-palette-line' />}>
               Design studio
@@ -113,15 +145,6 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
           </MenuSection>
         ) : null}
       </Menu>
-      {/* <Menu
-        popoutMenuOffset={{ mainAxis: 10 }}
-        menuItemStyles={menuItemStyles(verticalNavOptions, theme)}
-        renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
-        renderExpandedMenuItemIcon={{ icon: <i className='ri-circle-line' /> }}
-        menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
-      >
-        <GenerateVerticalMenu menuData={menuData(dictionary)} />
-      </Menu> */}
     </ScrollWrapper>
   )
 }

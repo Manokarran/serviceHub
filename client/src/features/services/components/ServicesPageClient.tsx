@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from 'react'
 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -30,6 +31,7 @@ import {
   type ServiceSlotMode
 } from '@/lib/constants/service'
 import { createServiceAction, deleteServiceAction, getServicesAction } from '@/app/actions/service.actions'
+import { notifyCreditsChanged } from '@/components/layout/shared/CreditsBadge'
 import { getImageKitThumbnailUrl } from '@/lib/imagekit/urls'
 import { getBrowserTimeZone } from '@/lib/utils/timezone'
 import type { ServiceListItem } from '@/services/booking/service-catalog.service'
@@ -70,6 +72,8 @@ const MODE_CHOICES: {
 export function ServicesPageClient({ initialServices, tenantSlug, siteDefaults }: Props) {
   const theme = useTheme()
   const router = useRouter()
+  const { data: session } = useSession()
+  const unlimitedCredits = Boolean(session?.user?.isSuperAdmin)
   const [services, setServices] = useState(initialServices)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [mode, setMode] = useState<ServiceSlotMode>('fixed')
@@ -154,6 +158,7 @@ export function ServicesPageClient({ initialServices, tenantSlug, siteDefaults }
         return
       }
 
+      notifyCreditsChanged()
       setDialogOpen(false)
       router.push(`/services/${result.service.id}`)
     })
@@ -449,6 +454,11 @@ export function ServicesPageClient({ initialServices, tenantSlug, siteDefaults }
         <DialogTitle>New service</DialogTitle>
         <DialogContent>
           <Stack spacing={4} sx={{ pt: 2 }}>
+            {!unlimitedCredits ? (
+              <Alert severity='info' variant='outlined'>
+                Creating a service uses 5 credits. Manual scheduling and edits after that are free.
+              </Alert>
+            ) : null}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
               {MODE_CHOICES.map(choice => (
                 <Box

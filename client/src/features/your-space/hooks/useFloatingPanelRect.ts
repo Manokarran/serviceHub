@@ -21,13 +21,16 @@ export function useFloatingPanelRect(storageKey: string, corner: 'left' | 'right
   const [rect, setRect] = useState<PanelRect | null>(null)
   const [parentSize, setParentSize] = useState<PanelSize>({ width: 0, height: 0 })
   const skipWrite = useRef(true)
+  const skipPersist = useRef(false)
   const previousRect = useRef<PanelRect | null>(null)
+  const userRectRef = useRef<PanelRect | null>(null)
   const parentRef = useRef<PanelSize>({ width: 0, height: 0 })
 
   useEffect(() => {
     const stored = readStoredPanelRect(storageKey)
 
     if (stored) {
+      userRectRef.current = stored
       setRect(stored)
     }
 
@@ -45,6 +48,12 @@ export function useFloatingPanelRect(storageKey: string, corner: 'left' | 'right
       return
     }
 
+    if (skipPersist.current) {
+      skipPersist.current = false
+
+      return
+    }
+
     writeStoredPanelRect(storageKey, rect)
   }, [rect, storageKey])
 
@@ -53,21 +62,50 @@ export function useFloatingPanelRect(storageKey: string, corner: 'left' | 'right
     setParentSize(current => (current.width === parent.width && current.height === parent.height ? current : parent))
   }
 
+  const rememberUserRect = (next: PanelRect) => {
+    userRectRef.current = next
+  }
+
   const commit = useCallback((next: PanelRect, parent: PanelSize, mode: PanelLayoutMode = 'overlay') => {
     rememberParent(parent)
 
     if (mode === 'docked') {
       setRect(current => {
-        const base = current ?? defaultPanelRect(corner, parent)
+        const base = current ?? defaultPanelRect(corner, parent, storageKey)
+        const committed = { ...base, width: clampDockedPanelWidth(next.width, parent) }
 
-        return { ...base, width: clampDockedPanelWidth(next.width, parent) }
+        rememberUserRect(committed)
+
+        return committed
       })
 
       return
     }
 
+    const committed = clampPanelRect(next, parent)
+
+    rememberUserRect(committed)
+    setRect(committed)
+  }, [corner, storageKey])
+
+  const layoutCommit = useCallback((next: PanelRect, parent: PanelSize) => {
+    rememberParent(parent)
+    skipPersist.current = true
     setRect(clampPanelRect(next, parent))
-  }, [corner])
+  }, [])
+
+  const restoreUser = useCallback(
+    (parent: PanelSize) => {
+      rememberParent(parent)
+
+      const user = userRectRef.current ?? defaultPanelRect(corner, parent, storageKey)
+      const next = clampPanelRect(user, parent)
+
+      skipPersist.current = true
+      setRect(current => (rectsEqual(current, next) ? current : next))
+    },
+    [corner, storageKey]
+  )
 
   const ensureLayout = useCallback(
     (parent: PanelSize, mode: PanelLayoutMode = 'overlay') => {
@@ -79,7 +117,13 @@ export function useFloatingPanelRect(storageKey: string, corner: 'left' | 'right
         }
 
         if (!current) {
-          return defaultPanelRect(corner, parent)
+          const initial = defaultPanelRect(corner, parent, storageKey)
+
+          rememberUserRect(initial)
+
+          return mode === 'docked'
+            ? { ...initial, width: clampDockedPanelWidth(initial.width, parent) }
+            : initial
         }
 
         const next =
@@ -87,10 +131,14 @@ export function useFloatingPanelRect(storageKey: string, corner: 'left' | 'right
             ? { ...current, width: clampDockedPanelWidth(current.width, parent) }
             : clampPanelRect(current, parent)
 
+        if (mode === 'docked' || rectsEqual(current, userRectRef.current)) {
+          rememberUserRect(next)
+        }
+
         return rectsEqual(current, next) ? current : next
       })
     },
-    [corner]
+    [corner, storageKey]
   )
 
   const maximize = useCallback(
@@ -104,39 +152,55 @@ export function useFloatingPanelRect(storageKey: string, corner: 'left' | 'right
       setRect(current => {
         if (mode === 'docked') {
           const maxWidth = clampDockedPanelWidth(Number.POSITIVE_INFINITY, parent)
-          const base = current ?? defaultPanelRect(corner, parent)
+          const base = current ?? defaultPanelRect(corner, parent, storageKey)
 
           if (isDockedMaximized(base, parent)) {
             const restoredWidth = previousRect.current
               ? clampDockedPanelWidth(previousRect.current.width, parent)
-              : defaultPanelRect(corner, parent).width
+              : defaultPanelRect(corner, parent, storageKey).width
+            const restored = { ...base, width: restoredWidth }
 
-            return { ...base, width: restoredWidth }
+            rememberUserRect(restored)
+
+            return restored
           }
 
           previousRect.current = base
+          rememberUserRect({ ...base, width: maxWidth })
 
           return { ...base, width: maxWidth }
         }
 
         if (current && isMaximizedRect(current, parent)) {
-          return previousRect.current ? clampPanelRect(previousRect.current, parent) : defaultPanelRect(corner, parent)
+          const restored = previousRect.current
+            ? clampPanelRect(previousRect.current, parent)
+            : defaultPanelRect(corner, parent, storageKey)
+
+          rememberUserRect(restored)
+
+          return restored
         }
 
         if (current) {
           previousRect.current = current
         }
 
-        return maximizePanelRect(parent)
+        const maximized = maximizePanelRect(parent)
+
+        rememberUserRect(maximized)
+
+        return maximized
       })
     },
-    [corner]
+    [corner, storageKey]
   )
 
   return {
     rect,
     parentSize,
     commit,
+    layoutCommit,
+    restoreUser,
     ensureLayout,
     maximize
   }

@@ -13,7 +13,8 @@ import { applyDesignBriefToBlocks } from '@/lib/ai-site-wizard/block-layout'
 import {
   applyMediaFills,
   collectBlockMediaSlots,
-  collectForceBackgroundPaths
+  collectForceBackgroundPaths,
+  collectProposalPhotoPreviews
 } from '@/lib/ai-site-wizard/block-media'
 import { applyThemeHarmonyToBlocks } from '@/lib/ai-site-wizard/block-theme'
 import { applyBlockTextPatches, collectBlockTextFields, type BlockTextField } from '@/lib/ai-site-wizard/block-text'
@@ -347,6 +348,7 @@ export class AiDesignStudioService {
       siteStyles: isPageScope ? nextStyles : null,
       rewordedFields,
       photoCount: used,
+      photoPreviews: collectProposalPhotoPreviews(input.pageSlug, blocks),
       usedOpenAi: briefResult.usedOpenAi
     }) as DesignProposal
   }

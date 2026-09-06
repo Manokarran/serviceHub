@@ -35,6 +35,9 @@ type Props = {
   isSiteStarted: boolean
   hasPublishedSite: boolean
   canManageLeads: boolean
+  tenantApproved: boolean
+  workspaceOpen: boolean
+  creditsBalance: number | null
   analytics: SiteAnalyticsOverview
   bookingInsights: BookingInsights | null
   services: ServiceListItem[]
@@ -75,6 +78,9 @@ export function HomeDashboard({
   isSiteStarted,
   hasPublishedSite,
   canManageLeads,
+  tenantApproved,
+  workspaceOpen,
+  creditsBalance,
   analytics,
   bookingInsights,
   services
@@ -95,7 +101,12 @@ export function HomeDashboard({
     }
 
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}${liveSitePath}`)
+      const absolute =
+        liveSitePath.startsWith('http://') || liveSitePath.startsWith('https://')
+          ? liveSitePath
+          : `${window.location.origin}${liveSitePath}`
+
+      await navigator.clipboard.writeText(absolute)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1600)
     } catch {
@@ -350,51 +361,122 @@ export function HomeDashboard({
                 View live site
               </Button>
             ) : null}
-            <Button
-              component={Link}
-              href='/your-space'
-              variant='contained'
-              size='large'
-              startIcon={<i className='ri-layout-masonry-line' />}
-              sx={{
-                bgcolor: 'common.white',
-                color: accentDeep,
-                fontWeight: 700,
-                px: 2.5,
-                boxShadow: `0 12px 28px ${alpha(accentDeep, 0.3)}`,
-                '&:hover': {
-                  bgcolor: alpha('#fff', 0.88)
-                }
-              }}
-            >
-              {isSiteStarted ? 'Open Your Space' : 'Open builder'}
-            </Button>
+            {workspaceOpen ? (
+              <Button
+                component={Link}
+                href='/your-space'
+                variant='contained'
+                size='large'
+                startIcon={<i className='ri-layout-masonry-line' />}
+                sx={{
+                  bgcolor: 'common.white',
+                  color: accentDeep,
+                  fontWeight: 700,
+                  px: 2.5,
+                  boxShadow: `0 12px 28px ${alpha(accentDeep, 0.3)}`,
+                  '&:hover': {
+                    bgcolor: alpha('#fff', 0.88)
+                  }
+                }}
+              >
+                {isSiteStarted ? 'Open Your Space' : 'Open builder'}
+              </Button>
+            ) : (
+              <Button
+                variant='contained'
+                size='large'
+                disabled
+                startIcon={<i className='ri-lock-line' />}
+                sx={{
+                  bgcolor: alpha('#fff', 0.35),
+                  color: accentDeep,
+                  fontWeight: 700,
+                  px: 2.5
+                }}
+              >
+                Workspace locked
+              </Button>
+            )}
           </Box>
         </Box>
       </Box>
 
-      <Section
-        title={isSiteStarted ? 'Your website' : 'Get started'}
-        caption={
-          isSiteStarted
-            ? 'Chat with the builder, generate a new version, or swap the layout'
-            : 'Start from a conversation, a brand form, or a library layout'
-        }
-      >
-        <HomeCreateWebsitePanel isSiteStarted={isSiteStarted} />
-      </Section>
+      {workspaceOpen && !tenantApproved ? (
+        <Section
+          title='Ready to build'
+          caption='Use your welcome credits while we review your organization'
+        >
+          <Box
+            sx={{
+              borderRadius: 3,
+              p: 3,
+              border: `1px dashed ${theme.palette.divider}`,
+              bgcolor: alpha(theme.palette.info.main, 0.06)
+            }}
+          >
+            <Typography variant='body1' sx={{ fontWeight: 600, mb: 0.75 }}>
+              {creditsBalance != null ? `${creditsBalance} credits available` : 'Welcome credits ready'}
+            </Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mb: 1.5 }}>
+              Edit and preview freely. AI features and each new service use credits. Publishing to your live site unlocks
+              as soon as a super admin approves you.
+            </Typography>
+            <Button component={Link} href='/your-space' variant='outlined' startIcon={<i className='ri-eye-line' />}>
+              Preview in builder
+            </Button>
+          </Box>
+        </Section>
+      ) : null}
 
-      <Section title='Jump back in' caption='The places you use most'>
-        <HomeQuickActions isSiteStarted={isSiteStarted} canManageLeads={canManageLeads} leadCount={leadCount} />
-      </Section>
+      {workspaceOpen ? (
+        <Section
+          title={isSiteStarted ? 'Your website' : 'Get started'}
+          caption={
+            isSiteStarted
+              ? 'Chat with the builder, generate a new version, or swap the layout'
+              : 'Start from a conversation, a brand form, or a library layout'
+          }
+        >
+          <HomeCreateWebsitePanel isSiteStarted={isSiteStarted} />
+        </Section>
+      ) : (
+        <Section
+          title='Access declined'
+          caption='This organization cannot use the workspace'
+        >
+          <Box
+            sx={{
+              borderRadius: 3,
+              p: 3,
+              border: `1px dashed ${theme.palette.divider}`,
+              bgcolor: alpha(theme.palette.error.main, 0.06)
+            }}
+          >
+            <Typography variant='body1' sx={{ fontWeight: 600, mb: 0.75 }}>
+              Contact support
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              Your registration was not approved. Reach out if you need this decision reviewed.
+            </Typography>
+          </Box>
+        </Section>
+      )}
 
-      {isSiteStarted && analytics ? (
+      {workspaceOpen ? (
+        <Section title='Jump back in' caption='The places you use most'>
+          <HomeQuickActions isSiteStarted={isSiteStarted} canManageLeads={canManageLeads} leadCount={leadCount} />
+        </Section>
+      ) : null}
+
+      {workspaceOpen && isSiteStarted && analytics ? (
         <Section title='Site performance' caption={`How your website performed over the last ${analytics.kpiDays} days`}>
           <HomeAnalyticsSection analytics={analytics} hasPublishedSite={hasPublishedSite} />
         </Section>
       ) : null}
 
-      {isSiteStarted && canManageLeads ? <HomeBookingInsights insights={bookingInsights} services={services} /> : null}
+      {workspaceOpen && isSiteStarted && canManageLeads ? (
+        <HomeBookingInsights insights={bookingInsights} services={services} />
+      ) : null}
 
       <Section title='Workspace' caption='Who you are signed in as, and where your site lives'>
         <Box
@@ -403,11 +485,11 @@ export function HomeDashboard({
             gap: 2.5,
             gridTemplateColumns: {
               xs: '1fr',
-              md: canManageLeads ? '1.15fr 1fr' : '1fr'
+              md: workspaceOpen && canManageLeads ? '1.15fr 1fr' : '1fr'
             }
           }}
         >
-          {canManageLeads ? (
+          {workspaceOpen && canManageLeads ? (
             <Box
               sx={{
                 borderRadius: 3,

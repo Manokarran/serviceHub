@@ -22,21 +22,44 @@ export function getMediaOpacityFraction(opacity?: number): number {
   return Math.min(100, Math.max(0, value)) / 100
 }
 
-export function getMediaHoverSx(animation: ImageHoverEffect): SxProps<Theme> {
+export function getMediaHoverSx(
+  animation: ImageHoverEffect,
+  options?: { /** Ancestor selector that should also activate hover styles, e.g. `.showcase-hover-root` */ groupRoot?: string }
+): SxProps<Theme> {
+  const group = options?.groupRoot
+
+  const withGroupHover = (hoverRules: Record<string, unknown>): SxProps<Theme> => {
+    if (!group) {
+      return hoverRules
+    }
+
+    const grouped: Record<string, unknown> = { ...hoverRules }
+
+    for (const [key, value] of Object.entries(hoverRules)) {
+      if (key.startsWith('&:hover')) {
+        const suffix = key.slice('&:hover'.length)
+        grouped[`${group}:hover &${suffix}`] = value
+      }
+    }
+
+    return grouped
+  }
+
   if (animation === 'zoom') {
-    return {
+    return withGroupHover({
       '& .media-block-image': {
         transition: 'transform 0.65s ease',
-        transform: 'scale(1)'
+        transform: 'scale(1)',
+        transformOrigin: 'center center'
       },
       '&:hover .media-block-image': {
         transform: 'scale(1.08)'
       }
-    }
+    })
   }
 
   if (animation === 'fade') {
-    return {
+    return withGroupHover({
       '& .media-block-image': {
         transition: 'opacity 0.45s ease',
         opacity: 1
@@ -44,33 +67,36 @@ export function getMediaHoverSx(animation: ImageHoverEffect): SxProps<Theme> {
       '&:hover .media-block-image': {
         opacity: 0.82
       }
-    }
+    })
   }
 
   if (animation === 'lift') {
-    return {
+    return withGroupHover({
       transition: 'transform 0.45s ease, box-shadow 0.45s ease',
       '&:hover': {
         transform: 'translateY(-4px)',
         boxShadow: '0 14px 30px rgba(15, 23, 42, 0.16)'
       }
-    }
+    })
   }
 
   if (animation === 'blur') {
-    return {
+    return withGroupHover({
       '& .media-block-image': {
         transition: 'filter 0.45s ease, transform 0.45s ease',
-        filter: 'blur(0) scale(1)'
+        filter: 'blur(0px)',
+        transform: 'scale(1)',
+        transformOrigin: 'center center'
       },
       '&:hover .media-block-image': {
-        filter: 'blur(2px) scale(1.04)'
+        filter: 'blur(2px)',
+        transform: 'scale(1.04)'
       }
-    }
+    })
   }
 
   if (animation === 'grayscale') {
-    return {
+    return withGroupHover({
       '& .media-block-image': {
         transition: 'filter 0.45s ease',
         filter: 'grayscale(0)'
@@ -78,7 +104,7 @@ export function getMediaHoverSx(animation: ImageHoverEffect): SxProps<Theme> {
       '&:hover .media-block-image': {
         filter: 'grayscale(0.85)'
       }
-    }
+    })
   }
 
   return {}

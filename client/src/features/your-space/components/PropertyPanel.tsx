@@ -9,7 +9,8 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import { PALETTE_ITEMS } from '../constants'
-import { BUILDER_PROPERTY_PANEL_SX, BUILDER_Z_INDEX } from '../constants/builderLayout'
+import { BUILDER_PROPERTY_PANEL_SX } from '../constants/builderLayout'
+import { OverlayPanelSync } from '../context/BuilderOverlayContext'
 import { builderFormOutlineSx, builderSidePanelSx } from '../constants/builderChrome'
 import { useBuilder } from '../context/BuilderContext'
 import { useFloatingPanelRect } from '../hooks/useFloatingPanelRect'
@@ -215,16 +216,16 @@ export function PropertyPanelContent({
           <>
             {onMaximize && (
               <DockToolButton
-                title={maximized ? 'Restore panel size' : overlay ? 'Fill canvas' : 'Widen panel'}
+                title={maximized ? 'Restore panel size' : overlay ? 'Fill window' : 'Widen panel'}
                 icon={maximized ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'}
                 onClick={onMaximize}
                 active={maximized}
-                ariaLabel={maximized ? 'Restore panel size' : overlay ? 'Fill canvas' : 'Widen panel'}
+                ariaLabel={maximized ? 'Restore panel size' : overlay ? 'Fill window' : 'Widen panel'}
               />
             )}
             {onPinToggle && (
               <DockToolButton
-                title={pinned ? 'Float over canvas' : 'Pin to the side'}
+                title={pinned ? 'Float outside layout' : 'Pin to the side'}
                 icon={pinned ? 'ri-pushpin-fill' : 'ri-pushpin-line'}
                 onClick={onPinToggle}
                 active={pinned}
@@ -344,7 +345,10 @@ function PropertyPanelFrame({
   onPinToggle: () => void
 }) {
   const { mode } = useBuilder()
-  const { rect, parentSize, commit, ensureLayout, maximize } = useFloatingPanelRect(BUILDER_PROPERTY_FRAME_KEY, 'right')
+  const { rect, parentSize, commit, layoutCommit, restoreUser, ensureLayout, maximize } = useFloatingPanelRect(
+    BUILDER_PROPERTY_FRAME_KEY,
+    'right'
+  )
 
   const handleCommit = useCallback(
     (next: Parameters<typeof commit>[0], parent: Parameters<typeof commit>[1]) => {
@@ -383,31 +387,40 @@ function PropertyPanelFrame({
       />
     )
 
-  if (overlay) {
-    return (
-      <BuilderFloatingFrame
-        overlay
-        side='right'
-        rect={rect}
-        zIndex={BUILDER_Z_INDEX.propertyOverlay}
-        onCommit={handleCommit}
-        onEnsureLayout={handleEnsureLayout}
-      >
-        {content}
-      </BuilderFloatingFrame>
-    )
-  }
-
   return (
-    <BuilderFloatingFrame
-      overlay={false}
-      side='right'
-      rect={rect}
-      onCommit={handleCommit}
-      onEnsureLayout={handleEnsureLayout}
-    >
-      {content}
-    </BuilderFloatingFrame>
+    <>
+      <OverlayPanelSync
+        id='property'
+        visible
+        overlay={overlay}
+        rect={rect}
+        corner='right'
+        applyLayout={layoutCommit}
+        restoreUser={restoreUser}
+      />
+      {overlay ? (
+        <BuilderFloatingFrame
+          overlay
+          overlayId='property'
+          side='right'
+          rect={rect}
+          onCommit={handleCommit}
+          onEnsureLayout={handleEnsureLayout}
+        >
+          {content}
+        </BuilderFloatingFrame>
+      ) : (
+        <BuilderFloatingFrame
+          overlay={false}
+          side='right'
+          rect={rect}
+          onCommit={handleCommit}
+          onEnsureLayout={handleEnsureLayout}
+        >
+          {content}
+        </BuilderFloatingFrame>
+      )}
+    </>
   )
 }
 

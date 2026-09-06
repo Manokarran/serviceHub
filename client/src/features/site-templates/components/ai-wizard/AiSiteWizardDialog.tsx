@@ -21,6 +21,7 @@ import {
   generateAiSitePreviewAction,
   saveAiGeneratedSiteToLibraryAction
 } from '@/app/actions/ai-site-wizard.actions'
+import { notifyCreditsChanged } from '@/components/layout/shared/CreditsBadge'
 import type { AiSiteGenerationPreview } from '@/lib/ai-site-wizard/types'
 import type { AiSiteWizardProfile } from '@/lib/validators/ai-site-wizard.validator'
 import type { SiteTemplateSummary } from '@/models/site-template'
@@ -228,6 +229,7 @@ export function AiSiteWizardDialog({ open, mode = 'user', onClose, onCreated }: 
       return
     }
 
+    notifyCreditsChanged()
     setBusy(null)
     onCreated?.()
     handleClose()

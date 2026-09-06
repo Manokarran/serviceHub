@@ -74,6 +74,16 @@ export function getPageLinkLabel(page: SitePageSummary): string {
  * Short path shown in the pages panel and link preview.
  */
 export function getPagePathLabel(tenantSlug: string, pageSlug: string): string {
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.trim()
+
+  if (root) {
+    if (isHomePageSlug(pageSlug)) {
+      return `${tenantSlug}.${root}`
+    }
+
+    return `${tenantSlug}.${root}/${pageSlug}`
+  }
+
   if (isHomePageSlug(pageSlug)) {
     return `/site/${tenantSlug}`
   }

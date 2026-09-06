@@ -8,6 +8,8 @@ export type WebsiteBuilderProps = {
   tenantSlug: string
   tenantName: string
   tenantLocation?: TenantLocation | null
+  /** False while awaiting super-admin approval — draft/preview OK, publish blocked. */
+  tenantApproved?: boolean
   builderScope?: 'organization' | 'base_template' | 'library_template'
   libraryTemplateId?: string | null
   initialPageSlug: string

@@ -83,8 +83,9 @@ export function builderCanvasGridOverlaySx(theme: Theme): SxProps<Theme> {
 
 export const BUILDER_GRID_MODE_KEY = 'servicehub-builder-show-grid'
 export const BUILDER_AUTOSAVE_KEY = 'servicehub-builder-autosave'
-export const BUILDER_LEFT_CHROME_KEY = 'servicehub-builder-left-chrome'
-export const BUILDER_PROPERTY_CHROME_KEY = 'servicehub-builder-property-chrome'
+export const BUILDER_LEFT_CHROME_KEY = 'servicehub-builder-left-chrome-v2'
+export const BUILDER_PROPERTY_CHROME_KEY = 'servicehub-builder-property-chrome-v2'
+export const BUILDER_AI_CHROME_KEY = 'servicehub-builder-ai-chrome-v2'
 
 const LEFT_PANELS: BuilderSidebarPanel[] = ['pages', 'blocks', 'design']
 
@@ -98,6 +99,13 @@ type LeftChromeState = {
   pinned: boolean
   expanded: boolean
   offset: DockOffset
+}
+
+const DEFAULT_LEFT_CHROME: LeftChromeState = {
+  panel: 'blocks',
+  pinned: true,
+  expanded: false,
+  offset: { x: 0, y: 0 }
 }
 
 type StoredLeftChrome = {
@@ -122,14 +130,14 @@ function isSidebarPanel(value: unknown): value is BuilderSidebarPanel {
 
 export function readBuilderLeftChrome(): LeftChromeState {
   if (typeof window === 'undefined') {
-    return { panel: 'blocks', pinned: false, expanded: false, offset: { x: 0, y: 0 } }
+    return { ...DEFAULT_LEFT_CHROME }
   }
 
   try {
     const raw = localStorage.getItem(BUILDER_LEFT_CHROME_KEY)
 
     if (!raw) {
-      return { panel: 'blocks', pinned: false, expanded: false, offset: { x: 0, y: 0 } }
+      return { ...DEFAULT_LEFT_CHROME }
     }
 
     const parsed = JSON.parse(raw) as StoredLeftChrome
@@ -144,7 +152,7 @@ export function readBuilderLeftChrome(): LeftChromeState {
       offset: readOffset(parsed)
     }
   } catch {
-    return { panel: 'blocks', pinned: false, expanded: false, offset: { x: 0, y: 0 } }
+    return { ...DEFAULT_LEFT_CHROME }
   }
 }
 
@@ -217,21 +225,21 @@ export function readBuilderAutosave(): boolean {
 
 export function readBuilderPropertyChrome(): { pinned: boolean } {
   if (typeof window === 'undefined') {
-    return { pinned: false }
+    return { pinned: true }
   }
 
   try {
     const raw = localStorage.getItem(BUILDER_PROPERTY_CHROME_KEY)
 
     if (!raw) {
-      return { pinned: false }
+      return { pinned: true }
     }
 
     const parsed = JSON.parse(raw) as { pinned?: unknown }
 
     return { pinned: parsed.pinned === true }
   } catch {
-    return { pinned: false }
+    return { pinned: true }
   }
 }
 
@@ -241,4 +249,51 @@ export function writeBuilderPropertyChrome(state: { pinned: boolean }) {
   }
 
   localStorage.setItem(BUILDER_PROPERTY_CHROME_KEY, JSON.stringify({ pinned: state.pinned }))
+}
+
+export type AiChromeState = {
+  open: boolean
+  pinned: boolean
+}
+
+const DEFAULT_AI_CHROME: AiChromeState = {
+  open: true,
+  pinned: true
+}
+
+export function readBuilderAiChrome(): AiChromeState {
+  if (typeof window === 'undefined') {
+    return { ...DEFAULT_AI_CHROME }
+  }
+
+  try {
+    const raw = localStorage.getItem(BUILDER_AI_CHROME_KEY)
+
+    if (!raw) {
+      return { ...DEFAULT_AI_CHROME }
+    }
+
+    const parsed = JSON.parse(raw) as { open?: unknown; pinned?: unknown }
+
+    return {
+      open: parsed.open !== false,
+      pinned: parsed.pinned === true
+    }
+  } catch {
+    return { ...DEFAULT_AI_CHROME }
+  }
+}
+
+export function writeBuilderAiChrome(state: AiChromeState) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  localStorage.setItem(
+    BUILDER_AI_CHROME_KEY,
+    JSON.stringify({
+      open: state.open,
+      pinned: state.pinned
+    })
+  )
 }

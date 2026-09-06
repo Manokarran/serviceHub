@@ -1,8 +1,12 @@
 import { connectDB } from '@/lib/db'
 import { tenantRepository } from '@/repositories/tenant.repository'
 
-export const BASE_TEMPLATE_TENANT_SLUG = 'servicehub-base-template'
-export const BASE_TEMPLATE_TENANT_NAME = 'Master base template'
+import {
+  BASE_TEMPLATE_TENANT_NAME,
+  BASE_TEMPLATE_TENANT_SLUG
+} from '@/lib/site-template/base-template-constants'
+
+export { BASE_TEMPLATE_TENANT_NAME, BASE_TEMPLATE_TENANT_SLUG }
 
 export async function getOrCreateBaseTemplateTenantId(): Promise<string> {
   await connectDB()
@@ -15,7 +19,8 @@ export async function getOrCreateBaseTemplateTenantId(): Promise<string> {
 
   const tenant = await tenantRepository.create({
     name: BASE_TEMPLATE_TENANT_NAME,
-    slug: BASE_TEMPLATE_TENANT_SLUG
+    slug: BASE_TEMPLATE_TENANT_SLUG,
+    approvalStatus: 'approved'
   })
 
   await tenantRepository.updateSettings(tenant._id.toString(), { kind: 'base_template' })

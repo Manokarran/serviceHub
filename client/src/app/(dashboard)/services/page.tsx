@@ -1,21 +1,13 @@
 import { redirect } from 'next/navigation'
 
-import { auth } from '@/lib/auth'
 import { isManagerRole } from '@/lib/constants/roles'
+import { requireOpenTenantOrRedirect } from '@/lib/auth/require-approved-tenant-page'
 import { serviceCatalogService } from '@/services/booking/service-catalog.service'
 import { tenantProfileService } from '@/services/tenant'
 import { ServicesPageClient } from '@/features/services/components/ServicesPageClient'
 
 export default async function ServicesPage() {
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect('/login')
-  }
-
-  if (!session.user.registrationComplete) {
-    redirect('/register')
-  }
+  const { session } = await requireOpenTenantOrRedirect()
 
   if (!session.user.tenantId || !isManagerRole(session.user.role)) {
     redirect('/home')

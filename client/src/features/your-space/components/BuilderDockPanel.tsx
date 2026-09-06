@@ -84,6 +84,7 @@ export function BuilderDockPanel({
   return (
     <BuilderFloatingFrame
       overlay={overlay}
+      overlayId='left'
       rect={rect}
       onCommit={handleCommit}
       onEnsureLayout={handleEnsureLayout}
@@ -163,14 +164,14 @@ export function BuilderDockPanel({
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <DockToolButton
-              title={maximized ? 'Restore panel size' : overlay ? 'Fill canvas' : 'Widen panel'}
+              title={maximized ? 'Restore panel size' : overlay ? 'Fill window' : 'Widen panel'}
               icon={maximized ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'}
               onClick={() => onMaximize(layoutMode)}
               active={maximized}
-              ariaLabel={maximized ? 'Restore panel size' : overlay ? 'Fill canvas' : 'Widen panel'}
+              ariaLabel={maximized ? 'Restore panel size' : overlay ? 'Fill window' : 'Widen panel'}
             />
             <DockToolButton
-              title={pinned ? 'Float over canvas' : 'Pin to the side'}
+              title={pinned ? 'Float outside layout' : 'Pin to the side'}
               icon={pinned ? 'ri-pushpin-fill' : 'ri-pushpin-line'}
               onClick={onPinToggle}
               active={pinned}

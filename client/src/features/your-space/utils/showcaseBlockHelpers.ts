@@ -1,4 +1,5 @@
 import { DEFAULT_SHOWCASE_ITEMS, SHOWCASE_MAX_ITEMS } from '../constants/showcaseLayout'
+import { DEFAULT_HERO_SPLIT_VISUAL_ANIMATION } from '../constants/heroVisual'
 import type { ShowcaseBlockProps, ShowcaseItem, ShowcaseVisualKind } from '../types'
 
 export const SHOWCASE_MAX_WIDTH_MAP = {
@@ -13,6 +14,8 @@ export function createShowcaseItem(id: string, index = 0, overrides: Partial<Sho
 
   return {
     ...template,
+    imageHoverEffect: template.imageHoverEffect ?? 'zoom',
+    splitVisualAnimation: template.splitVisualAnimation || DEFAULT_HERO_SPLIT_VISUAL_ANIMATION,
     ...overrides,
     id
   }
