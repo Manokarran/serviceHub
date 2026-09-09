@@ -115,10 +115,13 @@ export function HomeDashboard({
 
   return (
     <Box
-      className='flex flex-col gap-6'
+      className='flex flex-col'
       sx={{
         position: 'relative',
-        animation: `${floatIn} 0.55s ease-out both`
+        gap: { xs: 3.5, md: 6 },
+        animation: `${floatIn} 0.55s ease-out both`,
+        // Pull closer to screen edges on phones so the page feels app-like.
+        mx: { xs: -1, sm: 0 }
       }}
     >
       <Box
@@ -129,7 +132,8 @@ export function HomeDashboard({
           inset: { xs: '-28px -6% auto', md: '-36px -4% auto' },
           height: 260,
           background: `radial-gradient(ellipse at 20% 0%, ${alpha(HOME_PALETTE.soft, 0.35)} 0%, transparent 55%), radial-gradient(ellipse at 80% 10%, ${alpha(HOME_PALETTE.cyan, 0.22)} 0%, transparent 50%), radial-gradient(ellipse at 60% 0%, ${alpha(HOME_PALETTE.pink, 0.12)} 0%, transparent 45%)`,
-          filter: 'blur(18px)'
+          filter: 'blur(18px)',
+          display: { xs: 'none', md: 'block' }
         }}
       />
 
@@ -138,12 +142,15 @@ export function HomeDashboard({
           position: 'relative',
           overflow: 'hidden',
           isolation: 'isolate',
-          borderRadius: 4,
-          px: { xs: 2.75, md: 4.25 },
-          py: { xs: 3.1, md: 3.75 },
+          borderRadius: { xs: 3, md: 4 },
+          px: { xs: 2, sm: 2.75, md: 4.25 },
+          py: { xs: 2.5, sm: 3.1, md: 3.75 },
           color: 'common.white',
           background: HOME_HERO_GRADIENT,
-          boxShadow: `0 22px 48px ${alpha(accentDeep, 0.38)}, inset 0 1px 0 ${alpha('#fff', 0.28)}`,
+          boxShadow: {
+            xs: `0 14px 32px ${alpha(accentDeep, 0.32)}, inset 0 1px 0 ${alpha('#fff', 0.28)}`,
+            md: `0 22px 48px ${alpha(accentDeep, 0.38)}, inset 0 1px 0 ${alpha('#fff', 0.28)}`
+          },
           border: `1px solid ${alpha('#fff', 0.22)}`
         }}
       >
@@ -197,20 +204,25 @@ export function HomeDashboard({
             flexDirection: { xs: 'column', md: 'row' },
             alignItems: { md: 'center' },
             justifyContent: 'space-between',
-            gap: 3
+            gap: { xs: 2, md: 3 }
           }}
         >
-          <Box sx={{ maxWidth: 640 }}>
-            <Box className='flex items-center gap-1.5 flex-wrap' sx={{ mb: 1.5 }}>
+          <Box sx={{ maxWidth: 640, width: '100%' }}>
+            <Box className='flex items-center gap-1.5 flex-wrap' sx={{ mb: { xs: 1.25, md: 1.5 } }}>
               <Chip
                 label={tenantName}
                 size='small'
                 sx={{
+                  maxWidth: { xs: 160, sm: 'none' },
                   bgcolor: alpha('#fff', 0.16),
                   color: 'common.white',
                   border: `1px solid ${alpha('#fff', 0.32)}`,
                   backdropFilter: 'blur(10px)',
-                  fontWeight: 600
+                  fontWeight: 600,
+                  '& .MuiChip-label': {
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }
                 }}
               />
               <Chip
@@ -244,6 +256,7 @@ export function HomeDashboard({
                 label={`${tenantPlan} plan`}
                 size='small'
                 sx={{
+                  display: { xs: 'none', sm: 'inline-flex' },
                   bgcolor: alpha('#fff', 0.12),
                   color: 'common.white',
                   border: `1px solid ${alpha('#fff', 0.24)}`,
@@ -256,12 +269,12 @@ export function HomeDashboard({
             <Typography
               variant='h3'
               sx={{
-                display: 'inline-block',
+                display: 'block',
                 fontWeight: 800,
                 letterSpacing: '-0.04em',
                 lineHeight: 1.12,
-                mb: 1,
-                fontSize: { xs: '1.7rem', md: '2.25rem' },
+                mb: { xs: 0.75, md: 1 },
+                fontSize: { xs: '1.45rem', sm: '1.7rem', md: '2.25rem' },
                 color: '#fff',
                 backgroundImage: `linear-gradient(100deg, #FFFFFF 0%, #FFFFFF 46%, ${alpha('#FFFFFF', 0.78)} 100%)`,
                 backgroundClip: 'text',
@@ -277,51 +290,86 @@ export function HomeDashboard({
                 color: 'rgba(255,255,255,0.92)',
                 WebkitTextFillColor: 'rgba(255,255,255,0.92)',
                 maxWidth: 540,
-                mb: 2,
-                lineHeight: 1.55,
+                mb: { xs: 1.75, md: 2 },
+                lineHeight: 1.5,
+                fontSize: { xs: '0.9rem', md: '1rem' },
                 textShadow: `0 1px 12px ${alpha(accentDeep, 0.4)}`
               }}
             >
-              {isSiteStarted
-                ? 'Your command center for the live site — traffic, clicks, and the next edits in one place.'
-                : 'Create a polished company website in minutes — pick a published layout or generate one from your brand details.'}
+              <Box component='span' sx={{ display: { xs: 'none', md: 'inline' } }}>
+                {isSiteStarted
+                  ? 'Your command center for the live site — traffic, clicks, and the next edits in one place.'
+                  : 'Create a polished company website in minutes — pick a published layout or generate one from your brand details.'}
+              </Box>
+              <Box component='span' sx={{ display: { xs: 'inline', md: 'none' } }}>
+                {isSiteStarted
+                  ? 'Traffic, clicks, and your next edits — all in one place.'
+                  : 'Build a polished site in minutes from a layout or your brand.'}
+              </Box>
             </Typography>
 
             {liveSitePath ? (
-              <Box className='inline-flex items-center gap-1'>
-                <Link href={liveSitePath} target='_blank' style={{ textDecoration: 'none' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  width: { xs: '100%', md: 'auto' },
+                  maxWidth: { xs: '100%', md: 420 }
+                }}
+              >
+                <Link href={liveSitePath} target='_blank' style={{ textDecoration: 'none', flex: 1, minWidth: 0 }}>
                   <Box
                     component='span'
                     sx={{
-                      display: 'inline-flex',
+                      display: 'flex',
                       alignItems: 'center',
                       gap: 1,
+                      width: '100%',
+                      minHeight: 40,
                       px: 1.5,
-                      py: 0.7,
-                      borderRadius: 999,
+                      py: 0.85,
+                      borderRadius: 2,
                       bgcolor: alpha('#fff', 0.14),
                       border: `1px solid ${alpha('#fff', 0.3)}`,
                       backdropFilter: 'blur(10px)',
                       color: 'common.white',
                       fontSize: '0.8125rem',
                       fontWeight: 600,
-                      transition: 'background-color 0.2s, transform 0.2s',
-                      '&:hover': { bgcolor: alpha('#fff', 0.24), transform: 'translateY(-1px)' }
+                      transition: 'background-color 0.2s',
+                      '&:hover': { bgcolor: alpha('#fff', 0.24) }
                     }}
                   >
-                    <i className='ri-global-line' />
-                    {liveSiteDisplayUrl}
-                    <i className='ri-external-link-line' style={{ opacity: 0.7, fontSize: '0.85rem' }} />
+                    <i className='ri-global-line' style={{ flexShrink: 0 }} />
+                    <Box
+                      component='span'
+                      sx={{
+                        flex: 1,
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {liveSiteDisplayUrl}
+                    </Box>
+                    <i
+                      className='ri-external-link-line'
+                      style={{ opacity: 0.7, fontSize: '0.85rem', flexShrink: 0 }}
+                    />
                   </Box>
                 </Link>
                 <Tooltip title={copied ? 'Copied' : 'Copy link'}>
                   <IconButton
-                    size='small'
                     onClick={copyLiveUrl}
                     sx={{
+                      width: 40,
+                      height: 40,
+                      flexShrink: 0,
                       color: 'common.white',
                       bgcolor: alpha('#fff', 0.14),
                       border: `1px solid ${alpha('#fff', 0.28)}`,
+                      borderRadius: 2,
                       backdropFilter: 'blur(10px)',
                       '&:hover': { bgcolor: alpha('#fff', 0.26) }
                     }}
@@ -334,15 +382,27 @@ export function HomeDashboard({
             ) : null}
           </Box>
 
-          <Box className='flex flex-wrap gap-2' sx={{ flexShrink: 0 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column-reverse', sm: 'row' },
+              flexWrap: { sm: 'wrap' },
+              gap: 1.25,
+              flexShrink: 0,
+              width: { xs: '100%', md: 'auto' }
+            }}
+          >
             {liveSitePath && isSiteStarted ? (
               <Button
                 component={Link}
                 href={liveSitePath}
                 target='_blank'
                 variant='outlined'
+                fullWidth
                 startIcon={<i className='ri-external-link-line' />}
                 sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                  minHeight: 44,
                   borderColor: alpha('#fff', 0.55),
                   color: 'common.white',
                   bgcolor: alpha('#fff', 0.08),
@@ -362,8 +422,11 @@ export function HomeDashboard({
                 href='/your-space'
                 variant='contained'
                 size='large'
+                fullWidth
                 startIcon={<i className='ri-layout-masonry-line' />}
                 sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                  minHeight: 48,
                   bgcolor: 'common.white',
                   color: accentDeep,
                   fontWeight: 700,
@@ -381,8 +444,11 @@ export function HomeDashboard({
                 variant='contained'
                 size='large'
                 disabled
+                fullWidth
                 startIcon={<i className='ri-lock-line' />}
                 sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                  minHeight: 48,
                   bgcolor: alpha('#fff', 0.35),
                   color: accentDeep,
                   fontWeight: 700,
@@ -500,19 +566,19 @@ export function HomeDashboard({
           {workspaceOpen && canManageLeads ? (
             <Box
               sx={{
-                borderRadius: 3,
-                p: 2.75,
+                borderRadius: { xs: 2.5, md: 3 },
+                p: { xs: 2, md: 2.75 },
                 border: `1px solid ${theme.palette.divider}`,
                 background: `linear-gradient(160deg, ${alpha(accent, 0.1)} 0%, ${alpha(theme.palette.background.paper, 0.94)} 58%)`,
                 display: 'flex',
                 flexDirection: { xs: 'column', sm: 'row' },
                 alignItems: { sm: 'center' },
                 justifyContent: 'space-between',
-                gap: 2.5,
+                gap: { xs: 2, md: 2.5 },
                 transition: 'transform 0.2s, box-shadow 0.2s',
                 '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: `0 12px 28px ${alpha(ink, 0.08)}`
+                  transform: { sm: 'translateY(-2px)' },
+                  boxShadow: { sm: `0 12px 28px ${alpha(ink, 0.08)}` }
                 }
               }}
             >
@@ -547,9 +613,12 @@ export function HomeDashboard({
                 component={Link}
                 href='/leads'
                 variant='contained'
+                fullWidth
                 endIcon={<i className='ri-arrow-right-line' />}
                 sx={{
                   flexShrink: 0,
+                  width: { xs: '100%', sm: 'auto' },
+                  minHeight: 44,
                   bgcolor: HOME_PALETTE.dark,
                   '&:hover': { bgcolor: HOME_PALETTE.deep }
                 }}
@@ -561,8 +630,8 @@ export function HomeDashboard({
 
           <Box
             sx={{
-              borderRadius: 3,
-              p: 2.75,
+              borderRadius: { xs: 2.5, md: 3 },
+              p: { xs: 2, md: 2.75 },
               border: `1px solid ${theme.palette.divider}`,
               bgcolor: alpha(theme.palette.background.paper, 0.92),
               display: 'flex',
@@ -606,23 +675,42 @@ export function HomeDashboard({
 
 function Section({ title, caption, children }: { title: string; caption: string; children: ReactNode }) {
   return (
-    <Box component='section' className='flex flex-col gap-3.5'>
+    <Box
+      component='section'
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: { xs: 2, md: 3.5 }
+      }}
+    >
       <Box className='flex items-center gap-2.5'>
         <Box
           aria-hidden
           sx={{
             width: 4,
-            height: 30,
+            height: { xs: 26, md: 30 },
             borderRadius: 99,
             flexShrink: 0,
             background: HOME_SECTION_ACCENT
           }}
         />
-        <Box>
-          <Typography variant='h6' sx={{ fontWeight: 750, letterSpacing: '-0.02em', lineHeight: 1.25 }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            variant='h6'
+            sx={{
+              fontWeight: 750,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.25,
+              fontSize: { xs: '1.05rem', md: undefined }
+            }}
+          >
             {title}
           </Typography>
-          <Typography variant='caption' color='text.secondary'>
+          <Typography
+            variant='caption'
+            color='text.secondary'
+            sx={{ display: 'block', lineHeight: 1.35 }}
+          >
             {caption}
           </Typography>
         </Box>

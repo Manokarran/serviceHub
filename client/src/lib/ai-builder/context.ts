@@ -50,7 +50,13 @@ function childGroups(block: Block): Block[] {
   if (block.type === 'section') {
     const props = block.props as SectionBlockProps
 
-    return [...(props.children ?? []), ...(props.primaryChildren ?? []), ...(props.secondaryChildren ?? [])]
+    return [
+      ...(props.children ?? []),
+      ...(props.primaryChildren ?? []),
+      ...(props.secondaryChildren ?? []),
+      ...(props.tertiaryChildren ?? []),
+      ...(props.quaternaryChildren ?? [])
+    ]
   }
 
   if (block.type === 'carousel') {

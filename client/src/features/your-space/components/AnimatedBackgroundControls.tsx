@@ -51,27 +51,32 @@ function AnimationOptionButton({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 0.25,
-          py: 0.75,
-          px: 0.25,
+          gap: 0.5,
+          py: 1,
+          px: 0.5,
           border: 'none',
-          borderRadius: 1,
+          borderRadius: 1.25,
           cursor: 'pointer',
-          minHeight: 52,
+          minHeight: 64,
+          width: '100%',
           ...builderSoftCardSx(theme, active),
           color: active ? 'primary.main' : 'text.secondary'
         }}
       >
-        <i className={option.icon} style={{ fontSize: '0.95rem' }} />
+        <i className={option.icon} style={{ fontSize: '1.05rem', lineHeight: 1 }} />
         <Typography
           component='span'
           sx={{
             ...BUILDER_TYPOGRAPHY.label,
             fontSize: '0.625rem',
-            lineHeight: 1.2,
+            lineHeight: 1.25,
             textAlign: 'center',
             color: 'inherit',
-            px: 0.25
+            px: 0.25,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden'
           }}
         >
           {option.label}
@@ -95,6 +100,7 @@ export function AnimatedBackgroundControls({
   const colors = resolveHeroVisualColors(config, accentColor)
   const classicOptions = HERO_SPLIT_VISUAL_ANIMATION_OPTIONS.filter(option => option.group === 'classic')
   const modernOptions = HERO_SPLIT_VISUAL_ANIMATION_OPTIONS.filter(option => option.group === 'modern')
+  const signatureOptions = HERO_SPLIT_VISUAL_ANIMATION_OPTIONS.filter(option => option.group === 'signature')
   const placementOptions =
     !hidePlacementControls && sectionLayout ? getSectionVisualPlacementOptions(sectionLayout) : []
   const placementHint =
@@ -104,15 +110,13 @@ export function AnimatedBackgroundControls({
       : 'Pick an animation and gradient colors for the motion layer.')
 
   const renderAnimationGroup = (title: string, options: typeof HERO_SPLIT_VISUAL_ANIMATION_OPTIONS) => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-      <Typography component='p' sx={{ ...BUILDER_TYPOGRAPHY.label, color: 'text.disabled', m: 0 }}>
-        {title}
-      </Typography>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <PropertyFieldLabel>{title}</PropertyFieldLabel>
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(72px, 1fr))',
-          gap: 0.75
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: 1
         }}
       >
         {options.map(option => (
@@ -132,11 +136,11 @@ export function AnimatedBackgroundControls({
   )
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       <PropertyBodyText>{placementHint}</PropertyBodyText>
 
       {placementOptions.length > 0 && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           <PropertyFieldLabel>Placement</PropertyFieldLabel>
           <LayoutOptionGroup
             value={splitVisualPlacement}
@@ -148,6 +152,7 @@ export function AnimatedBackgroundControls({
 
       {renderAnimationGroup('Animation', classicOptions)}
       {renderAnimationGroup('Effects', modernOptions)}
+      {renderAnimationGroup('Signature', signatureOptions)}
 
       {!hideColorControls && (
         <AnimationGradientColorControls

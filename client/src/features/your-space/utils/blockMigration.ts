@@ -17,6 +17,8 @@ import type {
   ShowcaseItem,
   PricingBlockProps,
   PricingPlan,
+  FaqBlockProps,
+  FaqItem,
   NavLinkItem,
   VideoBlockProps,
   TextBlockProps,
@@ -41,6 +43,7 @@ import {
 } from './sectionStyleHelpers'
 import { DEFAULT_SHOWCASE_ITEMS } from '../constants/showcaseLayout'
 import { DEFAULT_PRICING_PLANS, createPricingDefaultProps } from '../constants/pricingLayout'
+import { DEFAULT_FAQ_ITEMS, createFaqDefaultProps } from '../constants/faqLayout'
 
 export function normalizeNavLinks(links: unknown): NavLinkItem[] {
   if (!Array.isArray(links)) {
@@ -196,7 +199,7 @@ export function normalizeBlock(block: Block): Block {
         contentPaddingX: props.contentPaddingX ?? 32,
         contentPaddingY: props.contentPaddingY ?? 64,
         splitRatio: props.splitRatio ?? 50,
-        titleStyle: props.titleStyle ?? 'solid',
+        titleStyle: props.titleStyle ?? 'gradient',
         contentSurface: props.contentSurface ?? 'none',
         mediaOverlay: props.mediaOverlay ?? 'gradient',
         eyebrow: props.eyebrow ?? '',
@@ -343,6 +346,10 @@ export function normalizeBlock(block: Block): Block {
         children: Array.isArray(props.children) ? props.children.map(normalizeBlock) : [],
         primaryChildren: Array.isArray(props.primaryChildren) ? props.primaryChildren.map(normalizeBlock) : [],
         secondaryChildren: Array.isArray(props.secondaryChildren) ? props.secondaryChildren.map(normalizeBlock) : [],
+        tertiaryChildren: Array.isArray(props.tertiaryChildren) ? props.tertiaryChildren.map(normalizeBlock) : [],
+        quaternaryChildren: Array.isArray(props.quaternaryChildren)
+          ? props.quaternaryChildren.map(normalizeBlock)
+          : [],
         splitVisualAnimation: usesStaticVisualFill ? 'static' : (props.splitVisualAnimation ?? 'static'),
         splitVisualColorStart: props.splitVisualColorStart ?? '',
         splitVisualColorEnd: props.splitVisualColorEnd ?? '',
@@ -468,7 +475,7 @@ export function normalizeBlock(block: Block): Block {
         mediaRadius: props.mediaRadius ?? 28,
         mediaOverlay: props.mediaOverlay ?? 'gradient',
         buttonStyle: props.buttonStyle ?? 'theme',
-        titleStyle: props.titleStyle ?? 'solid',
+        titleStyle: props.titleStyle ?? 'gradient',
         background: props.background ?? 'transparent',
         backgroundType: props.backgroundType ?? 'color',
         backgroundOpacity: props.backgroundOpacity ?? 0,
@@ -482,7 +489,7 @@ export function normalizeBlock(block: Block): Block {
 
   if (block.type === 'pricing') {
     const props = block.props as PricingBlockProps
-    const defaults = createPricingDefaultProps({ layout: 'cards', columns: 3, cardStyle: 'elevated' })
+    const defaults = createPricingDefaultProps({ layout: 'cards', columns: 3, cardStyle: 'glass' })
     const rawPlans = Array.isArray(props.plans) ? props.plans : []
     const plans: PricingPlan[] = (rawPlans.length > 0 ? rawPlans : DEFAULT_PRICING_PLANS).map((plan, index) => ({
       ...DEFAULT_PRICING_PLANS[index % DEFAULT_PRICING_PLANS.length],
@@ -506,6 +513,26 @@ export function normalizeBlock(block: Block): Block {
         ...defaults,
         ...props,
         plans
+      }
+    }
+  }
+
+  if (block.type === 'faq') {
+    const props = block.props as FaqBlockProps
+    const defaults = createFaqDefaultProps({ layout: 'stack', cardStyle: 'glass' })
+    const rawItems = Array.isArray(props.items) ? props.items : []
+    const items: FaqItem[] = (rawItems.length > 0 ? rawItems : DEFAULT_FAQ_ITEMS).map((item, index) => ({
+      id: item.id || `faq-item-${index + 1}`,
+      question: item.question ?? DEFAULT_FAQ_ITEMS[index % DEFAULT_FAQ_ITEMS.length].question,
+      answer: item.answer ?? DEFAULT_FAQ_ITEMS[index % DEFAULT_FAQ_ITEMS.length].answer
+    }))
+
+    return {
+      ...block,
+      props: {
+        ...defaults,
+        ...props,
+        items
       }
     }
   }

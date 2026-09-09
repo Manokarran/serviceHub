@@ -53,7 +53,7 @@ export function HeaderBlockProperties({ block, activeTab }: Props) {
         />
         <PropertyToggleRow
           label='Stick to top'
-          description='Header stays visible while scrolling'
+          description='Stays visible while scrolling, then floats as a compact bar'
           checked={props.fixed ?? false}
           onChange={fixed => update({ fixed })}
         />

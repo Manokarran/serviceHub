@@ -211,7 +211,7 @@ const PRICING_SHARED_PROPS: Omit<PricingBlockProps, 'layout' | 'columns' | 'card
   cardShadow: 'medium',
   recommendedScale: true,
   buttonStyle: 'theme',
-  titleStyle: 'solid',
+  titleStyle: 'gradient',
   hoverEffect: 'lift',
   entranceAnimation: 'slide-up',
   recommendedGlow: true,
@@ -235,6 +235,7 @@ export function createPricingDefaultProps(
   return {
     ...PRICING_SHARED_PROPS,
     ...overrides,
+    cardStyle: overrides.cardStyle ?? 'glass',
     plans
   }
 }

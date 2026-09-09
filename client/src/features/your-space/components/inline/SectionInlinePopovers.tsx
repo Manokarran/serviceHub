@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import type { Block, SectionBlockProps } from '../../types'
+import { isTwoColumnFamily, isMultiColumnLayout } from '../../constants/sectionLayout'
 import { SECTION_BORDER_OPTIONS } from '../../utils/sectionStyleHelpers'
 import { useSiteStyles } from '../SiteStylesScope'
 import { BlockBackgroundModePanel } from '../BlockBackgroundModePanel'
@@ -108,7 +109,7 @@ export function SectionSpacingPopover({
           })}
         </Box>
       </Box>
-      {props.layout === 'split-horizontal' || props.layout === 'split-vertical' ? (
+      {isTwoColumnFamily(props.layout) && !isMultiColumnLayout(props.layout) ? (
         <Box>
           <PropertyFieldLabel>
             Column ratio: {props.splitRatio}% / {100 - props.splitRatio}%

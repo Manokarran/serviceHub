@@ -90,7 +90,7 @@ export function HomeAnalyticsSection({ analytics, hasPublishedSite }: Props) {
       <Box
         sx={{
           display: 'grid',
-          gap: 2,
+          gap: { xs: 1.25, md: 2 },
           gridTemplateColumns: { xs: '1fr 1fr', lg: 'repeat(4, 1fr)' }
         }}
       >
@@ -102,9 +102,9 @@ export function HomeAnalyticsSection({ analytics, hasPublishedSite }: Props) {
             <Box
               key={card.key}
               sx={{
-                borderRadius: 3,
-                p: 2.25,
-                minHeight: 118,
+                borderRadius: { xs: 2.5, md: 3 },
+                p: { xs: 1.75, md: 2.25 },
+                minHeight: { xs: 108, md: 118 },
                 border: `1px solid ${alpha(card.color, 0.18)}`,
                 background: `linear-gradient(180deg, ${alpha(card.color, 0.1)} 0%, ${alpha(theme.palette.background.paper, 0.92)} 58%)`,
                 boxShadow: `0 10px 24px ${alpha(theme.palette.text.primary, 0.04)}`,
@@ -143,10 +143,18 @@ export function HomeAnalyticsSection({ analytics, hasPublishedSite }: Props) {
                 )}
               </Box>
               <div>
-                <Typography variant='h4' sx={{ fontWeight: 750, letterSpacing: '-0.04em', lineHeight: 1.1 }}>
+                <Typography
+                  variant='h4'
+                  sx={{
+                    fontWeight: 750,
+                    letterSpacing: '-0.04em',
+                    lineHeight: 1.1,
+                    fontSize: { xs: '1.35rem', md: undefined }
+                  }}
+                >
                   {formatCount(card.value)}
                 </Typography>
-                <Typography variant='body2' sx={{ fontWeight: 600, mt: 0.4 }}>
+                <Typography variant='body2' sx={{ fontWeight: 600, mt: 0.4, fontSize: { xs: '0.8rem', md: undefined } }}>
                   {card.label}
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>

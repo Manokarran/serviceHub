@@ -9,7 +9,7 @@ import Slider from '@mui/material/Slider'
 import TextField from '@mui/material/TextField'
 import { alpha, useTheme } from '@mui/material/styles'
 
-import { SECTION_LAYOUT_OPTIONS } from '../constants/sectionLayout'
+import { applySectionLayoutChange, isMultiColumnLayout, isSplitSectionLayout, isTwoColumnFamily, SECTION_LAYOUT_OPTIONS } from '../constants/sectionLayout'
 import { SECTION_SPLIT_STYLE_OPTIONS } from '../utils/sectionStyleHelpers'
 import type { SectionBlockProps } from '../types'
 import { LayoutOptionGroup, PropertyBodyText, PropertyFieldLabel, PropertySection } from './property/PropertyPanelUi'
@@ -46,7 +46,8 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
 }
 
 export function SectionLayoutControls({ props, onUpdate }: Props) {
-  const isSplit = props.layout === 'split-horizontal' || props.layout === 'split-vertical'
+  const isSplit = isSplitSectionLayout(props.layout)
+  const showRatio = isTwoColumnFamily(props.layout) && !isMultiColumnLayout(props.layout)
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -55,13 +56,17 @@ export function SectionLayoutControls({ props, onUpdate }: Props) {
         <LayoutOptionGroup
           value={props.layout ?? 'default'}
           options={SECTION_LAYOUT_OPTIONS}
-          onChange={layout => onUpdate({ layout })}
+          onChange={layout => onUpdate(applySectionLayoutChange(props, layout))}
         />
       </PropertySection>
 
       {isSplit && (
         <PropertySection title='Columns' collapsible defaultOpen>
-          <PropertyBodyText>Control spacing, dividers, and balance between the two columns.</PropertyBodyText>
+          <PropertyBodyText>
+            {isMultiColumnLayout(props.layout)
+              ? 'Control spacing and dividers between columns. Multi-column layouts use equal widths.'
+              : 'Control spacing, dividers, and balance between the columns.'}
+          </PropertyBodyText>
           <LayoutOptionGroup
             value={props.splitStyle ?? 'gap'}
             options={SECTION_SPLIT_STYLE_OPTIONS}
@@ -90,12 +95,14 @@ export function SectionLayoutControls({ props, onUpdate }: Props) {
               />
             </>
           )}
-          <Box>
-            <PropertyFieldLabel>
-              Column ratio: {props.splitRatio}% / {100 - props.splitRatio}%
-            </PropertyFieldLabel>
-            <Slider value={props.splitRatio ?? 50} min={30} max={70} step={5} onChange={(_, value) => onUpdate({ splitRatio: value as number })} />
-          </Box>
+          {showRatio && (
+            <Box>
+              <PropertyFieldLabel>
+                Column ratio: {props.splitRatio}% / {100 - props.splitRatio}%
+              </PropertyFieldLabel>
+              <Slider value={props.splitRatio ?? 50} min={30} max={70} step={5} onChange={(_, value) => onUpdate({ splitRatio: value as number })} />
+            </Box>
+          )}
         </PropertySection>
       )}
 

@@ -9,8 +9,13 @@ import type { SxProps, Theme } from '@mui/material/styles'
 import { alpha } from '@mui/material/styles'
 
 import type { HeaderBlockProps } from '../../types'
+import { useStickyChromeScroll } from '../../hooks/useStickyHeaderScroll'
 import { normalizeNavLinks } from '../../utils/blockMigration'
-import { getFixedBlockShellSx } from '../../utils/mediaBlockHelpers'
+import {
+  getFixedBlockShellSx,
+  getStickyChromeBarSx,
+  getStickyChromeFloatShadowSx
+} from '../../utils/mediaBlockHelpers'
 import { normalizeSiteFonts } from '../../utils/siteStylesHelpers'
 import { resolveTextTypographyValues } from '../../utils/textTypographyHelpers'
 import { getSiteNavLinkSx } from '../../utils/siteInteractiveHelpers'
@@ -32,7 +37,10 @@ export function HeaderBlock({ props }: Props) {
   const isVertical = props.layout === 'vertical'
   const order = getHorizontalOrder(props.logoPosition)
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null)
+  const [shellEl, setShellEl] = useState<HTMLElement | null>(null)
   const navRef = useRef<HTMLElement | null>(null)
+  const isSticky = Boolean(props.fixed)
+  const scrolled = useStickyChromeScroll(isSticky, shellEl)
   const navLinks = normalizeNavLinks(props.navLinks)
   const textColor = typeof props.textColor === 'string' && props.textColor ? props.textColor : '#111827'
   const lightText = textColor.toLowerCase() === '#ffffff' || textColor.toLowerCase() === 'white'
@@ -92,35 +100,40 @@ export function HeaderBlock({ props }: Props) {
   }, [])
 
   return (
-    <Box sx={getFixedBlockShellSx('header', props.fixed)}>
-      <ChromeBlockBackground
-        component='header'
-        props={props}
-        fallbackColor='#ffffff'
-        sx={{
-          color: textColor,
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
-          ...(props.borderRadius ? { borderRadius: `${props.borderRadius}px` } : {})
-        }}
-        contentSx={{
-          display: 'flex',
-          flexDirection: isVertical ? 'column' : { xs: 'column', sm: 'row' },
-          alignItems: isVertical ? 'center' : 'center',
-          justifyContent: isVertical ? 'center' : 'space-between',
-          gap: isVertical ? 2 : 0,
-          flexWrap: 'wrap',
-          px: { xs: 2, sm: 4 },
-          py: isVertical ? 3 : 2,
-          ...(!isVertical
-            ? siteCanvasBelow({
-                flexDirection: 'column',
-                gap: 2,
-                alignItems: 'stretch',
-                textAlign: 'center'
-              })
-            : {})
-        }}
-      >
+    <Box ref={setShellEl} sx={getFixedBlockShellSx('header', isSticky, scrolled)}>
+      <Box sx={getStickyChromeFloatShadowSx(isSticky && scrolled, props.borderRadius)}>
+        <ChromeBlockBackground
+          component='header'
+          props={props}
+          fallbackColor='#ffffff'
+          sx={{
+            color: textColor,
+            ...getStickyChromeBarSx({
+              scrolled: isSticky && scrolled,
+              borderRadius: props.borderRadius,
+              edge: 'bottom'
+            })
+          }}
+          contentSx={{
+            display: 'flex',
+            flexDirection: isVertical ? 'column' : { xs: 'column', sm: 'row' },
+            alignItems: isVertical ? 'center' : 'center',
+            justifyContent: isVertical ? 'center' : 'space-between',
+            gap: isVertical ? 2 : 0,
+            flexWrap: 'wrap',
+            px: { xs: 2, sm: 4 },
+            py: isVertical ? 3 : isSticky && scrolled ? 1.5 : 2,
+            transition: 'padding 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+            ...(!isVertical
+              ? siteCanvasBelow({
+                  flexDirection: 'column',
+                  gap: 2,
+                  alignItems: 'stretch',
+                  textAlign: 'center'
+                })
+              : {})
+          }}
+        >
         <Box
           sx={{
             order: isVertical ? 0 : order.logo,
@@ -290,6 +303,7 @@ export function HeaderBlock({ props }: Props) {
           })}
         </Stack>
       </ChromeBlockBackground>
+      </Box>
     </Box>
   )
 }

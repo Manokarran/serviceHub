@@ -1,13 +1,14 @@
 import 'server-only'
 
 import type { Block } from '@/features/your-space/types'
-import type { ButtonShape, SiteStyles, SpacingScale } from '@/features/your-space/types/siteStyles'
+import type { SiteStyles } from '@/features/your-space/types/siteStyles'
 import { findBlockInTree } from '@/features/your-space/utils/blockTreeUtils'
 import { inferDesignProfile } from '@/lib/ai-design-studio/brief-inference'
 import {
   applyAnimatedBackgroundToBlocks,
   polishLeafControls
 } from '@/lib/ai-design-studio/control-polish'
+import { restyleControlBlocks } from '@/lib/ai-design-studio/restyle-control'
 import type { DesignProposal, DesignScope, RewordResult } from '@/lib/ai-design-studio/types'
 import { applyDesignBriefToBlocks } from '@/lib/ai-site-wizard/block-layout'
 import {
@@ -57,22 +58,10 @@ Hard limits:
 - Only return paths present in the input catalog. Skip a field instead of padding it.
 - Max 40 items in r.`
 
-const SPACING_DENSITY: Record<SpacingScale, AiDesignBrief['density']> = {
-  compact: 'compact',
-  default: 'balanced',
-  spacious: 'airy'
-}
-
 const ANIMATED_BACKGROUND_REQUEST =
   /\b(animated?|motion|moving|gradient)\s+(background|backdrop|fill)|\b(background|backdrop)\s+(animated?|moving|gradient)\b/i
 const PHOTO_BACKGROUND_REQUEST =
   /\b(photo|photographic|image|picture|photography)\s+(background|backdrop|fill)|\b(background|backdrop)\s+(photo|photographic|image|picture)\b/i
-
-const SHAPE_CORNERS: Record<ButtonShape, AiDesignBrief['corners']> = {
-  square: 'sharp',
-  rounded: 'soft',
-  pill: 'round'
-}
 
 type ScopeInput = {
   scope: DesignScope
@@ -163,14 +152,14 @@ export class AiDesignStudioService {
   }
 
   /**
-   * A control redesign must still look like it belongs to the site, so the palette and the
-   * page rhythm are pinned to the live theme and the brief only gets to decide structure,
-   * motion, and photography. Anything the user asked for by name still wins.
+   * A control redesign must still look like it belongs to the site, so the palette stays
+   * pinned to the live theme. Structure, motion, density, and corners stay free so each
+   * redesign can visibly try a different layout and style.
    */
   private pinBriefToTheme(
     brief: AiDesignBrief,
     siteStyles: SiteStyles,
-    profile: AiSiteWizardProfile
+    _profile: AiSiteWizardProfile
   ): AiDesignBrief {
     return {
       ...brief,
@@ -180,9 +169,7 @@ export class AiDesignStudioService {
       surface: siteStyles.colors.swatch1,
       gradientStart: siteStyles.misc.pageSplitVisualColorStart?.trim() || siteStyles.colors.accent,
       gradientEnd: siteStyles.misc.pageSplitVisualColorEnd?.trim() || siteStyles.colors.swatch5,
-      themeId: siteStyles.themeId,
-      density: profile.layoutDensity !== 'ai_pick' ? profile.layoutDensity : SPACING_DENSITY[siteStyles.misc.spacingScale],
-      corners: profile.cornerStyle !== 'ai_pick' ? profile.cornerStyle : SHAPE_CORNERS[siteStyles.buttons.primary.shape]
+      themeId: siteStyles.themeId
     }
   }
 
@@ -259,16 +246,29 @@ export class AiDesignStudioService {
 
     const nextStyles = isPageScope ? buildSiteStylesFromBrief(brief, profile) : input.siteStyles
     const wantsPhotoBackground = PHOTO_BACKGROUND_REQUEST.test(input.instruction)
+    const wantsAnimatedBackground = ANIMATED_BACKGROUND_REQUEST.test(input.instruction)
 
-    const mediaSlots = [
-      ...collectBlockMediaSlots(input.pageSlug, scopeBlocks, `${profile.industry} ${profile.category}`),
-      ...collectForceBackgroundPaths(input.pageSlug, scopeBlocks, wantsPhotoBackground).map(path => ({
-        path,
-        kind: 'background' as const,
-        currentUrl: '',
-        queryHint: profile.industry
-      }))
-    ].slice(0, isPageScope ? 12 : 4)
+    const contentMediaSlots = collectBlockMediaSlots(
+      input.pageSlug,
+      scopeBlocks,
+      `${profile.industry} ${profile.category}`
+    )
+
+    // Animated backdrop must cycle panel motion/colors — never swap section photos.
+    // Photo backgrounds are only fetched when the user explicitly asks for photography.
+    const mediaSlots = (
+      wantsAnimatedBackground
+        ? contentMediaSlots.filter(slot => slot.kind !== 'background')
+        : [
+            ...contentMediaSlots,
+            ...collectForceBackgroundPaths(input.pageSlug, scopeBlocks, wantsPhotoBackground).map(path => ({
+              path,
+              kind: 'background' as const,
+              currentUrl: '',
+              queryHint: profile.industry
+            }))
+          ]
+    ).slice(0, isPageScope ? 12 : 4)
 
     const { fills, used } = await fillMediaSlotsFromUnsplash(profile, mediaSlots, nonce, {
       color: resolveUnsplashColorFilter(brief.paletteId),
@@ -282,12 +282,7 @@ export class AiDesignStudioService {
         input.pageSlug,
         applyThemeHarmonyToBlocks(
           input.pageSlug,
-          applyMediaFills(
-            input.pageSlug,
-            scopeBlocks,
-            fills,
-            wantsPhotoBackground || profile.animationLevel !== 'none'
-          ),
+          applyMediaFills(input.pageSlug, scopeBlocks, fills, wantsPhotoBackground),
           nextStyles
         ),
         brief,
@@ -297,8 +292,14 @@ export class AiDesignStudioService {
       profile
     )
 
-    if (!isPageScope && ANIMATED_BACKGROUND_REQUEST.test(input.instruction)) {
-      blocks = applyAnimatedBackgroundToBlocks(input.pageSlug, blocks, brief)
+    if (!isPageScope) {
+      // Control redesigns need an explicit layout/style shuffle — brief density alone often
+      // left the selected block looking unchanged. Keep palette on-theme via pinBriefToTheme.
+      blocks = restyleControlBlocks(blocks, input.siteStyles, brief, profile, nonce)
+    }
+
+    if (wantsAnimatedBackground) {
+      blocks = applyAnimatedBackgroundToBlocks(input.pageSlug, blocks, brief, nonce)
     }
 
     let rewordedFields = 0
@@ -316,14 +317,28 @@ export class AiDesignStudioService {
       }
     }
 
+    const animatedSample = wantsAnimatedBackground
+      ? (blocks[0]?.props as { splitVisualAnimation?: string; splitVisualColorStart?: string } | undefined)
+      : undefined
+
     const highlights = [
       `Palette: ${brief.accent} accent on ${brief.background} in ${brief.colorMode} mode`,
       `Typography: ${getFontLabel(brief)}`,
       `Rhythm: ${brief.density} spacing with ${brief.corners} corners`,
-      `Motion: ${humanize(brief.motion)}`,
-      ...(used > 0 ? [`Photography: ${used} image${used === 1 ? '' : 's'} for "${brief.photoKeywords.join('", "')}"`] : []),
+      wantsAnimatedBackground
+        ? `Animated backdrop: ${humanize(animatedSample?.splitVisualAnimation ?? brief.motion)} with fresh gradient colors`
+        : `Motion: ${humanize(brief.motion)}`,
+      ...(wantsPhotoBackground && used > 0
+        ? [`Photography: ${used} image${used === 1 ? '' : 's'} for "${brief.photoKeywords.join('", "')}"`]
+        : !wantsAnimatedBackground && used > 0
+          ? [`Photography: ${used} image${used === 1 ? '' : 's'} for "${brief.photoKeywords.join('", "')}"`]
+          : []),
       ...(rewordedFields > 0 ? [`Copy: ${rewordedFields} field${rewordedFields === 1 ? '' : 's'} rewritten`] : []),
-      ...(isPageScope ? [`Hero framing: ${humanize(brief.heroLayout)} with a ${brief.heroOverlay} overlay`] : [])
+      ...(isPageScope && !wantsAnimatedBackground
+        ? [`Hero framing: ${humanize(brief.heroLayout)} with a ${brief.heroOverlay} overlay`]
+        : !isPageScope && !wantsAnimatedBackground
+          ? [`Layout explore: ${brief.density} rhythm, ${brief.corners} corners, theme-matched colors`]
+          : [])
     ]
 
     return toPlainJson({
@@ -338,17 +353,22 @@ export class AiDesignStudioService {
         background: brief.background,
         text: brief.text,
         surface: brief.surface,
-        gradientStart: brief.gradientStart,
-        gradientEnd: brief.gradientEnd
+        gradientStart:
+          (blocks[0]?.props as { splitVisualColorStart?: string } | undefined)?.splitVisualColorStart ||
+          brief.gradientStart,
+        gradientEnd:
+          (blocks[0]?.props as { splitVisualColorEnd?: string } | undefined)?.splitVisualColorEnd || brief.gradientEnd
       },
       fontLabel: getFontLabel(brief),
-      motionLabel: humanize(brief.motion),
+      motionLabel: humanize(
+        (blocks[0]?.props as { splitVisualAnimation?: string } | undefined)?.splitVisualAnimation || brief.motion
+      ),
       highlights,
       blocks,
       siteStyles: isPageScope ? nextStyles : null,
       rewordedFields,
-      photoCount: used,
-      photoPreviews: collectProposalPhotoPreviews(input.pageSlug, blocks),
+      photoCount: wantsAnimatedBackground ? 0 : used,
+      photoPreviews: wantsAnimatedBackground ? [] : collectProposalPhotoPreviews(input.pageSlug, blocks),
       usedOpenAi: briefResult.usedOpenAi
     }) as DesignProposal
   }

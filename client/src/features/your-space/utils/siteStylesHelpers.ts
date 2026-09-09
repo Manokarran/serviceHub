@@ -574,6 +574,15 @@ export function applySiteThemeToBlockProps<T extends BlockType>(
         backgroundType: 'color',
         backgroundOpacity: 0
       }
+    case 'faq':
+      return {
+        ...props,
+        textColor: colors.text,
+        accentColor: colors.accent,
+        background: 'transparent',
+        backgroundType: 'color',
+        backgroundOpacity: 0
+      }
     default:
       return props
   }

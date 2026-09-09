@@ -46,7 +46,15 @@ const VISUAL_ANIMATION_VALUES = [
   'shimmer',
   'constellation',
   'geometric',
-  'particles-rise'
+  'particles-rise',
+  'liquid-metal',
+  'neon-pulse',
+  'prism-beams',
+  'ripple-field',
+  'spotlight-sweep',
+  'ribbon-flow',
+  'plasma',
+  'sparkle-rain'
 ] as const
 
 function color(key: string, label: string, ask: string): ControlProp {
@@ -124,7 +132,7 @@ export const CONTROL_SCHEMA: Record<BlockType, ControlProp[]> = {
     pick('layout', 'Layout', ['horizontal', 'vertical'] as const, 'Horizontal or vertical?'),
     color('textColor', 'Text color', 'Which color for the header text?'),
     num('borderRadius', 'Corners', 0, 64, 'How rounded, in pixels?', 'layout'),
-    bool('fixed', 'Sticky', 'Should the header stick to the top?'),
+    bool('fixed', 'Sticky', 'Should the header stick and float compactly on scroll?'),
     color('logoIconColor', 'Logo icon color', 'Which color for the logo icon?'),
     num('logoIconSize', 'Logo icon size', 8, 96, 'What size in pixels?'),
     ...backgroundProps('backgroundColor'),
@@ -139,6 +147,7 @@ export const CONTROL_SCHEMA: Record<BlockType, ControlProp[]> = {
     pick('layout', 'Layout', ['horizontal', 'vertical'] as const, 'Horizontal or vertical?'),
     color('textColor', 'Text color', 'Which color for the footer text?'),
     num('borderRadius', 'Corners', 0, 64, 'How rounded, in pixels?', 'layout'),
+    bool('fixed', 'Sticky', 'Should the footer stick and float compactly on scroll?'),
     color('logoIconColor', 'Logo icon color', 'Which color for the logo icon?'),
     ...backgroundProps('backgroundColor'),
     ...visualProps,
@@ -173,7 +182,22 @@ export const CONTROL_SCHEMA: Record<BlockType, ControlProp[]> = {
     num('paddingY', 'Vertical padding', 0, 300, 'How much vertical padding in pixels?', 'layout'),
     num('paddingX', 'Side padding', 0, 300, 'How much horizontal padding in pixels?'),
     pick('maxWidth', 'Content width', MAX_WIDTH_VALUES, 'Small, medium, large, or full width?', 'layout'),
-    pick('layout', 'Layout', ['default', 'split-horizontal', 'split-vertical'] as const, 'Single column or split?'),
+    pick(
+      'layout',
+      'Layout',
+      [
+        'default',
+        'split-horizontal',
+        'split-vertical',
+        'sidebar-left',
+        'sidebar-right',
+        'split-1-2',
+        'split-2-1',
+        'columns-3',
+        'columns-4'
+      ] as const,
+      'Single, double, stacked, sidebar, asymmetric, or multi-column?'
+    ),
     num('splitRatio', 'Split ratio', 20, 80, 'What percentage for the first column?'),
     pick('borderStyle', 'Border', BORDER_STYLE_VALUES, 'None, subtle, outline, elevated, or inset?', 'color'),
     num('borderWidth', 'Border width', 0, 16, 'How thick in pixels?'),
@@ -402,6 +426,31 @@ export const CONTROL_SCHEMA: Record<BlockType, ControlProp[]> = {
     pick('hoverEffect', 'Hover effect', ['none', 'lift', 'glow'] as const, 'None, lift, or glow?', 'motion'),
     pick('entranceAnimation', 'Entrance', ['none', 'fade-in', 'slide-up'] as const, 'None, fade in, or slide up?', 'motion'),
     pick('featureIconStyle', 'Feature icons', ['check', 'dot', 'none'] as const, 'Checks, dots, or none?'),
+    ...backgroundProps('background')
+  ],
+  faq: [
+    text('eyebrow', 'Eyebrow', 'What small label sits above the title?', 80),
+    text('title', 'Title', 'What should the FAQ title say?', 160),
+    text('subtitle', 'Subtitle', 'What supporting text should it use?', 400),
+    alignment,
+    pick('layout', 'Layout', ['stack', 'split-header'] as const, 'Stack or split header?', 'layout'),
+    pick('cardStyle', 'Card style', ['elevated', 'outlined', 'filled', 'glass'] as const, 'Elevated, outlined, filled, or glass?', 'layout'),
+    pick('expandMode', 'Expand mode', ['single', 'multiple'] as const, 'One open at a time, or many?', 'layout'),
+    bool('defaultOpenFirst', 'Open first', 'Should the first question start open?'),
+    pick('iconStyle', 'Expand icon', ['chevron', 'plus', 'caret'] as const, 'Chevron, plus, or caret?'),
+    num('paddingY', 'Vertical padding', 0, 300, 'How much vertical padding in pixels?'),
+    num('paddingX', 'Side padding', 0, 300, 'How much horizontal padding in pixels?'),
+    pick('maxWidth', 'Content width', MAX_WIDTH_VALUES, 'Small, medium, large, or full width?'),
+    num('gap', 'Gap', 0, 64, 'How much gap in pixels?'),
+    num('cardRadius', 'Card corners', 0, 200, 'How rounded, in pixels?', 'layout'),
+    color('textColor', 'Text color', 'Which color for the text?'),
+    color('accentColor', 'Accent color', 'Which accent color?'),
+    color('cardBackground', 'Card background', 'Which color for the cards?'),
+    color('cardBorderColor', 'Card border color', 'Which border color?'),
+    num('cardBorderWidth', 'Card border width', 0, 16, 'How thick in pixels?'),
+    pick('cardShadow', 'Card shadow', ['none', 'soft', 'medium', 'strong'] as const, 'None, soft, medium, or strong?', 'color'),
+    pick('titleStyle', 'Title treatment', TITLE_STYLE_VALUES, 'Solid or gradient headline?', 'type'),
+    pick('entranceAnimation', 'Entrance', ['none', 'fade-in', 'slide-up'] as const, 'None, fade in, or slide up?', 'motion'),
     ...backgroundProps('background')
   ],
   serviceDirectory: [

@@ -117,9 +117,30 @@ const PERSONALITY_PREFERS_DARK: Personality[] = ['flashy', 'splashy', 'techy', '
 
 const MOTION_POOLS: Record<AiSiteWizardProfile['animationLevel'], HeroSplitVisualAnimation[]> = {
   none: ['static'],
-  subtle: ['gradient-shift', 'floating-circles', 'dot-grid', 'pulse-rings'],
-  moderate: ['aurora', 'mesh-gradient', 'wave-lines', 'morphing-blobs', 'orbiting-dots'],
-  energetic: ['shimmer', 'mesh-gradient', 'particles-rise', 'constellation', 'geometric', 'aurora']
+  subtle: ['gradient-shift', 'floating-circles', 'dot-grid', 'pulse-rings', 'spotlight-sweep', 'ribbon-flow'],
+  moderate: [
+    'aurora',
+    'mesh-gradient',
+    'wave-lines',
+    'morphing-blobs',
+    'orbiting-dots',
+    'liquid-metal',
+    'ripple-field',
+    'prism-beams'
+  ],
+  energetic: [
+    'shimmer',
+    'mesh-gradient',
+    'particles-rise',
+    'constellation',
+    'geometric',
+    'aurora',
+    'neon-pulse',
+    'plasma',
+    'sparkle-rain',
+    'liquid-metal',
+    'prism-beams'
+  ]
 }
 
 const CONTENT_ANIMATION_POOLS: Record<AiSiteWizardProfile['animationLevel'], SiteAnimation[]> = {
@@ -234,12 +255,17 @@ export function buildFallbackDesignBrief(profile: AiSiteWizardProfile): AiDesign
         : pickFromPool(['centered', 'split-left', 'split-right'] as const, seed, 'hero-layout'),
     heroOverlay: pickFromPool(['subtle', 'gradient', 'strong'] as const, seed, 'hero-overlay'),
     heroTitleStyle:
-      profile.stylePersonality === 'flashy' || profile.stylePersonality === 'splashy' ? 'gradient' : 'solid',
-    heroSurface: profile.stylePersonality === 'splashy' ? 'glass' : 'none',
+      profile.stylePersonality === 'flashy' ||
+      profile.stylePersonality === 'splashy' ||
+      profile.stylePersonality === 'luxury' ||
+      profile.stylePersonality === 'bold'
+        ? 'gradient'
+        : pickFromPool(['gradient', 'solid'] as const, seed, 'title-style'),
+    heroSurface: profile.stylePersonality === 'splashy' ? 'glass' : pickFromPool(['glass', 'none'] as const, seed, 'hero-surface'),
     density:
       profile.layoutDensity !== 'ai_pick' ? profile.layoutDensity : PERSONALITY_DENSITY[profile.stylePersonality],
     corners: profile.cornerStyle !== 'ai_pick' ? profile.cornerStyle : PERSONALITY_CORNERS[profile.stylePersonality],
-    sectionBorder: profile.stylePersonality === 'splashy' ? 'elevated' : 'none',
+    sectionBorder: pickFromPool(['none', 'subtle', 'outline', 'elevated'] as const, seed, 'section-border'),
     photoKeywords: INDUSTRY_PHOTO_KEYWORDS[profile.industry],
     isFallback: true
   }

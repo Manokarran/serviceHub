@@ -2,8 +2,14 @@
 
 import Box from '@mui/material/Box'
 
+import {
+  getSectionColumnEmptyLabel,
+  getSectionColumnWeights,
+  getSectionColumnsForLayout,
+  isSplitSectionLayout
+} from '../../constants/sectionLayout'
 import type { Block, SectionBlockProps } from '../../types'
-import { getSectionColumnChildren } from '../../utils/blockTreeUtils'
+import { getSectionColumnChildren, type BlockColumn } from '../../utils/blockTreeUtils'
 import {
   getBlockBackgroundShellSx,
   getPhotoAnimation,
@@ -51,12 +57,13 @@ function SectionColumn({
   column,
   emptyLabel
 }: SectionContentProps & {
-  column: 'primary' | 'secondary'
+  column: Exclude<BlockColumn, 'default'>
   emptyLabel: string
 }) {
   const siteStyles = useSiteStyles()
   const children = getSectionColumnChildren(block, column)
-  const showVisual = shouldRenderSectionColumnVisual(props, column)
+  const showVisual =
+    (column === 'primary' || column === 'secondary') && shouldRenderSectionColumnVisual(props, column)
   const columnConfig = getSectionSplitVisualConfig(props)
   const visualColors = resolveHeroVisualColors(columnConfig, siteStyles.colors.accent)
 
@@ -108,39 +115,39 @@ function SectionColumn({
 
 function SectionColumns({ block, props, editMode }: SectionContentProps) {
   const showDivider = shouldShowSplitDivider(props)
-  const isHorizontal = props.layout === 'split-horizontal'
-  const primaryLabel = isHorizontal ? 'Drop blocks in the left column' : 'Drop blocks in the top row'
-  const secondaryLabel = isHorizontal ? 'Drop blocks in the right column' : 'Drop blocks in the bottom row'
+  const columns = getSectionColumnsForLayout(props.layout)
+  const weights = getSectionColumnWeights(props.layout, props.splitRatio ?? 50)
 
   return (
     <Box sx={getSectionSplitContainerSx(props, props.layout)}>
-      <Box sx={getSectionColumnShellSx(props, 'primary', editMode)}>
-        <SectionColumn
-          block={block}
-          props={props}
-          editMode={editMode}
-          column='primary'
-          emptyLabel={primaryLabel}
-        />
-      </Box>
-      {showDivider && <Box sx={getSectionDividerSx(props, props.layout)} aria-hidden />}
-      <Box sx={getSectionColumnShellSx(props, 'secondary', editMode)}>
-        <SectionColumn
-          block={block}
-          props={props}
-          editMode={editMode}
-          column='secondary'
-          emptyLabel={secondaryLabel}
-        />
-      </Box>
+      {columns.flatMap((column, index) => {
+        const shell = (
+          <Box key={column} sx={getSectionColumnShellSx(props, column, editMode, weights[index] ?? 1)}>
+            <SectionColumn
+              block={block}
+              props={props}
+              editMode={editMode}
+              column={column}
+              emptyLabel={getSectionColumnEmptyLabel(props.layout, column)}
+            />
+          </Box>
+        )
+
+        if (!showDivider || index === 0) {
+          return [shell]
+        }
+
+        return [
+          <Box key={`divider-${column}`} sx={getSectionDividerSx(props, props.layout)} aria-hidden />,
+          shell
+        ]
+      })}
     </Box>
   )
 }
 
 function SectionInner({ block, props, editMode }: SectionContentProps) {
-  const isSplit = props.layout === 'split-horizontal' || props.layout === 'split-vertical'
-
-  if (isSplit) {
+  if (isSplitSectionLayout(props.layout)) {
     return <SectionColumns block={block} props={props} editMode={editMode} />
   }
 
@@ -152,7 +159,7 @@ function SectionInner({ block, props, editMode }: SectionContentProps) {
         children={props.children ?? []}
         sectionProps={props}
         editMode
-        emptyLabel='Drop heading, text, button, image, video, logo, carousel, tabs, or shape blocks here'
+        emptyLabel={getSectionColumnEmptyLabel(props.layout, 'default')}
       />
     )
   }

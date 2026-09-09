@@ -52,6 +52,87 @@ const THUMBNAILS: Record<string, Renderer> = {
     </>
   ),
 
+  'section-sidebar-left': ({ strong, mid, faint, frame }) => (
+    <>
+      <rect x="3" y="3" width="22" height="42" rx="4" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="7" y="11" width="14" height="4" rx="2" fill={strong} />
+      <rect x="7" y="19" width="14" height="2.5" rx="1.5" fill={mid} />
+      <rect x="7" y="25" width="12" height="2.5" rx="1.5" fill={mid} />
+      <rect x="29" y="3" width="48" height="42" rx="4" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="36" y="11" width="28" height="4" rx="2" fill={strong} />
+      <rect x="36" y="19" width="34" height="2.5" rx="1.5" fill={mid} />
+      <rect x="36" y="25" width="30" height="2.5" rx="1.5" fill={mid} />
+    </>
+  ),
+
+  'section-sidebar-right': ({ strong, mid, faint, frame }) => (
+    <>
+      <rect x="3" y="3" width="48" height="42" rx="4" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="10" y="11" width="28" height="4" rx="2" fill={strong} />
+      <rect x="10" y="19" width="34" height="2.5" rx="1.5" fill={mid} />
+      <rect x="10" y="25" width="30" height="2.5" rx="1.5" fill={mid} />
+      <rect x="55" y="3" width="22" height="42" rx="4" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="59" y="11" width="14" height="4" rx="2" fill={strong} />
+      <rect x="59" y="19" width="14" height="2.5" rx="1.5" fill={mid} />
+      <rect x="59" y="25" width="12" height="2.5" rx="1.5" fill={mid} />
+    </>
+  ),
+
+  'section-split-2-1': ({ strong, mid, faint, frame }) => (
+    <>
+      <rect x="3" y="3" width="48" height="42" rx="4" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="10" y="11" width="28" height="4" rx="2" fill={strong} />
+      <rect x="10" y="19" width="34" height="2.5" rx="1.5" fill={mid} />
+      <rect x="10" y="25" width="30" height="2.5" rx="1.5" fill={mid} />
+      <rect x="55" y="3" width="22" height="42" rx="4" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="59" y="11" width="14" height="4" rx="2" fill={strong} />
+      <rect x="59" y="19" width="14" height="2.5" rx="1.5" fill={mid} />
+    </>
+  ),
+
+  'section-split-1-2': ({ strong, mid, faint, frame }) => (
+    <>
+      <rect x="3" y="3" width="22" height="42" rx="4" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="7" y="11" width="14" height="4" rx="2" fill={strong} />
+      <rect x="7" y="19" width="14" height="2.5" rx="1.5" fill={mid} />
+      <rect x="29" y="3" width="48" height="42" rx="4" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="36" y="11" width="28" height="4" rx="2" fill={strong} />
+      <rect x="36" y="19" width="34" height="2.5" rx="1.5" fill={mid} />
+      <rect x="36" y="25" width="30" height="2.5" rx="1.5" fill={mid} />
+    </>
+  ),
+
+  'section-columns-3': ({ strong, mid, faint, frame }) => (
+    <>
+      <rect x="3" y="3" width="22" height="42" rx="3" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="7" y="11" width="14" height="3.5" rx="1.5" fill={strong} />
+      <rect x="7" y="18" width="14" height="2" rx="1" fill={mid} />
+      <rect x="29" y="3" width="22" height="42" rx="3" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="33" y="11" width="14" height="3.5" rx="1.5" fill={strong} />
+      <rect x="33" y="18" width="14" height="2" rx="1" fill={mid} />
+      <rect x="55" y="3" width="22" height="42" rx="3" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="59" y="11" width="14" height="3.5" rx="1.5" fill={strong} />
+      <rect x="59" y="18" width="14" height="2" rx="1" fill={mid} />
+    </>
+  ),
+
+  'section-columns-4': ({ strong, mid, faint, frame }) => (
+    <>
+      <rect x="2" y="3" width="17" height="42" rx="3" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="5" y="11" width="11" height="3" rx="1.5" fill={strong} />
+      <rect x="5" y="17" width="11" height="2" rx="1" fill={mid} />
+      <rect x="22" y="3" width="17" height="42" rx="3" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="25" y="11" width="11" height="3" rx="1.5" fill={strong} />
+      <rect x="25" y="17" width="11" height="2" rx="1" fill={mid} />
+      <rect x="42" y="3" width="17" height="42" rx="3" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="45" y="11" width="11" height="3" rx="1.5" fill={strong} />
+      <rect x="45" y="17" width="11" height="2" rx="1" fill={mid} />
+      <rect x="62" y="3" width="16" height="42" rx="3" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="65" y="11" width="10" height="3" rx="1.5" fill={strong} />
+      <rect x="65" y="17" width="10" height="2" rx="1" fill={mid} />
+    </>
+  ),
+
   /* ─── Layout: Carousels ─────────────────────────────────────────── */
   'carousel-slide': ({ accent, strong, mid, faint, frame }) => (
     <>
@@ -317,6 +398,46 @@ const THUMBNAILS: Record<string, Renderer> = {
       <rect x="6" y="27" width="68" height="18" rx="3" fill={alpha(accent, 0.1)} stroke={alpha(accent, 0.35)} strokeWidth="0.8" />
       <rect x="12" y="31" width="20" height="3" rx="1.5" fill={accent} />
       <rect x="50" y="30" width="16" height="10" rx="2" fill={accent} />
+    </>
+  ),
+
+  'faq-glass': ({ accent, strong, mid, faint, frame }) => (
+    <>
+      <rect x="18" y="4" width="44" height="3" rx="1.5" fill={accent} opacity="0.85" />
+      <rect x="22" y="9" width="36" height="2" rx="1" fill={mid} />
+      <rect x="8" y="16" width="64" height="8" rx="2.5" fill={alpha(accent, 0.1)} stroke={alpha(accent, 0.35)} strokeWidth="0.8" />
+      <rect x="12" y="18.5" width="40" height="2.5" rx="1.25" fill={strong} />
+      <path d="M64 18.5 L66.5 21 L64 23.5" fill="none" stroke={accent} strokeWidth="1.2" strokeLinecap="round" />
+      <rect x="8" y="27" width="64" height="8" rx="2.5" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="12" y="29.5" width="36" height="2.5" rx="1.25" fill={mid} />
+      <rect x="8" y="38" width="64" height="8" rx="2.5" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="12" y="40.5" width="32" height="2.5" rx="1.25" fill={mid} />
+    </>
+  ),
+
+  'faq-outlined': ({ accent, strong, mid, faint, frame }) => (
+    <>
+      <rect x="16" y="5" width="48" height="3.5" rx="1.75" fill={strong} />
+      <rect x="8" y="14" width="64" height="9" rx="2" fill={faint} stroke={frame} strokeWidth="1" />
+      <rect x="12" y="17" width="42" height="2.5" rx="1.25" fill={strong} />
+      <circle cx="64" cy="18.5" r="2" fill={accent} />
+      <rect x="8" y="26" width="64" height="9" rx="2" fill={faint} stroke={frame} strokeWidth="1" />
+      <rect x="12" y="29" width="38" height="2.5" rx="1.25" fill={mid} />
+      <rect x="8" y="38" width="64" height="9" rx="2" fill={faint} stroke={frame} strokeWidth="1" />
+      <rect x="12" y="41" width="34" height="2.5" rx="1.25" fill={mid} />
+    </>
+  ),
+
+  'faq-split': ({ accent, strong, mid, faint, frame }) => (
+    <>
+      <rect x="4" y="10" width="22" height="3.5" rx="1.75" fill={strong} />
+      <rect x="4" y="16" width="18" height="2" rx="1" fill={mid} />
+      <rect x="30" y="8" width="46" height="10" rx="2.5" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="34" y="11.5" width="28" height="2.5" rx="1.25" fill={strong} />
+      <rect x="30" y="21" width="46" height="10" rx="2.5" fill={alpha(accent, 0.1)} stroke={alpha(accent, 0.4)} strokeWidth="0.8" />
+      <rect x="34" y="24.5" width="26" height="2.5" rx="1.25" fill={accent} />
+      <rect x="30" y="34" width="46" height="10" rx="2.5" fill={faint} stroke={frame} strokeWidth="0.8" />
+      <rect x="34" y="37.5" width="24" height="2.5" rx="1.25" fill={mid} />
     </>
   ),
 

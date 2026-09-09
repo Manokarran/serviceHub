@@ -23,6 +23,7 @@ import type {
   SectionBlockProps,
   ShowcaseBlockProps,
   PricingBlockProps,
+  FaqBlockProps,
   TextBlockProps,
   VideoBlockProps
 } from '../../types'
@@ -41,13 +42,14 @@ import { SectionBackgroundPopover, SectionBorderPopover, SectionSpacingPopover }
 import { HeroBackgroundPopover, HeroLayoutPopover, HeroSpacingPopover } from './HeroInlinePopovers'
 import { SectionLayoutPopover } from './SectionLayoutPopover'
 import { HERO_LAYOUT_OPTIONS } from '../../constants/heroLayout'
-import { SECTION_LAYOUT_OPTIONS } from '../../constants/sectionLayout'
+import { applySectionLayoutChange, SECTION_LAYOUT_OPTIONS } from '../../constants/sectionLayout'
 import {
   SHOWCASE_COLUMN_OPTIONS,
   SHOWCASE_LAYOUT_OPTIONS,
   SHOWCASE_MEDIA_SIDE_OPTIONS
 } from '../../constants/showcaseLayout'
 import { PRICING_CARD_STYLE_OPTIONS, PRICING_LAYOUT_OPTIONS } from '../../constants/pricingLayout'
+import { FAQ_CARD_STYLE_OPTIONS, FAQ_EXPAND_OPTIONS, FAQ_LAYOUT_OPTIONS } from '../../constants/faqLayout'
 import {
   CAROUSEL_STYLE_OPTIONS,
   getCarouselStyleOverrides,
@@ -477,6 +479,43 @@ export function BlockInlineToolbar({
           </>
         )
       }
+      case 'faq': {
+        const props = block.props as FaqBlockProps
+
+        return (
+          <>
+            {FAQ_LAYOUT_OPTIONS.map(layout => (
+              <InlineToolbarButton
+                key={layout.value}
+                icon={layout.icon}
+                label={layout.label}
+                active={props.layout === layout.value}
+                onClick={() => update({ layout: layout.value })}
+              />
+            ))}
+            <InlineToolbarDivider />
+            {FAQ_CARD_STYLE_OPTIONS.map(style => (
+              <InlineToolbarButton
+                key={style.value}
+                icon={style.icon}
+                label={style.label}
+                active={props.cardStyle === style.value}
+                onClick={() => update({ cardStyle: style.value })}
+              />
+            ))}
+            <InlineToolbarDivider />
+            {FAQ_EXPAND_OPTIONS.map(mode => (
+              <InlineToolbarButton
+                key={mode.value}
+                icon={mode.icon}
+                label={mode.label}
+                active={props.expandMode === mode.value}
+                onClick={() => update({ expandMode: mode.value })}
+              />
+            ))}
+          </>
+        )
+      }
       case 'carousel': {
         const props = block.props as CarouselBlockProps
         const activeStyle = inferCarouselStylePreset(props)
@@ -530,7 +569,7 @@ export function BlockInlineToolbar({
                 icon={layout.icon}
                 label={layout.label}
                 active={props.layout === layout.value}
-                onClick={() => update({ layout: layout.value })}
+                onClick={() => update(applySectionLayoutChange(props, layout.value))}
               />
             ))}
             <InlineToolbarDivider />
@@ -830,6 +869,7 @@ function getInlineBlockLabel(type: Block['type']): string {
     contactForm: 'Contact Form',
     showcase: 'Showcase',
     pricing: 'Pricing',
+    faq: 'FAQ',
     serviceDirectory: 'Services',
     serviceBooking: 'Booking',
     customerBookings: 'My bookings',

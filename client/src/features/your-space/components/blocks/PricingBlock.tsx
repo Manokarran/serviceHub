@@ -185,14 +185,47 @@ export function PricingBlock({ props }: Props) {
       )}
 
       {props.layout === 'comparison' ? (
-        <ComparisonTable
-          props={props}
-          plans={plans}
-          interval={activeInterval}
-          accent={accent}
-          textColor={textColor}
-          onUpdatePlan={updatePlan}
-        />
+        <>
+          <Box
+            sx={{
+              width: '100%',
+              display: 'none',
+              ...siteCanvasAbove({ display: 'block' })
+            }}
+          >
+            <ComparisonTable
+              props={props}
+              plans={plans}
+              interval={activeInterval}
+              accent={accent}
+              textColor={textColor}
+              onUpdatePlan={updatePlan}
+            />
+          </Box>
+          <Box
+            sx={{
+              width: '100%',
+              display: 'grid',
+              gap: `${props.gap}px`,
+              alignItems: 'stretch',
+              gridTemplateColumns: '1fr',
+              ...siteCanvasAbove({ display: 'none' })
+            }}
+          >
+            {plans.map((plan, index) => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                index={index}
+                props={props}
+                interval={activeInterval}
+                accent={accent}
+                textColor={textColor}
+                onUpdatePlan={updatePlan}
+              />
+            ))}
+          </Box>
+        </>
       ) : (
         <Box
           sx={{

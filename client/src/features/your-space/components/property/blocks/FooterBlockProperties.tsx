@@ -64,7 +64,7 @@ export function FooterBlockProperties({ block, activeTab }: Props) {
         />
         <PropertyToggleRow
           label='Stick to bottom'
-          description='Footer stays visible while scrolling'
+          description='Stays visible while scrolling, then floats as a compact bar'
           checked={props.fixed ?? false}
           onChange={fixed => update({ fixed })}
         />

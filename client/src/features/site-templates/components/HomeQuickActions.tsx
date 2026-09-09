@@ -81,8 +81,9 @@ export function HomeQuickActions({ isSiteStarted, canManageLeads, leadCount }: P
     <Box
       sx={{
         display: 'grid',
-        gap: 2,
-        gridTemplateColumns: { xs: '1fr 1fr', md: `repeat(${actions.length}, 1fr)` }
+        gap: { xs: 1.25, md: 2 },
+        // Native-style stacked rows on phones; card grid from tablet up.
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: `repeat(${actions.length}, 1fr)` }
       }}
     >
       {actions.map(action => {
@@ -97,18 +98,25 @@ export function HomeQuickActions({ isSiteStarted, canManageLeads, leadCount }: P
               position: 'relative',
               overflow: 'hidden',
               display: 'flex',
-              flexDirection: 'column',
-              gap: 1.25,
-              p: 2.25,
-              borderRadius: 3,
+              flexDirection: { xs: 'row', sm: 'column' },
+              alignItems: { xs: 'center', sm: 'stretch' },
+              gap: { xs: 1.5, sm: 1.25 },
+              p: { xs: 1.5, sm: 2.25 },
+              minHeight: { xs: 64, sm: 'auto' },
+              borderRadius: { xs: 2.5, sm: 3 },
               textDecoration: 'none',
               border: `1px solid ${theme.palette.divider}`,
               bgcolor: 'background.paper',
               transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
+              WebkitTapHighlightColor: 'transparent',
+              '&:active': {
+                transform: { xs: 'scale(0.985)', sm: 'none' },
+                bgcolor: { xs: alpha(color, 0.04), sm: 'background.paper' }
+              },
               '&:hover': {
-                transform: 'translateY(-3px)',
+                transform: { sm: 'translateY(-3px)' },
                 borderColor: alpha(color, 0.45),
-                boxShadow: `0 14px 30px ${alpha(color, 0.18)}`
+                boxShadow: { sm: `0 14px 30px ${alpha(color, 0.18)}` }
               },
               '&:hover .quick-action-arrow': {
                 opacity: 1,
@@ -116,17 +124,26 @@ export function HomeQuickActions({ isSiteStarted, canManageLeads, leadCount }: P
               }
             }}
           >
-            <Box className='flex items-center justify-between gap-2'>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: { xs: 'flex-start', sm: 'space-between' },
+                gap: 1.5,
+                width: { xs: 'auto', sm: '100%' }
+              }}
+            >
               <Box
                 sx={{
-                  width: 40,
-                  height: 40,
+                  width: { xs: 42, sm: 40 },
+                  height: { xs: 42, sm: 40 },
                   borderRadius: 2,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   bgcolor: alpha(color, 0.14),
-                  color
+                  color,
+                  flexShrink: 0
                 }}
               >
                 <i className={action.icon} style={{ fontSize: '1.25rem' }} />
@@ -135,20 +152,47 @@ export function HomeQuickActions({ isSiteStarted, canManageLeads, leadCount }: P
                 className='quick-action-arrow'
                 sx={{
                   color,
+                  display: { xs: 'none', sm: 'flex' },
+                  alignItems: 'center',
                   opacity: 0,
                   transform: 'translateX(-6px)',
-                  transition: 'opacity 0.2s, transform 0.2s'
+                  transition: 'opacity 0.2s, transform 0.2s',
+                  flexShrink: 0
                 }}
               >
                 <i className='ri-arrow-right-line' />
               </Box>
             </Box>
-            <div>
-              <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>{action.label}</Typography>
-              <Typography variant='caption' color='text.secondary'>
+
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.25 }}>
+                {action.label}
+              </Typography>
+              <Typography
+                variant='caption'
+                color='text.secondary'
+                sx={{
+                  display: 'block',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
                 {action.caption}
               </Typography>
-            </div>
+            </Box>
+
+            <Box
+              sx={{
+                color,
+                display: { xs: 'flex', sm: 'none' },
+                alignItems: 'center',
+                opacity: 0.55,
+                flexShrink: 0
+              }}
+            >
+              <i className='ri-arrow-right-s-line' style={{ fontSize: '1.35rem' }} />
+            </Box>
           </Box>
         )
       })}

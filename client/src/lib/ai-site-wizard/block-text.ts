@@ -6,6 +6,7 @@ import type {
   HeaderBlockProps,
   HeroBlockProps,
   PricingBlockProps,
+  FaqBlockProps,
   SectionBlockProps,
   ShowcaseBlockProps,
   TabsBlockProps
@@ -150,6 +151,18 @@ function collectFromBlocks(
       })
     }
 
+    if (block.type === 'faq') {
+      const props = block.props as FaqBlockProps
+      pushField(fields, path, 'faq', 'eyebrow', props.eyebrow)
+      pushField(fields, path, 'faq', 'title', props.title)
+      pushField(fields, path, 'faq', 'subtitle', props.subtitle)
+      props.items?.forEach((item, itemIndex) => {
+        const itemPath = `${path}/item/${itemIndex}`
+        pushField(fields, itemPath, 'faq', 'question', item.question)
+        pushField(fields, itemPath, 'faq', 'answer', item.answer)
+      })
+    }
+
     if (block.type === 'image' || block.type === 'logo') {
       pushField(fields, path, block.type, 'alt', (block.props as { alt?: string }).alt)
     }
@@ -159,7 +172,9 @@ function collectFromBlocks(
       const lists: Array<[unknown, string]> = [
         [props.children, `${prefix}/${index}/children`],
         [props.primaryChildren, `${prefix}/${index}/primary`],
-        [props.secondaryChildren, `${prefix}/${index}/secondary`]
+        [props.secondaryChildren, `${prefix}/${index}/secondary`],
+        [props.tertiaryChildren, `${prefix}/${index}/tertiary`],
+        [props.quaternaryChildren, `${prefix}/${index}/quaternary`]
       ]
       const seen = new Set<unknown>()
 
@@ -289,7 +304,9 @@ function applyToBlocks(
         ...sectionProps,
         children: applyList(sectionProps.children, `${prefix}/${index}/children`),
         primaryChildren: applyList(sectionProps.primaryChildren, `${prefix}/${index}/primary`),
-        secondaryChildren: applyList(sectionProps.secondaryChildren, `${prefix}/${index}/secondary`)
+        secondaryChildren: applyList(sectionProps.secondaryChildren, `${prefix}/${index}/secondary`),
+        tertiaryChildren: applyList(sectionProps.tertiaryChildren, `${prefix}/${index}/tertiary`),
+        quaternaryChildren: applyList(sectionProps.quaternaryChildren, `${prefix}/${index}/quaternary`)
       }
     } else if (block.type === 'carousel') {
       const carouselProps = props as unknown as CarouselBlockProps
@@ -344,6 +361,35 @@ function applyToBlocks(
       })
 
       const nextProps = { ...pricingProps, plans }
+      const eyebrow = patches.get(`${path}:eyebrow`)
+      const title = patches.get(`${path}:title`)
+      const subtitle = patches.get(`${path}:subtitle`)
+
+      if (eyebrow !== undefined) nextProps.eyebrow = eyebrow
+      if (title !== undefined) nextProps.title = title
+      if (subtitle !== undefined) nextProps.subtitle = subtitle
+
+      props = nextProps
+    } else if (block.type === 'faq') {
+      const faqProps = props as unknown as FaqBlockProps
+      const items = [...(faqProps.items ?? [])]
+      const itemFields = ['question', 'answer'] as const
+
+      items.forEach((item, itemIndex) => {
+        const nextItem = { ...item }
+
+        for (const field of itemFields) {
+          const patchValue = patches.get(`${path}/item/${itemIndex}:${field}`)
+
+          if (patchValue !== undefined) {
+            nextItem[field] = patchValue
+          }
+        }
+
+        items[itemIndex] = nextItem
+      })
+
+      const nextProps = { ...faqProps, items }
       const eyebrow = patches.get(`${path}:eyebrow`)
       const title = patches.get(`${path}:title`)
       const subtitle = patches.get(`${path}:subtitle`)

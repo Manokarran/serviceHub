@@ -41,6 +41,7 @@ import { HeaderBlockProperties } from './property/blocks/HeaderBlockProperties'
 import { FooterBlockProperties } from './property/blocks/FooterBlockProperties'
 import { ShowcaseBlockProperties } from './property/blocks/ShowcaseBlockProperties'
 import { PricingBlockProperties } from './property/blocks/PricingBlockProperties'
+import { FaqBlockProperties } from './property/blocks/FaqBlockProperties'
 import { ServiceDirectoryBlockProperties } from './property/blocks/ServiceDirectoryBlockProperties'
 import { ServiceBookingBlockProperties } from './property/blocks/ServiceBookingBlockProperties'
 import { CustomerBookingsBlockProperties } from './property/blocks/CustomerBookingsBlockProperties'
@@ -94,6 +95,8 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
       return <ShowcaseBlockProperties block={block as Block<'showcase'>} activeTab={activeTab} />
     case 'pricing':
       return <PricingBlockProperties block={block as Block<'pricing'>} activeTab={activeTab} />
+    case 'faq':
+      return <FaqBlockProperties block={block as Block<'faq'>} activeTab={activeTab} />
     case 'serviceDirectory':
       return <ServiceDirectoryBlockProperties block={block as Block<'serviceDirectory'>} activeTab={activeTab} />
     case 'serviceBooking':

@@ -112,7 +112,7 @@ const SHOWCASE_SHARED_PROPS: Omit<ShowcaseBlockProps, 'layout' | 'columns' | 'ca
   mediaRadius: 28,
   mediaOverlay: 'gradient',
   buttonStyle: 'theme',
-  titleStyle: 'solid',
+  titleStyle: 'gradient',
   background: 'transparent',
   backgroundType: 'color',
   backgroundOpacity: 0,

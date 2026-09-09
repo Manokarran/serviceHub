@@ -5,6 +5,7 @@ import type {
   CarouselBlockProps,
   CarouselSlide,
   PricingBlockProps,
+  FaqBlockProps,
   SectionBlockProps,
   ShowcaseBlockProps,
   TabPanel,
@@ -15,6 +16,7 @@ import { asBlockList, MAX_BLOCK_TREE_DEPTH } from './blockList'
 import { applySiteThemeToBlockProps } from './siteStylesHelpers'
 import { cloneShowcaseItems } from './showcaseBlockHelpers'
 import { clonePricingPlans } from './pricingBlockHelpers'
+import { cloneFaqItems } from './faqBlockHelpers'
 import type { TenantLocation } from '@/lib/location/types'
 
 export function createBlockId() {
@@ -48,7 +50,10 @@ function cloneSectionColumns(
   props: Record<string, unknown>,
   visiting: WeakSet<object>,
   depth: number
-): Pick<SectionBlockProps, 'children' | 'primaryChildren' | 'secondaryChildren'> {
+): Pick<
+  SectionBlockProps,
+  'children' | 'primaryChildren' | 'secondaryChildren' | 'tertiaryChildren' | 'quaternaryChildren'
+> {
   const cache = new Map<unknown, Block[]>()
 
   const cloneList = (value: unknown) => {
@@ -65,7 +70,9 @@ function cloneSectionColumns(
   return {
     children: cloneList(props.children),
     primaryChildren: cloneList(props.primaryChildren),
-    secondaryChildren: cloneList(props.secondaryChildren)
+    secondaryChildren: cloneList(props.secondaryChildren),
+    tertiaryChildren: cloneList(props.tertiaryChildren),
+    quaternaryChildren: cloneList(props.quaternaryChildren)
   }
 }
 
@@ -81,6 +88,8 @@ function cloneBlockDeep(block: Block, visiting: WeakSet<object>, depth: number):
         children: [],
         primaryChildren: [],
         secondaryChildren: [],
+        tertiaryChildren: [],
+        quaternaryChildren: [],
         slides: Array.isArray(props.slides) ? [] : props.slides,
         tabs: Array.isArray(props.tabs) ? [] : props.tabs
       } as unknown as Block['props']
@@ -129,6 +138,13 @@ function cloneBlockDeep(block: Block, visiting: WeakSet<object>, depth: number):
         ...props,
         plans: clonePricingPlans((props as unknown as PricingBlockProps).plans, createBlockId)
       } as PricingBlockProps
+    }
+
+    if (cloned.type === 'faq') {
+      cloned.props = {
+        ...props,
+        items: cloneFaqItems((props as unknown as FaqBlockProps).items, createBlockId)
+      } as FaqBlockProps
     }
 
     return cloned
@@ -187,6 +203,14 @@ export function createBlock(
     props = {
       ...pricingProps,
       plans: clonePricingPlans(pricingProps.plans, createBlockId)
+    } as typeof props
+  }
+
+  if (type === 'faq') {
+    const faqProps = props as FaqBlockProps
+    props = {
+      ...faqProps,
+      items: cloneFaqItems(faqProps.items, createBlockId)
     } as typeof props
   }
 

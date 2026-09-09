@@ -17,6 +17,7 @@ import type {
   VideoBlockProps,
   ShowcaseBlockProps,
   PricingBlockProps,
+  FaqBlockProps,
   ServiceDirectoryBlockProps,
   ServiceBookingBlockProps,
   CustomerBookingsBlockProps,
@@ -39,6 +40,7 @@ import { TextBlock } from './TextBlock'
 import { VideoBlock } from './VideoBlock'
 import { ShowcaseBlock } from './ShowcaseBlock'
 import { PricingBlock } from './PricingBlock'
+import { FaqBlock } from './FaqBlock'
 import { ServiceDirectoryBlock } from './ServiceDirectoryBlock'
 import { ServiceBookingBlock } from './ServiceBookingBlock'
 import { CustomerBookingsBlock } from './CustomerBookingsBlock'
@@ -89,6 +91,8 @@ export function BlockRenderer({ block, preview = false }: Props) {
       return <ShowcaseBlock props={block.props as ShowcaseBlockProps} />
     case 'pricing':
       return <PricingBlock props={block.props as PricingBlockProps} />
+    case 'faq':
+      return <FaqBlock props={block.props as FaqBlockProps} />
     case 'serviceDirectory':
       return <ServiceDirectoryBlock props={block.props as ServiceDirectoryBlockProps} />
     case 'serviceBooking':
@@ -121,6 +125,7 @@ export function getBlockLabel(type: Block['type']) {
     contactForm: 'Contact Form',
     showcase: 'Showcase',
     pricing: 'Pricing',
+    faq: 'FAQ',
     serviceDirectory: 'Services',
     serviceBooking: 'Booking',
     customerBookings: 'My bookings',

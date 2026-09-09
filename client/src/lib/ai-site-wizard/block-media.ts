@@ -61,7 +61,9 @@ function walkNestedSectionLists(
   const lists: Array<[unknown, string]> = [
     [section.children, `${prefix}/${index}/children`],
     [section.primaryChildren, `${prefix}/${index}/primary`],
-    [section.secondaryChildren, `${prefix}/${index}/secondary`]
+    [section.secondaryChildren, `${prefix}/${index}/secondary`],
+    [section.tertiaryChildren, `${prefix}/${index}/tertiary`],
+    [section.quaternaryChildren, `${prefix}/${index}/quaternary`]
   ]
   const seen = new Set<unknown>()
 
@@ -83,7 +85,10 @@ function mapNestedSectionLists(
   mapper: (block: Block, path: string, props: Record<string, unknown>) => Record<string, unknown>,
   depth: number,
   visiting: WeakSet<object>
-): Pick<SectionBlockProps, 'children' | 'primaryChildren' | 'secondaryChildren'> {
+): Pick<
+  SectionBlockProps,
+  'children' | 'primaryChildren' | 'secondaryChildren' | 'tertiaryChildren' | 'quaternaryChildren'
+> {
   const cache = new Map<unknown, Block[]>()
 
   const mapList = (value: unknown, nextPrefix: string) => {
@@ -100,7 +105,9 @@ function mapNestedSectionLists(
   return {
     children: mapList(section.children, `${prefix}/${index}/children`),
     primaryChildren: mapList(section.primaryChildren, `${prefix}/${index}/primary`),
-    secondaryChildren: mapList(section.secondaryChildren, `${prefix}/${index}/secondary`)
+    secondaryChildren: mapList(section.secondaryChildren, `${prefix}/${index}/secondary`),
+    tertiaryChildren: mapList(section.tertiaryChildren, `${prefix}/${index}/tertiary`),
+    quaternaryChildren: mapList(section.quaternaryChildren, `${prefix}/${index}/quaternary`)
   }
 }
 
@@ -332,7 +339,9 @@ export function applyBrandToBlocks(
               ...section,
               children: applyList(section.children),
               primaryChildren: applyList(section.primaryChildren),
-              secondaryChildren: applyList(section.secondaryChildren)
+              secondaryChildren: applyList(section.secondaryChildren),
+              tertiaryChildren: applyList(section.tertiaryChildren),
+              quaternaryChildren: applyList(section.quaternaryChildren)
             } as Block['props']
           }
         }

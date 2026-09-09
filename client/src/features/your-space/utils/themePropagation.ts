@@ -60,7 +60,9 @@ function mapChildren(block: Block, mapper: (children: Block[]) => Block[]): Bloc
         ...props,
         children: mapper(props.children ?? []),
         primaryChildren: mapper(props.primaryChildren ?? []),
-        secondaryChildren: mapper(props.secondaryChildren ?? [])
+        secondaryChildren: mapper(props.secondaryChildren ?? []),
+        tertiaryChildren: mapper(props.tertiaryChildren ?? []),
+        quaternaryChildren: mapper(props.quaternaryChildren ?? [])
       }
     }
   }

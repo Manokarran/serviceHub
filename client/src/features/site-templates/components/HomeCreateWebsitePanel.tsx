@@ -35,17 +35,27 @@ export function HomeCreateWebsitePanel({ isSiteStarted }: Props) {
   const { hasTemplates, loading } = usePublishedTemplates()
 
   return (
-    <Box className='flex flex-col gap-3.5'>
+    <Box className='flex flex-col' sx={{ gap: { xs: 2.5, md: 3.5 } }}>
       <BuildWithAiHighlight isSiteStarted={isSiteStarted} />
 
       {isSiteStarted ? (
-        <Box className='flex flex-wrap gap-2'>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            flexWrap: { sm: 'wrap' },
+            gap: 1.25
+          }}
+        >
           <Button
             component={Link}
             href='/your-space?aiSetup=1'
             variant='contained'
+            fullWidth
             startIcon={<i className='ri-sparkling-line' />}
             sx={{
+              width: { xs: '100%', sm: 'auto' },
+              minHeight: 44,
               bgcolor: HOME_PALETTE.ink,
               color: '#fff',
               '&:hover': { bgcolor: alpha(HOME_PALETTE.ink, 0.88) }
@@ -58,8 +68,11 @@ export function HomeCreateWebsitePanel({ isSiteStarted }: Props) {
               component={Link}
               href='/your-space?replaceTemplate=1'
               variant='outlined'
+              fullWidth
               startIcon={<i className='ri-layout-grid-line' />}
               sx={{
+                width: { xs: '100%', sm: 'auto' },
+                minHeight: 44,
                 borderColor: alpha(HOME_PALETTE.accent, 0.55),
                 color: HOME_PALETTE.dark,
                 '&:hover': {
@@ -76,7 +89,7 @@ export function HomeCreateWebsitePanel({ isSiteStarted }: Props) {
         <Box
           sx={{
             display: 'grid',
-            gap: 3,
+            gap: { xs: 2, md: 3 },
             gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }
           }}
         >
@@ -116,13 +129,13 @@ function BuildWithAiHighlight({ isSiteStarted }: { isSiteStarted: boolean }) {
         position: 'relative',
         overflow: 'hidden',
         isolation: 'isolate',
-        borderRadius: 3,
-        p: { xs: 2.5, md: 3 },
+        borderRadius: { xs: 2.5, md: 3 },
+        p: { xs: 2, md: 3 },
         display: 'flex',
         flexDirection: { xs: 'column', sm: 'row' },
         alignItems: { sm: 'center' },
         justifyContent: 'space-between',
-        gap: 2.5,
+        gap: { xs: 2, md: 2.5 },
         background: `
           linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper}) padding-box,
           ${HOME_AI_BORDER_GRADIENT} border-box
@@ -162,11 +175,19 @@ function BuildWithAiHighlight({ isSiteStarted }: { isSiteStarted: boolean }) {
         }}
       />
 
-      <Box className='flex items-start gap-3' sx={{ position: 'relative', zIndex: 1, maxWidth: 560 }}>
+      <Box
+        className='flex items-start gap-3'
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          maxWidth: { md: 560 },
+          flex: 1
+        }}
+      >
         <Box
           sx={{
-            width: 48,
-            height: 48,
+            width: { xs: 42, md: 48 },
+            height: { xs: 42, md: 48 },
             borderRadius: 2,
             display: 'flex',
             alignItems: 'center',
@@ -179,13 +200,32 @@ function BuildWithAiHighlight({ isSiteStarted }: { isSiteStarted: boolean }) {
             boxShadow: `0 10px 22px ${alpha(HOME_PALETTE.accent, 0.28)}`
           }}
         >
-          <i className='ri-sparkling-2-line' style={{ fontSize: '1.45rem' }} />
+          <i className='ri-sparkling-2-line' style={{ fontSize: '1.35rem' }} />
         </Box>
         <div>
-          <Typography variant='h6' sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 0.6 }}>
+          <Typography
+            variant='h6'
+            sx={{
+              fontWeight: 800,
+              letterSpacing: '-0.02em',
+              mb: 0.5,
+              fontSize: { xs: '1.05rem', md: undefined }
+            }}
+          >
             Build with AI
           </Typography>
-          <Typography variant='body2' color='text.secondary' sx={{ lineHeight: 1.6 }}>
+          <Typography
+            variant='body2'
+            color='text.secondary'
+            sx={{
+              lineHeight: 1.55,
+              fontSize: { xs: '0.84rem', md: '0.875rem' },
+              display: { xs: '-webkit-box', md: 'block' },
+              WebkitLineClamp: { xs: 3, md: 'unset' },
+              WebkitBoxOrient: 'vertical',
+              overflow: { xs: 'hidden', md: 'visible' }
+            }}
+          >
             {isSiteStarted
               ? 'Ask for a new section, rewrite copy, or restyle a block. The live site stays as-is until you publish.'
               : 'Describe the business in a few sentences. The builder drafts pages while you watch the preview.'}
@@ -193,9 +233,17 @@ function BuildWithAiHighlight({ isSiteStarted }: { isSiteStarted: boolean }) {
         </div>
       </Box>
 
-      <Box sx={{ position: 'relative', zIndex: 1, flexShrink: 0 }}>
+      <Box
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          width: { xs: '100%', sm: 'auto' },
+          flexShrink: 0
+        }}
+      >
         <BuilderAiButton
           size='md'
+          fullWidth
           href='/your-space?aiChat=1'
           gradient={HOME_AI_BUTTON_GRADIENT}
           glowColor={HOME_PALETTE.pink}
@@ -230,24 +278,24 @@ function PathCard({
     <Box
       sx={{
         height: '100%',
-        borderRadius: 3,
-        p: 3,
+        borderRadius: { xs: 2.5, md: 3 },
+        p: { xs: 2.25, md: 3 },
         display: 'flex',
         flexDirection: 'column',
-        gap: 2,
+        gap: { xs: 1.5, md: 2 },
         border: `1px solid ${alpha(color, 0.2)}`,
         bgcolor: 'background.paper',
         transition: 'transform 0.2s, box-shadow 0.2s',
         '&:hover': {
-          transform: 'translateY(-3px)',
-          boxShadow: `0 16px 36px ${alpha(theme.palette.text.primary, 0.1)}`
+          transform: { sm: 'translateY(-3px)' },
+          boxShadow: { sm: `0 16px 36px ${alpha(theme.palette.text.primary, 0.1)}` }
         }
       }}
     >
       <Box
         sx={{
-          width: 52,
-          height: 52,
+          width: { xs: 44, md: 52 },
+          height: { xs: 44, md: 52 },
           borderRadius: 2.5,
           display: 'flex',
           alignItems: 'center',
@@ -256,12 +304,16 @@ function PathCard({
           color
         }}
       >
-        <i className={icon} style={{ fontSize: '1.5rem' }} />
+        <i className={icon} style={{ fontSize: '1.4rem' }} />
       </Box>
-      <Typography variant='h6' sx={{ fontWeight: 700 }}>
+      <Typography variant='h6' sx={{ fontWeight: 700, fontSize: { xs: '1.05rem', md: undefined } }}>
         {title}
       </Typography>
-      <Typography variant='body2' color='text.secondary' sx={{ lineHeight: 1.65, flex: 1 }}>
+      <Typography
+        variant='body2'
+        color='text.secondary'
+        sx={{ lineHeight: 1.6, flex: 1, fontSize: { xs: '0.84rem', md: '0.875rem' } }}
+      >
         {body}
       </Typography>
       <Button
@@ -269,10 +321,13 @@ function PathCard({
         href={href}
         variant='outlined'
         disabled={loading}
+        fullWidth
         startIcon={<i className={ctaIcon} />}
         sx={{
-          alignSelf: 'flex-start',
-          mt: 1,
+          alignSelf: { xs: 'stretch', sm: 'flex-start' },
+          width: { xs: '100%', sm: 'auto' },
+          minHeight: 44,
+          mt: 0.5,
           borderColor: alpha(color, 0.45),
           color: HOME_PALETTE.ink,
           '&:hover': {

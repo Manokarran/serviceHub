@@ -58,6 +58,7 @@ const CONTRAST_PROP: Partial<Record<BlockType, string>> = {
   text: 'color',
   showcase: 'textColor',
   pricing: 'textColor',
+  faq: 'textColor',
   icon: 'iconColor'
 }
 

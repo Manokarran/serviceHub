@@ -202,7 +202,12 @@ function pickAnimationLevel(instruction: string): AiSiteWizardProfile['animation
       'fancy',
       'neon',
       'glow',
-      'aurora'
+      'aurora',
+      'plasma',
+      'liquid metal',
+      'sparkle',
+      'prism',
+      'vibrant motion'
     ])
   ) {
     return 'energetic'

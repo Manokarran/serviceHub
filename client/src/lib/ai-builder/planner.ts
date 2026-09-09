@@ -49,7 +49,7 @@ const BLOCK_ALIASES: Array<{ words: string[]; type: BlockType; paletteId?: strin
   { words: ['service', 'services'], type: 'serviceDirectory', paletteId: 'services-directory', label: 'services directory' },
   { words: ['pricing', 'plans', 'packages', 'price'], type: 'pricing', paletteId: 'pricing-cards', label: 'pricing cards' },
   { words: ['testimonial', 'testimonials', 'review', 'reviews'], type: 'text', paletteId: 'text-testimonial', label: 'testimonial' },
-  { words: ['faq', 'faqs', 'questions'], type: 'tabs', paletteId: 'tabs-horizontal-pills', label: 'FAQ tabs' },
+  { words: ['faq', 'faqs', 'questions'], type: 'faq', paletteId: 'faq-glass', label: 'FAQ accordion' },
   { words: ['tab', 'tabs'], type: 'tabs', paletteId: 'tabs-horizontal-underline', label: 'tabs' },
   { words: ['carousel', 'slider', 'slides'], type: 'carousel', paletteId: 'carousel-slide', label: 'carousel' },
   { words: ['portfolio', 'gallery', 'showcase', 'work'], type: 'showcase', paletteId: 'showcase-cards', label: 'showcase cards' },
@@ -164,7 +164,16 @@ function resolveLayoutFromPrompt(prompt: string, type: BlockType): string | null
     { needles: ['stack', 'stacked', 'vertical stack', 'single column'], value: 'stack' },
     { needles: ['split', 'side by side', 'two column', 'two-column'], value: 'split' },
     { needles: ['list', 'listed'], value: 'list' },
-    { needles: ['featured'], value: 'featured' }
+    { needles: ['featured'], value: 'featured' },
+    { needles: ['sidebar left', 'left sidebar'], value: 'sidebar-left' },
+    { needles: ['sidebar right', 'right sidebar'], value: 'sidebar-right' },
+    { needles: ['wide narrow', 'two thirds', '2/3', 'split 2 1'], value: 'split-2-1' },
+    { needles: ['narrow wide', 'one third', '1/3', 'split 1 2'], value: 'split-1-2' },
+    { needles: ['three column', 'three columns', '3 column', '3 columns'], value: 'columns-3' },
+    { needles: ['four column', 'four columns', '4 column', '4 columns'], value: 'columns-4' },
+    { needles: ['double', 'two columns', 'side-by-side'], value: 'split-horizontal' },
+    { needles: ['stacked rows', 'top bottom'], value: 'split-vertical' },
+    { needles: ['single', 'one column'], value: 'default' }
   ]
 
   for (const entry of synonyms) {

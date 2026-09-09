@@ -80,7 +80,9 @@ const CONTACT_PAGE_BLOCKS: Block[] = [
         }
       ],
       primaryChildren: [],
-      secondaryChildren: []
+      secondaryChildren: [],
+      tertiaryChildren: [],
+      quaternaryChildren: []
     }
   }
 ]
@@ -179,7 +181,9 @@ const ABOUT_PAGE_BLOCKS: Block[] = [
             alignment: 'center'
           }
         }
-      ]
+      ],
+      tertiaryChildren: [],
+      quaternaryChildren: []
     }
   }
 ]
@@ -240,7 +244,7 @@ const PRICING_PAGE_BLOCKS: Block[] = [
     props: createPricingDefaultProps({
       layout: 'cards',
       columns: 3,
-      cardStyle: 'elevated',
+      cardStyle: 'glass',
       eyebrow: 'Pricing',
       title: 'Choose the plan that fits',
       subtitle: 'Everything below is placeholder copy. Update plan names, prices, features, and CTAs — the layout stays put.'

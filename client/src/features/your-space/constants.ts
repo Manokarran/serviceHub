@@ -10,6 +10,7 @@ import type {
 } from './types'
 import { DEFAULT_SECTION_STYLE } from './utils/sectionStyleHelpers'
 import { createPricingDefaultProps, SIMPLE_PRICING_PLANS } from './constants/pricingLayout'
+import { createFaqDefaultProps } from './constants/faqLayout'
 import { createShowcaseDefaultProps } from './constants/showcaseLayout'
 
 const DEFAULT_CAROUSEL_SLIDES = [
@@ -245,7 +246,9 @@ const SECTION_BASE_PROPS = {
   ...DEFAULT_SECTION_STYLE,
   children: [],
   primaryChildren: [],
-  secondaryChildren: []
+  secondaryChildren: [],
+  tertiaryChildren: [],
+  quaternaryChildren: []
 }
 
 function sectionPaletteItem(
@@ -253,7 +256,8 @@ function sectionPaletteItem(
   label: string,
   description: string,
   icon: string,
-  layout: SectionLayout
+  layout: SectionLayout,
+  splitRatio = 50
 ): PaletteItem {
   return {
     id,
@@ -264,7 +268,8 @@ function sectionPaletteItem(
     category: 'layout',
     defaultProps: {
       ...SECTION_BASE_PROPS,
-      layout
+      layout,
+      splitRatio
     }
   }
 }
@@ -279,6 +284,40 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     'split-horizontal'
   ),
   sectionPaletteItem('section-stacked', 'Stacked', 'Two stacked rows', 'ri-layout-grid-line', 'split-vertical'),
+  sectionPaletteItem(
+    'section-sidebar-left',
+    'Sidebar left',
+    'Narrow left, wide right',
+    'ri-layout-left-line',
+    'sidebar-left',
+    30
+  ),
+  sectionPaletteItem(
+    'section-sidebar-right',
+    'Sidebar right',
+    'Wide left, narrow right',
+    'ri-layout-right-line',
+    'sidebar-right',
+    70
+  ),
+  sectionPaletteItem(
+    'section-split-2-1',
+    'Wide + narrow',
+    'Two-thirds then one-third',
+    'ri-layout-2-line',
+    'split-2-1',
+    67
+  ),
+  sectionPaletteItem(
+    'section-split-1-2',
+    'Narrow + wide',
+    'One-third then two-thirds',
+    'ri-layout-3-line',
+    'split-1-2',
+    33
+  ),
+  sectionPaletteItem('section-columns-3', 'Three columns', 'Three equal columns', 'ri-layout-column-fill', 'columns-3'),
+  sectionPaletteItem('section-columns-4', 'Four columns', 'Four equal columns', 'ri-grid-line', 'columns-4'),
   carouselPaletteItem('carousel-slide', 'Carousel', 'Animated slides with your blocks', 'ri-carousel-view', 'slide', 'slide'),
   carouselPaletteItem('carousel-fade', 'Fade carousel', 'Cross-fade between slides', 'ri-transition', 'fade', 'fade', {
     autoplayInterval: 6000,
@@ -488,7 +527,7 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     defaultProps: createPricingDefaultProps({
       layout: 'cards',
       columns: 3,
-      cardStyle: 'elevated'
+      cardStyle: 'glass'
     })
   },
   {
@@ -501,7 +540,7 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     defaultProps: createPricingDefaultProps({
       layout: 'comparison',
       columns: 3,
-      cardStyle: 'outlined',
+      cardStyle: 'glass',
       hoverEffect: 'none'
     })
   },
@@ -515,12 +554,59 @@ export const PALETTE_ITEMS: PaletteItem[] = [
     defaultProps: createPricingDefaultProps({
       layout: 'stack',
       columns: 2,
-      cardStyle: 'filled',
+      cardStyle: 'glass',
       showIntervalToggle: false,
       defaultInterval: 'monthly',
       showYearlyTotal: false,
       subtitle: 'Two clear options. Edit names, prices, and features — then publish.',
       plans: SIMPLE_PRICING_PLANS
+    })
+  },
+  {
+    id: 'faq-glass',
+    type: 'faq',
+    label: 'FAQ glass',
+    description: 'Accordion questions with a soft glass look — great on dark or animated backgrounds',
+    icon: 'ri-question-answer-line',
+    category: 'faq',
+    defaultProps: createFaqDefaultProps({
+      layout: 'stack',
+      cardStyle: 'glass',
+      cardBackground: '#1e1b4b',
+      textColor: '#ffffff',
+      cardBorderColor: 'rgba(255,255,255,0.22)',
+      cardShadow: 'soft',
+      defaultOpenFirst: false
+    })
+  },
+  {
+    id: 'faq-outlined',
+    type: 'faq',
+    label: 'FAQ light',
+    description: 'Glass accordion on a light card fill — works on bright pages',
+    icon: 'ri-questionnaire-line',
+    category: 'faq',
+    defaultProps: createFaqDefaultProps({
+      layout: 'stack',
+      cardStyle: 'glass',
+      cardBackground: '#ffffff',
+      textColor: '#0f172a',
+      cardShadow: 'soft'
+    })
+  },
+  {
+    id: 'faq-split',
+    type: 'faq',
+    label: 'FAQ split',
+    description: 'Title beside questions on desktop; stacks on mobile',
+    icon: 'ri-layout-left-line',
+    category: 'faq',
+    defaultProps: createFaqDefaultProps({
+      layout: 'split-header',
+      cardStyle: 'glass',
+      alignment: 'left',
+      maxWidth: 'lg',
+      defaultOpenFirst: true
     })
   },
   {
@@ -1014,6 +1100,14 @@ export const PALETTE_CATEGORIES = [
     itemLayout: 'tile' as const
   },
   {
+    id: 'faq' as const,
+    label: 'FAQ',
+    chipLabel: 'FAQ',
+    icon: 'ri-question-answer-line',
+    defaultExpanded: false,
+    itemLayout: 'tile' as const
+  },
+  {
     id: 'services' as const,
     label: 'Services',
     chipLabel: 'Services',
@@ -1104,7 +1198,9 @@ export const STARTER_BLOCKS: Block[] = [
         }
       ],
       primaryChildren: [],
-      secondaryChildren: []
+      secondaryChildren: [],
+      tertiaryChildren: [],
+      quaternaryChildren: []
     }
   }
 ]
@@ -1121,7 +1217,9 @@ export function createStarterBlocks(): Block[] {
           ...props,
           children: props.children.map(child => ({ ...child, id: `${child.type}-${crypto.randomUUID()}` })),
           primaryChildren: [],
-          secondaryChildren: []
+          secondaryChildren: [],
+          tertiaryChildren: [],
+          quaternaryChildren: []
         }
       }
     }

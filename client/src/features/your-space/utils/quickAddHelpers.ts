@@ -1,12 +1,14 @@
 import type { AiBuilderInsertAt } from '@/lib/ai-builder/types'
 
 import { PALETTE_ITEMS } from '../constants'
+import { getSectionColumnShortLabel } from '../constants/sectionLayout'
 import type { Block, BlockType, CarouselBlockProps, PaletteItem, SectionBlockProps, TabsBlockProps } from '../types'
 import {
   canNestInCarousel,
   canNestInSection,
   canNestInTabs,
   findBlockInTree,
+  getActiveSectionColumns,
   getCarouselSlideChildren,
   getSectionColumnChildren,
   getTabPanelChildren,
@@ -132,14 +134,10 @@ function containerInsertLabel(blocks: Block[], location: QuickAddLocation): stri
   if (location.container === 'section') {
     const section = findBlockInTree(blocks, location.sectionId)
     const props = section?.props as SectionBlockProps | undefined
-    const layout = props?.layout ?? 'single'
+    const layout = props?.layout ?? 'default'
 
-    if (location.column === 'secondary') {
-      return layout === 'split-vertical' ? 'bottom row' : 'right column'
-    }
-
-    if (location.column === 'primary') {
-      return layout === 'split-vertical' ? 'top row' : 'left column'
+    if (location.column !== 'default') {
+      return getSectionColumnShortLabel(layout, location.column)
     }
 
     return section ? describeBlockForInsert(section) : 'section'
@@ -246,15 +244,7 @@ export function resolveAiInsertTarget(
 }
 
 function sectionColumnLabel(layout: SectionBlockProps['layout'], column: BlockColumn): string {
-  if (column === 'secondary') {
-    return layout === 'split-vertical' ? 'bottom row' : 'right column'
-  }
-
-  if (column === 'primary') {
-    return layout === 'split-vertical' ? 'top row' : 'left column'
-  }
-
-  return 'section'
+  return getSectionColumnShortLabel(layout ?? 'default', column)
 }
 
 export type InsertInsideOption = {
@@ -282,10 +272,9 @@ export function listInsertInsideTargets(
 ): InsertInsideOption[] {
   if (block.type === 'section') {
     const props = block.props as SectionBlockProps
-    const isSplit = props.layout === 'split-horizontal' || props.layout === 'split-vertical'
     const hint = nestHints?.[block.id]
     const hintedColumn = hint?.kind === 'section' ? hint.column : undefined
-    const columns: BlockColumn[] = isSplit ? ['primary', 'secondary'] : ['default']
+    const columns: BlockColumn[] = getActiveSectionColumns(props.layout)
 
     const ordered =
       preferredColumn && columns.includes(preferredColumn)

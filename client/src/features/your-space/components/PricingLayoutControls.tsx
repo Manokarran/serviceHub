@@ -32,7 +32,8 @@ export function PricingLayoutControls({ props, onUpdate }: Props) {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <PropertySection title='Structure' collapsible defaultOpen>
         <PropertyBodyText>
-          Cards is the classic SaaS row. Compare is a feature matrix. Stack is a compact two-plan layout for mobile-first pages.
+          Cards is the classic SaaS row. Compare is a feature matrix on desktop and automatically switches to cards on
+          mobile. Stack is a compact two-plan layout for mobile-first pages.
         </PropertyBodyText>
         <LayoutOptionGroup value={props.layout} options={PRICING_LAYOUT_OPTIONS} onChange={applyLayout} />
       </PropertySection>

@@ -1,7 +1,13 @@
-import type { Block, HeadingBlockVariant, TextBlockVariant } from '@/features/your-space/types'
+import type { Block, HeadingBlockVariant, HeroSplitVisualAnimation, TextBlockVariant } from '@/features/your-space/types'
+import {
+  HERO_SPLIT_VISUAL_ANIMATION_OPTIONS,
+  HERO_VISUAL_GRADIENT_PRESETS,
+  type HeroVisualGradientPreset
+} from '@/features/your-space/constants/heroVisual'
 import { mapBlocks } from '@/lib/ai-site-wizard/block-media'
 import type { AiDesignBrief } from '@/lib/ai-site-wizard/design-brief'
 import { CORNER_TOKENS } from '@/lib/ai-site-wizard/design-catalog'
+import { pickFromPool } from '@/lib/ai-site-wizard/variety'
 import type { AiSiteWizardProfile } from '@/lib/validators/ai-site-wizard.validator'
 
 type Personality = AiSiteWizardProfile['stylePersonality']
@@ -36,11 +42,26 @@ const ANIMATED_BACKGROUND_TYPES = new Set([
   'header',
   'footer',
   'carousel',
+  'pricing',
+  'faq',
+  'showcase',
   'serviceDirectory',
   'serviceBooking',
   'customerBookings',
   'location'
 ])
+
+/** Every non-static option from the Animated background panel (classic + effects). */
+const PANEL_MOTION_OPTIONS: HeroSplitVisualAnimation[] = HERO_SPLIT_VISUAL_ANIMATION_OPTIONS.filter(
+  option => option.value !== 'static'
+).map(option => option.value)
+
+function pickDifferent<T>(pool: readonly T[], current: T | undefined, seed: string, salt: string): T {
+  const alternatives = pool.filter(value => value !== current)
+  const choices = alternatives.length > 0 ? alternatives : pool
+
+  return pickFromPool(choices, seed, salt)
+}
 
 /**
  * The layout engine only reshapes container controls, so a leaf like a heading or a button
@@ -109,29 +130,103 @@ export function polishLeafControls(
   })
 }
 
+export type AnimatedBackgroundChoice = {
+  animation: HeroSplitVisualAnimation
+  colorStart: string
+  colorEnd: string
+  presetLabel: string
+}
+
 /**
- * Turn on the existing HeroVisualPanel engine for a selected background-capable control.
- * A visual animation replaces a static/photo fill deliberately, while its two colors come
- * from the same art-directed brief so it never becomes an unrelated neon effect.
+ * Pick a motion + gradient pair from the same options the Animated background panel offers.
+ * Prefers a different animation and color preset than the control currently uses.
+ */
+export function pickAnimatedBackgroundChoice(
+  seed: string,
+  current?: { animation?: string; colorStart?: string; colorEnd?: string },
+  extraPresets: HeroVisualGradientPreset[] = []
+): AnimatedBackgroundChoice {
+  const animation = pickDifferent(
+    PANEL_MOTION_OPTIONS,
+    current?.animation as HeroSplitVisualAnimation | undefined,
+    seed,
+    'motion'
+  )
+  const presetPool = [...extraPresets, ...HERO_VISUAL_GRADIENT_PRESETS]
+  const currentPreset = presetPool.find(
+    preset =>
+      preset.start.toLowerCase() === (current?.colorStart ?? '').toLowerCase() &&
+      preset.end.toLowerCase() === (current?.colorEnd ?? '').toLowerCase()
+  )
+  const preset = pickDifferent(presetPool, currentPreset, seed, 'gradient')
+
+  return {
+    animation,
+    colorStart: preset.start,
+    colorEnd: preset.end,
+    presetLabel: preset.label
+  }
+}
+
+/**
+ * Apply an Animated-panel backdrop: clears photo fills, sets a motion style, and gradient
+ * colors from the panel presets. Each call with a new seed tries a different combo.
  */
 export function applyAnimatedBackgroundToBlocks(
   pageSlug: string,
   blocks: Block[],
-  brief: AiDesignBrief
+  brief: AiDesignBrief,
+  seed = `${brief.motion}:${brief.gradientStart}:${brief.gradientEnd}`
 ): Block[] {
-  return mapBlocks(blocks, pageSlug, '/blocks', (block, _path, props) => {
+  const themePresets: HeroVisualGradientPreset[] = [
+    {
+      id: 'brief-theme',
+      label: 'Theme brief',
+      start: brief.gradientStart,
+      end: brief.gradientEnd,
+      themeMatched: true
+    },
+    {
+      id: 'brief-accent',
+      label: 'Theme accent',
+      start: brief.accent,
+      end: brief.gradientEnd,
+      themeMatched: true
+    },
+    {
+      id: 'brief-surface',
+      label: 'Theme surface',
+      start: brief.accent,
+      end: brief.gradientStart,
+      themeMatched: true
+    }
+  ]
+
+  return mapBlocks(blocks, pageSlug, '/blocks', (block, path, props) => {
     if (!ANIMATED_BACKGROUND_TYPES.has(block.type)) {
       return props
     }
+
+    const choice = pickAnimatedBackgroundChoice(
+      `${seed}:${path}:${block.id}`,
+      {
+        animation: typeof props.splitVisualAnimation === 'string' ? props.splitVisualAnimation : undefined,
+        colorStart: typeof props.splitVisualColorStart === 'string' ? props.splitVisualColorStart : undefined,
+        colorEnd: typeof props.splitVisualColorEnd === 'string' ? props.splitVisualColorEnd : undefined
+      },
+      themePresets
+    )
 
     return {
       ...props,
       backgroundType: 'color',
       background: brief.background,
       backgroundOpacity: 100,
-      splitVisualAnimation: brief.motion,
-      splitVisualColorStart: brief.gradientStart,
-      splitVisualColorEnd: brief.gradientEnd
+      backgroundPhotoOpacity: undefined,
+      backgroundPhotoAnimation: undefined,
+      splitVisualAnimation: choice.animation,
+      splitVisualColorStart: choice.colorStart,
+      splitVisualColorEnd: choice.colorEnd
     }
   })
 }

@@ -82,6 +82,8 @@ function collectFromBlocks(blocks: Block[], urls: string[]) {
       collectFromBlocks((props.children ?? []) as Block[], urls)
       collectFromBlocks((props.primaryChildren ?? []) as Block[], urls)
       collectFromBlocks((props.secondaryChildren ?? []) as Block[], urls)
+      collectFromBlocks((props.tertiaryChildren ?? []) as Block[], urls)
+      collectFromBlocks((props.quaternaryChildren ?? []) as Block[], urls)
     }
 
     if (block.type === 'carousel') {
@@ -121,7 +123,9 @@ export function findHeroBlock(blocks: Block[]): HeroBlockProps | null {
       const nested =
         findHeroBlock((props.children ?? []) as Block[]) ??
         findHeroBlock((props.primaryChildren ?? []) as Block[]) ??
-        findHeroBlock((props.secondaryChildren ?? []) as Block[])
+        findHeroBlock((props.secondaryChildren ?? []) as Block[]) ??
+        findHeroBlock((props.tertiaryChildren ?? []) as Block[]) ??
+        findHeroBlock((props.quaternaryChildren ?? []) as Block[])
 
       if (nested) {
         return nested

@@ -1,6 +1,7 @@
+import { ALL_SECTION_COLUMNS, getSectionColumnsForLayout, isSplitSectionLayout } from '../constants/sectionLayout'
 import type { Block, BlockPropsPatch, BlockType, CarouselBlockProps, SectionBlockProps, TabsBlockProps } from '../types'
 
-export type BlockColumn = 'default' | 'primary' | 'secondary'
+export type BlockColumn = 'default' | 'primary' | 'secondary' | 'tertiary' | 'quaternary'
 
 export type BlockLocation =
   | { container: 'root'; index: number }
@@ -24,6 +25,7 @@ export const SECTION_CHILD_TYPES: BlockType[] = [
   'contactForm',
   'showcase',
   'pricing',
+  'faq',
   'serviceDirectory',
   'serviceBooking',
   'customerBookings',
@@ -61,7 +63,26 @@ export function getSectionColumnChildren(section: Block, column: BlockColumn): B
     return props.secondaryChildren ?? []
   }
 
+  if (column === 'tertiary') {
+    return props.tertiaryChildren ?? []
+  }
+
+  if (column === 'quaternary') {
+    return props.quaternaryChildren ?? []
+  }
+
   return props.children ?? []
+}
+
+/** All column lists on a section (including empty / orphaned slots). */
+export function getAllSectionColumnLists(props: SectionBlockProps): Block[][] {
+  return [
+    props.children ?? [],
+    props.primaryChildren ?? [],
+    props.secondaryChildren ?? [],
+    props.tertiaryChildren ?? [],
+    props.quaternaryChildren ?? []
+  ]
 }
 
 export function getCarouselSlideChildren(carousel: Block, slideId: string): Block[] {
@@ -78,11 +99,17 @@ export function getTabPanelChildren(tabsBlock: Block, panelId: string): Block[] 
   return panel?.children ?? []
 }
 export function getDefaultSectionColumn(layout: SectionBlockProps['layout']): BlockColumn {
-  if (layout === 'split-horizontal' || layout === 'split-vertical') {
+  if (isSplitSectionLayout(layout)) {
     return 'primary'
   }
 
   return 'default'
+}
+
+export function getActiveSectionColumns(layout: SectionBlockProps['layout']): BlockColumn[] {
+  const columns = getSectionColumnsForLayout(layout ?? 'default')
+
+  return columns.length > 0 ? columns : ['default']
 }
 
 export function parseSectionDropId(id: string | number): { sectionId: string; column: BlockColumn } | null {
@@ -227,6 +254,14 @@ function setSectionColumnChildren(
     return { ...props, secondaryChildren: children }
   }
 
+  if (column === 'tertiary') {
+    return { ...props, tertiaryChildren: children }
+  }
+
+  if (column === 'quaternary') {
+    return { ...props, quaternaryChildren: children }
+  }
+
   return { ...props, children }
 }
 
@@ -239,7 +274,9 @@ function mapSectionColumns(section: Block, mapper: (children: Block[]) => Block[
       ...props,
       children: mapper(props.children ?? []),
       primaryChildren: mapper(props.primaryChildren ?? []),
-      secondaryChildren: mapper(props.secondaryChildren ?? [])
+      secondaryChildren: mapper(props.secondaryChildren ?? []),
+      tertiaryChildren: mapper(props.tertiaryChildren ?? []),
+      quaternaryChildren: mapper(props.quaternaryChildren ?? [])
     }
   }
 }
@@ -351,7 +388,7 @@ function findSectionInTree(blocks: Block[], sectionId: string): Block | null {
     }
 
     if (block.type === 'section') {
-      for (const column of ['default', 'primary', 'secondary'] as BlockColumn[]) {
+      for (const column of ALL_SECTION_COLUMNS) {
         const found = findSectionInTree(getSectionColumnChildren(block, column), sectionId)
 
         if (found) {
@@ -395,7 +432,7 @@ function findCarouselInTree(blocks: Block[], carouselId: string): Block | null {
     }
 
     if (block.type === 'section') {
-      for (const column of ['default', 'primary', 'secondary'] as BlockColumn[]) {
+      for (const column of ALL_SECTION_COLUMNS) {
         const found = findCarouselInTree(getSectionColumnChildren(block, column), carouselId)
 
         if (found) {
@@ -439,7 +476,7 @@ function findTabsInTree(blocks: Block[], tabsId: string): Block | null {
     }
 
     if (block.type === 'section') {
-      for (const column of ['default', 'primary', 'secondary'] as BlockColumn[]) {
+      for (const column of ALL_SECTION_COLUMNS) {
         const found = findTabsInTree(getSectionColumnChildren(block, column), tabsId)
 
         if (found) {
@@ -483,7 +520,7 @@ export function findBlockInTree(blocks: Block[], id: string): Block | null {
     }
 
     if (block.type === 'section') {
-      for (const column of ['default', 'primary', 'secondary'] as BlockColumn[]) {
+      for (const column of ALL_SECTION_COLUMNS) {
         const found = findBlockInTree(getSectionColumnChildren(block, column), id)
 
         if (found) {
@@ -560,7 +597,7 @@ function findBlockLocationInList(
     }
 
     if (block.type === 'section') {
-      for (const column of ['default', 'primary', 'secondary'] as BlockColumn[]) {
+      for (const column of ALL_SECTION_COLUMNS) {
         const found = findBlockLocationInList(getSectionColumnChildren(block, column), id, {
           container: 'section',
           sectionId: block.id,
@@ -1104,11 +1141,9 @@ export function flattenBlocks(blocks: Block[]): Block[] {
     if (block.type === 'section') {
       const props = block.props as SectionBlockProps
 
-      result.push(
-        ...flattenBlocks(props.children ?? []),
-        ...flattenBlocks(props.primaryChildren ?? []),
-        ...flattenBlocks(props.secondaryChildren ?? [])
-      )
+      for (const columnChildren of getAllSectionColumnLists(props)) {
+        result.push(...flattenBlocks(columnChildren))
+      }
     }
 
     if (block.type === 'carousel') {
@@ -1138,9 +1173,8 @@ export function findParentSectionId(blocks: Block[], targetId: string): string |
     }
 
     const props = block.props as SectionBlockProps
-    const columnLists = [props.children ?? [], props.primaryChildren ?? [], props.secondaryChildren ?? []]
 
-    for (const columnChildren of columnLists) {
+    for (const columnChildren of getAllSectionColumnLists(props)) {
       if (columnChildren.some(child => child.id === targetId)) {
         return block.id
       }
@@ -1184,9 +1218,8 @@ export function findParentCarouselId(blocks: Block[], targetId: string): string 
 
     if (block.type === 'section') {
       const props = block.props as SectionBlockProps
-      const columnLists = [props.children ?? [], props.primaryChildren ?? [], props.secondaryChildren ?? []]
 
-      for (const columnChildren of columnLists) {
+      for (const columnChildren of getAllSectionColumnLists(props)) {
         for (const child of columnChildren) {
           const carouselId = findParentCarouselId([child], targetId)
 
@@ -1225,9 +1258,8 @@ export function findParentTabsId(blocks: Block[], targetId: string): string | nu
 
     if (block.type === 'section') {
       const props = block.props as SectionBlockProps
-      const columnLists = [props.children ?? [], props.primaryChildren ?? [], props.secondaryChildren ?? []]
 
-      for (const columnChildren of columnLists) {
+      for (const columnChildren of getAllSectionColumnLists(props)) {
         for (const child of columnChildren) {
           const tabsId = findParentTabsId([child], targetId)
 

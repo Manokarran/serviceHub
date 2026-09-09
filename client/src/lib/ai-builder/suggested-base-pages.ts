@@ -162,7 +162,9 @@ export function ensureNavLinksOnBlocks(blocks: Block[], links: NavLink[]): Block
             ...props,
             children: walk(props.children ?? []),
             primaryChildren: walk(props.primaryChildren ?? []),
-            secondaryChildren: walk(props.secondaryChildren ?? [])
+            secondaryChildren: walk(props.secondaryChildren ?? []),
+            tertiaryChildren: walk(props.tertiaryChildren ?? []),
+            quaternaryChildren: walk(props.quaternaryChildren ?? [])
           }
         }
       }

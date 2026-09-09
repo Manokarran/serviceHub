@@ -18,6 +18,7 @@ export const BLOCK_TYPES = [
   'contactForm',
   'showcase',
   'pricing',
+  'faq',
   'serviceDirectory',
   'serviceBooking',
   'customerBookings',
@@ -70,8 +71,25 @@ export type HeroSplitVisualAnimation =
   | 'constellation'
   | 'geometric'
   | 'particles-rise'
+  | 'liquid-metal'
+  | 'neon-pulse'
+  | 'prism-beams'
+  | 'ripple-field'
+  | 'spotlight-sweep'
+  | 'ribbon-flow'
+  | 'plasma'
+  | 'sparkle-rain'
 
-export type SectionLayout = 'default' | 'split-horizontal' | 'split-vertical'
+export type SectionLayout =
+  | 'default'
+  | 'split-horizontal'
+  | 'split-vertical'
+  | 'sidebar-left'
+  | 'sidebar-right'
+  | 'split-1-2'
+  | 'split-2-1'
+  | 'columns-3'
+  | 'columns-4'
 
 export type SectionBorderStyle = 'none' | 'subtle' | 'outline' | 'elevated' | 'inset'
 
@@ -148,6 +166,7 @@ export type PaletteCategory =
   | 'typography'
   | 'forms'
   | 'pricing'
+  | 'faq'
   | 'services'
 
 export interface BlockBackgroundProps {
@@ -369,6 +388,43 @@ export interface PricingBlockProps extends BlockBackgroundProps, SplitVisualConf
   featureIconStyle: PricingFeatureIconStyle
 }
 
+export type FaqLayout = 'stack' | 'split-header'
+export type FaqCardStyle = 'elevated' | 'outlined' | 'filled' | 'glass'
+export type FaqExpandMode = 'single' | 'multiple'
+export type FaqIconStyle = 'chevron' | 'plus' | 'caret'
+
+export interface FaqItem {
+  id: string
+  question: string
+  answer: string
+}
+
+export interface FaqBlockProps extends BlockBackgroundProps, SplitVisualConfig {
+  eyebrow: string
+  title: string
+  subtitle: string
+  alignment: TextAlign
+  layout: FaqLayout
+  cardStyle: FaqCardStyle
+  expandMode: FaqExpandMode
+  defaultOpenFirst: boolean
+  iconStyle: FaqIconStyle
+  items: FaqItem[]
+  paddingY: number
+  paddingX: number
+  maxWidth: 'sm' | 'md' | 'lg' | 'full'
+  gap: number
+  cardRadius: number
+  textColor: string
+  accentColor: string
+  cardBackground: string
+  cardBorderColor: string
+  cardBorderWidth: number
+  cardShadow: PricingCardShadow
+  titleStyle?: HeroTitleStyle
+  entranceAnimation: PricingEntranceAnimation
+}
+
 export type CarouselTransition = 'slide' | 'fade' | 'scale' | 'coverflow'
 
 export type CarouselArrowStyle = 'minimal' | 'rounded' | 'floating'
@@ -490,6 +546,8 @@ export interface SectionBlockProps extends BlockBackgroundProps, SplitVisualConf
   children: Block[]
   primaryChildren: Block[]
   secondaryChildren: Block[]
+  tertiaryChildren: Block[]
+  quaternaryChildren: Block[]
 }
 
 export type TextTypographyFontSource = 'heading' | 'body' | 'custom'
@@ -749,6 +807,7 @@ export type BlockPropsMap = {
   contactForm: ContactFormBlockProps
   showcase: ShowcaseBlockProps
   pricing: PricingBlockProps
+  faq: FaqBlockProps
   serviceDirectory: ServiceDirectoryBlockProps
   serviceBooking: ServiceBookingBlockProps
   customerBookings: CustomerBookingsBlockProps

@@ -5,6 +5,7 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
+import { getSectionColumnShortLabel, type SectionSplitColumn } from '../../constants/sectionLayout'
 import type { Block, SectionBlockProps } from '../../types'
 import type { BlockColumn } from '../../utils/blockTreeUtils'
 import {
@@ -30,6 +31,14 @@ type Props = {
   emptyLabel: string
 }
 
+function resolveContrastColumn(column: BlockColumn): SectionSplitColumn | 'default' {
+  if (column === 'default') {
+    return 'default'
+  }
+
+  return column
+}
+
 export function SectionDropZone({ sectionId, column, children, sectionProps, editMode, emptyLabel }: Props) {
   const theme = useTheme()
   const { active } = useDndContext()
@@ -40,7 +49,7 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
     id: droppableId,
     data: { container: 'section', sectionId, column }
   })
-  const columnBg = getSectionColumnBackground(sectionProps, column === 'default' ? 'primary' : column)
+  const columnBg = getSectionColumnBackground(sectionProps, resolveContrastColumn(column))
   const splitStyle = sectionProps.splitStyle ?? 'gap'
   const showBuilderChrome = editMode && splitStyle !== 'contrast'
   const backgroundOpacity = getBlockBackgroundOpacity(sectionProps)
@@ -50,15 +59,9 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
   const isEmpty = children.length === 0
   const isStacked = sectionProps.layout === 'split-vertical'
   const columnLabel =
-    column === 'secondary'
-      ? isStacked
-        ? 'bottom row'
-        : 'right column'
-      : column === 'primary'
-        ? isStacked
-          ? 'top row'
-          : 'left column'
-        : 'section'
+    column === 'default'
+      ? 'section'
+      : getSectionColumnShortLabel(sectionProps.layout ?? 'default', column)
 
   if (!editMode) {
     return (

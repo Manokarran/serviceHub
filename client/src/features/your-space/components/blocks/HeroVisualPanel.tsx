@@ -85,6 +85,42 @@ export const SHARED_KEYFRAMES = {
     '15%': { opacity: 0.85 },
     '85%': { opacity: 0.45 },
     '100%': { transform: 'translateY(-120%)', opacity: 0 }
+  },
+  '@keyframes heroLiquidFlow': {
+    '0%': { backgroundPosition: '0% 40%', transform: 'scale(1)' },
+    '50%': { backgroundPosition: '100% 60%', transform: 'scale(1.06)' },
+    '100%': { backgroundPosition: '0% 40%', transform: 'scale(1)' }
+  },
+  '@keyframes heroNeonPulse': {
+    '0%, 100%': { opacity: 0.45, transform: 'scale(0.92)', filter: 'blur(18px)' },
+    '50%': { opacity: 0.95, transform: 'scale(1.08)', filter: 'blur(28px)' }
+  },
+  '@keyframes heroPrismSpin': {
+    from: { transform: 'rotate(0deg)' },
+    to: { transform: 'rotate(360deg)' }
+  },
+  '@keyframes heroRippleExpand': {
+    '0%': { transform: 'scale(0.35)', opacity: 0.55 },
+    '100%': { transform: 'scale(1.55)', opacity: 0 }
+  },
+  '@keyframes heroSpotlightSweep': {
+    '0%': { transform: 'translate(-40%, -20%)' },
+    '50%': { transform: 'translate(35%, 15%)' },
+    '100%': { transform: 'translate(-40%, -20%)' }
+  },
+  '@keyframes heroRibbonDrift': {
+    '0%, 100%': { transform: 'translateX(0) rotate(-8deg)' },
+    '50%': { transform: 'translateX(8%) rotate(6deg)' }
+  },
+  '@keyframes heroPlasmaPulse': {
+    '0%, 100%': { transform: 'translate(0, 0) scale(1)', opacity: 0.55 },
+    '33%': { transform: 'translate(10%, -12%) scale(1.15)', opacity: 0.8 },
+    '66%': { transform: 'translate(-12%, 8%) scale(0.9)', opacity: 0.65 }
+  },
+  '@keyframes heroSparkleFall': {
+    '0%': { transform: 'translate3d(0, -20%, 0) rotate(0deg)', opacity: 0 },
+    '12%': { opacity: 1 },
+    '100%': { transform: 'translate3d(18%, 130%, 0) rotate(180deg)', opacity: 0 }
   }
 } as const
 
@@ -526,6 +562,252 @@ function ParticlesRiseVisual() {
   )
 }
 
+function LiquidMetalVisual({ colorStart, colorEnd }: { colorStart: string; colorEnd: string }) {
+  return (
+    <>
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: '-20%',
+          background: `radial-gradient(circle at 30% 40%, ${colorStart} 0%, transparent 45%), radial-gradient(circle at 70% 60%, ${colorEnd} 0%, transparent 50%), linear-gradient(120deg, ${colorStart}, ${colorEnd})`,
+          backgroundSize: '160% 160%',
+          opacity: 0.85,
+          filter: 'saturate(1.25) contrast(1.05)',
+          ...motionSafe('heroLiquidFlow 10s ease-in-out infinite', 'none')
+        }}
+      />
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.35) 48%, transparent 62%)',
+          mixBlendMode: 'soft-light',
+          ...motionSafe('heroShimmerSweep 5.5s ease-in-out infinite', 'none')
+        }}
+      />
+    </>
+  )
+}
+
+function NeonPulseVisual({ colorStart, colorEnd }: { colorStart: string; colorEnd: string }) {
+  const orbs = [
+    { color: colorStart, top: '18%', left: '22%', size: 140, delay: '0s' },
+    { color: colorEnd, top: '48%', left: '58%', size: 170, delay: '-1.4s' },
+    { color: colorStart, top: '62%', left: '12%', size: 110, delay: '-2.8s' }
+  ]
+
+  return (
+    <>
+      {orbs.map((orb, index) => (
+        <Box
+          key={index}
+          sx={{
+            position: 'absolute',
+            top: orb.top,
+            left: orb.left,
+            width: orb.size,
+            height: orb.size,
+            borderRadius: '50%',
+            background: orb.color,
+            boxShadow: `0 0 40px ${orb.color}, 0 0 80px ${orb.color}`,
+            ...motionSafe('heroNeonPulse 3.6s ease-in-out infinite', 'none'),
+            animationDelay: orb.delay
+          }}
+        />
+      ))}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: '18%',
+          borderRadius: 4,
+          border: `1.5px solid ${colorEnd}`,
+          boxShadow: `inset 0 0 24px ${colorStart}55, 0 0 28px ${colorEnd}66`,
+          opacity: 0.55,
+          ...motionSafe('heroNeonPulse 4.8s ease-in-out infinite reverse', 'none')
+        }}
+      />
+    </>
+  )
+}
+
+function PrismBeamsVisual({ colorStart, colorEnd }: { colorStart: string; colorEnd: string }) {
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        inset: '-30%',
+        ...motionSafe('heroPrismSpin 28s linear infinite', 'none')
+      }}
+    >
+      {[0, 1, 2, 3, 4, 5].map(index => (
+        <Box
+          key={index}
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: '70%',
+            height: 10,
+            marginLeft: '-35%',
+            marginTop: '-5px',
+            transform: `rotate(${index * 30}deg)`,
+            transformOrigin: 'center',
+            background: `linear-gradient(90deg, transparent, ${index % 2 === 0 ? colorStart : colorEnd}, transparent)`,
+            opacity: 0.45,
+            filter: 'blur(1px)'
+          }}
+        />
+      ))}
+    </Box>
+  )
+}
+
+function RippleFieldVisual({ colorStart, colorEnd }: { colorStart: string; colorEnd: string }) {
+  const rings = [
+    { delay: '0s', color: colorStart },
+    { delay: '1.2s', color: colorEnd },
+    { delay: '2.4s', color: colorStart },
+    { delay: '3.6s', color: colorEnd }
+  ]
+
+  return (
+    <>
+      {rings.map(ring => (
+        <Box
+          key={ring.delay}
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: '58%',
+            aspectRatio: '1',
+            marginTop: '-29%',
+            marginLeft: '-29%',
+            borderRadius: '50%',
+            border: `2px solid ${ring.color}`,
+            boxShadow: `0 0 18px ${ring.color}88`,
+            ...motionSafe('heroRippleExpand 4.8s ease-out infinite', 'none'),
+            animationDelay: ring.delay,
+            [REDUCED_MOTION]: { animation: 'none', opacity: 0.25 }
+          }}
+        />
+      ))}
+    </>
+  )
+}
+
+function SpotlightSweepVisual({ colorStart, colorEnd }: { colorStart: string; colorEnd: string }) {
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        width: '70%',
+        height: '70%',
+        top: '10%',
+        left: '15%',
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${colorStart}cc 0%, ${colorEnd}55 35%, transparent 70%)`,
+        filter: 'blur(8px)',
+        ...motionSafe('heroSpotlightSweep 9s ease-in-out infinite', 'none')
+      }}
+    />
+  )
+}
+
+function RibbonFlowVisual({ colorStart, colorEnd }: { colorStart: string; colorEnd: string }) {
+  const ribbons = [
+    { top: '18%', height: 56, delay: '0s', opacity: 0.4 },
+    { top: '42%', height: 72, delay: '-2s', opacity: 0.32 },
+    { top: '66%', height: 48, delay: '-4s', opacity: 0.38 }
+  ]
+
+  return (
+    <>
+      {ribbons.map((ribbon, index) => (
+        <Box
+          key={index}
+          sx={{
+            position: 'absolute',
+            top: ribbon.top,
+            left: '-10%',
+            width: '120%',
+            height: ribbon.height,
+            borderRadius: '999px',
+            background: `linear-gradient(90deg, transparent, ${index % 2 === 0 ? colorStart : colorEnd}, transparent)`,
+            opacity: ribbon.opacity,
+            filter: 'blur(2px)',
+            ...motionSafe('heroRibbonDrift 8s ease-in-out infinite', 'none'),
+            animationDelay: ribbon.delay
+          }}
+        />
+      ))}
+    </>
+  )
+}
+
+function PlasmaVisual({ colorStart, colorEnd }: { colorStart: string; colorEnd: string }) {
+  const blobs = [
+    { color: colorStart, top: '5%', left: '8%', size: '48%', delay: '0s' },
+    { color: colorEnd, top: '35%', left: '45%', size: '52%', delay: '-2s' },
+    { color: colorStart, top: '55%', left: '5%', size: '44%', delay: '-4s' },
+    { color: colorEnd, top: '10%', left: '58%', size: '40%', delay: '-1s' }
+  ]
+
+  return (
+    <>
+      {blobs.map((blob, index) => (
+        <Box
+          key={index}
+          sx={{
+            position: 'absolute',
+            top: blob.top,
+            left: blob.left,
+            width: blob.size,
+            height: blob.size,
+            borderRadius: '45% 55% 60% 40% / 50% 40% 60% 50%',
+            background: blob.color,
+            filter: 'blur(28px)',
+            mixBlendMode: 'screen',
+            ...motionSafe(`heroPlasmaPulse ${7 + index}s ease-in-out infinite`, 'none'),
+            animationDelay: blob.delay
+          }}
+        />
+      ))}
+    </>
+  )
+}
+
+function SparkleRainVisual() {
+  const sparkles = Array.from({ length: 22 }, (_, index) => ({
+    left: `${4 + (index * 4.4) % 92}%`,
+    size: 2 + (index % 4),
+    delay: `${-(index * 0.45) % 5}s`,
+    duration: `${3.2 + (index % 5) * 0.35}s`
+  }))
+
+  return (
+    <>
+      {sparkles.map((sparkle, index) => (
+        <Box
+          key={index}
+          sx={{
+            position: 'absolute',
+            top: '-10%',
+            left: sparkle.left,
+            width: sparkle.size,
+            height: sparkle.size,
+            borderRadius: index % 3 === 0 ? '1px' : '50%',
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            boxShadow: '0 0 10px rgba(255,255,255,0.75)',
+            ...motionSafe(`heroSparkleFall ${sparkle.duration} linear infinite`, 'none'),
+            animationDelay: sparkle.delay
+          }}
+        />
+      ))}
+    </>
+  )
+}
+
 function GradientShiftOverlay() {
   return (
     <Box
@@ -566,6 +848,22 @@ function renderHeroVisualAnimation(animation: HeroSplitVisualAnimation, colors: 
       return <GeometricVisual />
     case 'particles-rise':
       return <ParticlesRiseVisual />
+    case 'liquid-metal':
+      return <LiquidMetalVisual colorStart={colors.start} colorEnd={colors.end} />
+    case 'neon-pulse':
+      return <NeonPulseVisual colorStart={colors.start} colorEnd={colors.end} />
+    case 'prism-beams':
+      return <PrismBeamsVisual colorStart={colors.start} colorEnd={colors.end} />
+    case 'ripple-field':
+      return <RippleFieldVisual colorStart={colors.start} colorEnd={colors.end} />
+    case 'spotlight-sweep':
+      return <SpotlightSweepVisual colorStart={colors.start} colorEnd={colors.end} />
+    case 'ribbon-flow':
+      return <RibbonFlowVisual colorStart={colors.start} colorEnd={colors.end} />
+    case 'plasma':
+      return <PlasmaVisual colorStart={colors.start} colorEnd={colors.end} />
+    case 'sparkle-rain':
+      return <SparkleRainVisual />
     case 'gradient-shift':
       return <GradientShiftOverlay />
     case 'static':

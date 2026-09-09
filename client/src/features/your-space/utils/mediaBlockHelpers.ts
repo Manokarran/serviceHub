@@ -310,14 +310,101 @@ export function getContinuousAnimationSx(
   }
 }
 
-export function getFixedBlockShellSx(type: 'header' | 'footer', fixed: boolean): SxProps<Theme> {
+const STICKY_CHROME_MORPH_TRANSITION = 'padding 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+
+const STICKY_CHROME_BAR_TRANSITION =
+  'border-radius 300ms cubic-bezier(0.4, 0, 0.2, 1), border-color 300ms cubic-bezier(0.4, 0, 0.2, 1), backdrop-filter 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+
+/** Floating pill inset when sticky header/footer has scrolled (FlowShorts-style). */
+export const STICKY_CHROME_FLOAT_RADIUS_PX = 16
+
+/** @deprecated Use `STICKY_CHROME_FLOAT_RADIUS_PX` */
+export const STICKY_HEADER_FLOAT_RADIUS_PX = STICKY_CHROME_FLOAT_RADIUS_PX
+
+export function getFixedBlockShellSx(
+  type: 'header' | 'footer',
+  fixed: boolean,
+  scrolled = false
+): SxProps<Theme> {
   if (!fixed) {
     return {}
+  }
+
+  const inset = scrolled ? { xs: 1.5, sm: 2.5 } : 0
+
+  if (type === 'footer') {
+    return {
+      position: 'sticky',
+      zIndex: 1100,
+      bottom: 0,
+      px: inset,
+      pb: scrolled ? 1.5 : 0,
+      transition: STICKY_CHROME_MORPH_TRANSITION
+    }
   }
 
   return {
     position: 'sticky',
     zIndex: 1100,
-    ...(type === 'header' ? { top: 0 } : { bottom: 0 })
+    top: 0,
+    px: inset,
+    pt: scrolled ? 1.5 : 0,
+    transition: STICKY_CHROME_MORPH_TRANSITION
   }
+}
+
+/** Shadow wrapper around sticky chrome (keeps shadow outside overflow:hidden). */
+export function getStickyChromeFloatShadowSx(
+  scrolled: boolean,
+  borderRadius?: number
+): SxProps<Theme> {
+  const restRadius = borderRadius ?? 0
+  const floatRadius = Math.max(restRadius, STICKY_CHROME_FLOAT_RADIUS_PX)
+
+  return {
+    borderRadius: scrolled ? `${floatRadius}px` : restRadius ? `${restRadius}px` : 0,
+    boxShadow: scrolled
+      ? '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+      : 'none',
+    transition: 'box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1), border-radius 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+  }
+}
+
+/** @deprecated Use `getStickyChromeFloatShadowSx` */
+export const getStickyHeaderFloatShadowSx = getStickyChromeFloatShadowSx
+
+type StickyChromeBarOptions = {
+  scrolled: boolean
+  borderRadius?: number
+  /** Resting edge hairline — header uses bottom, footer uses top. */
+  edge: 'bottom' | 'top'
+  edgeColor?: string
+}
+
+/** Inner chrome styles for sticky header/footer at-rest vs floating-scrolled. */
+export function getStickyChromeBarSx({
+  scrolled,
+  borderRadius,
+  edge,
+  edgeColor = 'rgba(0,0,0,0.06)'
+}: StickyChromeBarOptions): SxProps<Theme> {
+  const restRadius = borderRadius ?? 0
+  const floatRadius = Math.max(restRadius, STICKY_CHROME_FLOAT_RADIUS_PX)
+  const edgeBorder = scrolled ? '1px solid transparent' : `1px solid ${edgeColor}`
+
+  return {
+    transition: STICKY_CHROME_BAR_TRANSITION,
+    borderRadius: scrolled ? `${floatRadius}px` : restRadius ? `${restRadius}px` : 0,
+    ...(edge === 'bottom' ? { borderBottom: edgeBorder } : { borderTop: edgeBorder }),
+    backdropFilter: scrolled ? 'blur(16px) saturate(1.2)' : 'none',
+    WebkitBackdropFilter: scrolled ? 'blur(16px) saturate(1.2)' : 'none'
+  }
+}
+
+/** @deprecated Use `getStickyChromeBarSx` */
+export function getStickyHeaderBarSx(
+  scrolled: boolean,
+  borderRadius?: number
+): SxProps<Theme> {
+  return getStickyChromeBarSx({ scrolled, borderRadius, edge: 'bottom' })
 }

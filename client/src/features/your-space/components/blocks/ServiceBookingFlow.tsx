@@ -681,9 +681,16 @@ export function ServiceBookingFlow({
 
   if (!service) {
     return (
-      <Stack spacing={2.5}>
+      <Stack spacing={{ xs: 2, sm: 2.5 }} sx={{ width: '100%' }}>
         <Box>
-          <Typography variant={compact ? 'h6' : 'h4'}>
+          <Typography
+            variant={compact ? 'h6' : 'h4'}
+            sx={{
+              fontWeight: 750,
+              letterSpacing: '-0.03em',
+              fontSize: compact ? undefined : { xs: '1.45rem', sm: undefined }
+            }}
+          >
             {editableText ? (
               <InlineEditableText value={title} field='title' placeholder='Booking title' />
             ) : title === 'Choose a time' ? (
@@ -692,7 +699,10 @@ export function ServiceBookingFlow({
               title
             )}
           </Typography>
-          <Typography color='text.secondary' sx={{ mt: 0.75 }}>
+          <Typography
+            color='text.secondary'
+            sx={{ mt: 0.75, fontSize: { xs: '0.9rem', sm: '1rem' }, lineHeight: 1.5 }}
+          >
             {editableText ? (
               <InlineEditableText
                 value={subtitle}
@@ -711,19 +721,31 @@ export function ServiceBookingFlow({
           value={serviceQuery}
           onChange={event => setServiceQuery(event.target.value)}
           placeholder='Search services'
-          label='Search services'
-          size='small'
           fullWidth
           InputProps={{
             startAdornment: (
-              <Box component='span' sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
-                <i className='ri-search-line' />
+              <Box
+                component='span'
+                sx={{ display: 'inline-flex', alignItems: 'center', mr: 1, color: 'text.secondary' }}
+              >
+                <i className='ri-search-line' style={{ fontSize: '1.15rem' }} />
               </Box>
             )
           }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              minHeight: { xs: 48, sm: 44 },
+              borderRadius: { xs: 3, sm: 2 },
+              bgcolor: alpha(siteStyles.colors.text, 0.04)
+            },
+            '& .MuiOutlinedInput-input': {
+              py: { xs: 1.5, sm: 1.25 },
+              fontSize: { xs: '1rem', sm: '0.9375rem' }
+            }
+          }}
         />
         {selectableServices.length > 0 ? (
-          <Stack spacing={1}>
+          <Stack spacing={{ xs: 1.25, sm: 1 }}>
             {selectableServices.map(item => (
               <Card
                 key={item.id}
@@ -740,21 +762,29 @@ export function ServiceBookingFlow({
                 }}
                 sx={{
                   display: 'flex',
+                  alignItems: 'center',
                   width: '100%',
-                  p: 1.25,
+                  p: { xs: 1.25, sm: 1.25 },
+                  minHeight: { xs: 76, sm: 'auto' },
                   textAlign: 'left',
                   color: siteStyles.colors.text,
                   cursor: 'pointer',
+                  borderRadius: { xs: 2.5, sm: 2 },
                   background: `linear-gradient(135deg, ${alpha(siteStyles.colors.background, 0.68)} 0%, ${alpha(siteStyles.colors.accent, 0.1)} 100%)`,
                   backdropFilter: 'blur(14px) saturate(120%)',
                   WebkitBackdropFilter: 'blur(14px) saturate(120%)',
                   borderColor: alpha(siteStyles.colors.text, 0.14),
                   boxShadow: `0 8px 22px ${alpha(siteStyles.colors.text, 0.08)}`,
                   transition: 'transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease',
+                  WebkitTapHighlightColor: 'transparent',
+                  '&:active': {
+                    transform: { xs: 'scale(0.985)', sm: 'none' },
+                    bgcolor: { xs: alpha(siteStyles.colors.accent, 0.06), sm: undefined }
+                  },
                   '&:hover': {
-                    transform: 'translateY(-2px)',
+                    transform: { sm: 'translateY(-2px)' },
                     borderColor: siteStyles.colors.accent,
-                    boxShadow: `0 14px 30px ${alpha(siteStyles.colors.accent, 0.2)}`
+                    boxShadow: { sm: `0 14px 30px ${alpha(siteStyles.colors.accent, 0.2)}` }
                   },
                   '&:focus-visible': {
                     outline: `3px solid ${alpha(siteStyles.colors.accent, 0.35)}`,
@@ -764,8 +794,8 @@ export function ServiceBookingFlow({
               >
                 <Box
                   sx={{
-                    width: { xs: 58, sm: 72 },
-                    height: { xs: 58, sm: 72 },
+                    width: { xs: 56, sm: 72 },
+                    height: { xs: 56, sm: 72 },
                     flexShrink: 0,
                     display: 'grid',
                     placeItems: 'center',
@@ -785,15 +815,28 @@ export function ServiceBookingFlow({
                       sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
                   ) : (
-                    <i className='ri-calendar-check-line' style={{ fontSize: 26 }} />
+                    <i className='ri-calendar-check-line' style={{ fontSize: 24 }} />
                   )}
                 </Box>
-                <Stack spacing={0.5} sx={{ minWidth: 0, flex: 1, px: 1.25, py: 0.25 }}>
+                <Stack spacing={0.4} sx={{ minWidth: 0, flex: 1, px: { xs: 1.25, sm: 1.25 }, py: 0.25 }}>
                   <Stack direction='row' spacing={1} alignItems='center' justifyContent='space-between'>
-                    <Typography variant='subtitle1' noWrap sx={{ fontWeight: 750 }}>
+                    <Typography
+                      variant='subtitle1'
+                      noWrap
+                      sx={{ fontWeight: 750, fontSize: { xs: '0.98rem', sm: '1rem' } }}
+                    >
                       {item.name}
                     </Typography>
-                    <i className='ri-arrow-right-line' style={{ flexShrink: 0, fontSize: 18 }} />
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        color: siteStyles.colors.accent,
+                        opacity: { xs: 0.7, sm: 1 },
+                        flexShrink: 0
+                      }}
+                    >
+                      <i className='ri-arrow-right-s-line' style={{ fontSize: 22 }} />
+                    </Box>
                   </Stack>
                   {item.tagline || item.description ? (
                     <Typography
@@ -803,13 +846,20 @@ export function ServiceBookingFlow({
                         display: '-webkit-box',
                         overflow: 'hidden',
                         WebkitBoxOrient: 'vertical',
-                        WebkitLineClamp: 2
+                        WebkitLineClamp: { xs: 1, sm: 2 },
+                        fontSize: { xs: '0.82rem', sm: '0.875rem' }
                       }}
                     >
                       {item.tagline || item.description}
                     </Typography>
                   ) : null}
-                  <Stack direction='row' spacing={0.75} useFlexGap flexWrap='wrap' sx={{ mt: 0.25 }}>
+                  <Stack
+                    direction='row'
+                    spacing={0.75}
+                    useFlexGap
+                    flexWrap='wrap'
+                    sx={{ mt: 0.25, display: { xs: 'none', sm: 'flex' } }}
+                  >
                     {item.category ? <Chip size='small' label={item.category} /> : null}
                     <Chip size='small' variant='outlined' label={formatDuration(item.durationMinutes)} />
                     <Chip
@@ -822,6 +872,21 @@ export function ServiceBookingFlow({
                       }
                     />
                   </Stack>
+                  <Typography
+                    variant='caption'
+                    sx={{
+                      display: { xs: 'block', sm: 'none' },
+                      color: siteStyles.colors.accent,
+                      fontWeight: 700,
+                      mt: 0.15
+                    }}
+                  >
+                    {item.purchaseMode === 'term'
+                      ? `${formatMoney(item.priceAmountMinor, item.currency)} / term`
+                      : formatPrice(item.priceModel, item.priceAmountMinor, item.currency)}
+                    {' · '}
+                    {formatDuration(item.durationMinutes)}
+                  </Typography>
                 </Stack>
               </Card>
             ))}

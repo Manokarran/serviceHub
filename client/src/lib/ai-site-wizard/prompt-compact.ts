@@ -22,6 +22,7 @@ const BLOCK_PRIORITY: Record<string, number> = {
   hero: 100,
   showcase: 92,
   pricing: 91,
+  faq: 90,
   heading: 90,
   text: 85,
   button: 80,

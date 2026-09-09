@@ -37,7 +37,7 @@ type Props = {
   sectionType: string
   fallbackColor?: string
   onUpdate: (changes: BackgroundUpdate) => void
-  /** Show column placement when layout is split-horizontal or split-vertical */
+  /** Show column placement when layout has multiple columns */
   sectionLayout?: SectionLayout
   animatedHint?: string
 }
@@ -54,7 +54,7 @@ export function BlockBackgroundModePanel({
   const theme = useTheme()
   const siteStyles = useSiteStyles()
   const mode = getBlockBackgroundMode(props)
-  const isSplit = sectionLayout === 'split-horizontal' || sectionLayout === 'split-vertical'
+  const isSplit = Boolean(sectionLayout && sectionLayout !== 'default')
   const fillOpacity = getBlockFillOpacity(props)
 
   const handleModeChange = (nextMode: 'static' | 'animated') => {
@@ -166,12 +166,6 @@ export function BlockBackgroundModePanel({
         </>
       ) : (
         <>
-          <PropertyBodyText>
-            {animatedHint ??
-              (isSplit
-                ? 'Motion and gradient colors behind your columns. Static fill is disabled while animation is active.'
-                : 'Motion and gradient colors behind your content. Static fill is disabled while animation is active.')}
-          </PropertyBodyText>
           <AnimatedBackgroundControls
             config={props}
             accentColor={accentColor}
@@ -179,6 +173,12 @@ export function BlockBackgroundModePanel({
             sectionLayout={isSplit ? sectionLayout : undefined}
             splitVisualPlacement={props.splitVisualPlacement ?? 'background'}
             hidePlacementControls={!isSplit}
+            placementHint={
+              animatedHint ??
+              (isSplit
+                ? 'Motion and gradient colors behind your columns. Static fill is disabled while animation is active.'
+                : 'Motion and gradient colors behind your content. Static fill is disabled while animation is active.')
+            }
           />
         </>
       )}

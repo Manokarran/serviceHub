@@ -274,6 +274,17 @@ export function applyThemeHarmonyToBlocks(pageSlug: string, blocks: Block[], sit
         }))
         break
       }
+      case 'faq': {
+        assignSplitVisual(next, palette)
+        if (!isMediaFill(next) && !isTransparentChrome(next)) {
+          next.background = harmonizePaint(next.background, palette)
+        }
+        if (typeof next.textColor === 'string' && isChromaticColor(next.textColor)) {
+          next.textColor = palette.text
+        }
+        next.accentColor = palette.accent
+        break
+      }
       case 'heading':
         if (typeof next.color === 'string' && !isTransparentFill(next.color)) {
           next.color = isChromaticColor(next.color) ? palette.accent : palette.text

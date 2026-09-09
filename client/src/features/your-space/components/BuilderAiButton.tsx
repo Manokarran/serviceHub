@@ -10,6 +10,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 type BaseProps = {
   compact?: boolean
   floating?: boolean
+  fullWidth?: boolean
   size?: 'sm' | 'md'
   /** Optional fill override (e.g. home agency gradient). */
   gradient?: string
@@ -22,6 +23,7 @@ type Props = BaseProps & ({ href: string; onClick?: never } | { href?: never; on
 export function BuilderAiButton({
   compact = false,
   floating = false,
+  fullWidth = false,
   size = 'sm',
   gradient,
   glowColor,
@@ -50,8 +52,24 @@ export function BuilderAiButton({
           justifyContent: 'center',
           gap: large ? 0.85 : 0.625,
           height: floating ? 44 : large ? 48 : 36,
-          width: floating ? (compact ? 46 : 148) : undefined,
-          minWidth: floating ? (compact ? 46 : 148) : compact ? 36 : large ? 176 : 132,
+          width: floating
+            ? compact
+              ? 46
+              : 148
+            : fullWidth
+              ? { xs: '100%', sm: 'auto' }
+              : undefined,
+          minWidth: floating
+            ? compact
+              ? 46
+              : 148
+            : fullWidth
+              ? { xs: '100%', sm: large ? 176 : 132 }
+              : compact
+                ? 36
+                : large
+                  ? 176
+                  : 132,
           px: floating ? (compact ? 0 : 1.5) : compact ? 0.875 : large ? 2.1 : 1.4,
           overflow: 'hidden',
           border: 0,

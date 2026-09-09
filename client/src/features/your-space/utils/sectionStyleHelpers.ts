@@ -2,6 +2,10 @@ import type { SxProps, Theme } from '@mui/material/styles'
 import { alpha } from '@mui/material/styles'
 
 import { DEFAULT_HERO_SPLIT_VISUAL_ANIMATION } from '../constants/heroVisual'
+import {
+  isHorizontalSectionLayout,
+  type SectionSplitColumn
+} from '../constants/sectionLayout'
 import type { BackgroundType, BlockBackgroundProps, ImageHoverEffect, SectionBlockProps, SectionBorderStyle, SectionLayout, SectionSplitStyle, SplitVisualConfig } from '../types'
 import { siteCanvasAbove, siteCanvasBelow } from './siteResponsiveHelpers'
 
@@ -452,7 +456,7 @@ function autoColumnTint(base: string, amount: number): string {
 
 export function getSectionColumnBackground(
   props: SectionBlockProps,
-  column: 'primary' | 'secondary'
+  column: SectionSplitColumn | 'default'
 ): string | undefined {
   const splitStyle = props.splitStyle ?? 'gap'
 
@@ -460,15 +464,24 @@ export function getSectionColumnBackground(
     return undefined
   }
 
-  const custom = column === 'primary' ? props.primaryColumnBackground : props.secondaryColumnBackground
-
-  if (custom) {
-    return custom
+  if (column === 'primary') {
+    return props.primaryColumnBackground || autoColumnTint(getContrastBaseColor(props), 0.04)
   }
 
-  const base = getContrastBaseColor(props)
+  if (column === 'secondary') {
+    return props.secondaryColumnBackground || autoColumnTint(getContrastBaseColor(props), 0.1)
+  }
 
-  return column === 'primary' ? autoColumnTint(base, 0.04) : autoColumnTint(base, 0.1)
+  // Tertiary / quaternary (and default fallback): auto-tints only.
+  if (column === 'tertiary') {
+    return autoColumnTint(getContrastBaseColor(props), 0.06)
+  }
+
+  if (column === 'quaternary') {
+    return autoColumnTint(getContrastBaseColor(props), 0.12)
+  }
+
+  return undefined
 }
 
 export function getSectionSplitContainerSx(
@@ -477,7 +490,7 @@ export function getSectionSplitContainerSx(
 ): SxProps<Theme> {
   const splitStyle = props.splitStyle ?? 'gap'
   const gap = splitStyle === 'gap' ? props.splitGap ?? 24 : 0
-  const isHorizontal = layout === 'split-horizontal'
+  const isHorizontal = isHorizontalSectionLayout(layout)
 
   return {
     display: 'flex',
@@ -495,7 +508,7 @@ export function getSectionSplitContainerSx(
 }
 
 export function getSectionDividerSx(props: SectionBlockProps, layout: SectionLayout): SxProps<Theme> {
-  const isHorizontal = layout === 'split-horizontal'
+  const isHorizontal = isHorizontalSectionLayout(layout)
 
   return {
     flexShrink: 0,
@@ -517,8 +530,9 @@ export function getSectionDividerSx(props: SectionBlockProps, layout: SectionLay
 
 export function getSectionColumnShellSx(
   props: SectionBlockProps,
-  column: 'primary' | 'secondary',
-  editMode: boolean
+  column: SectionSplitColumn,
+  editMode: boolean,
+  weight = 1
 ): SxProps<Theme> {
   const bg = getSectionColumnBackground(props, column)
   const splitStyle = props.splitStyle ?? 'gap'
@@ -526,11 +540,11 @@ export function getSectionColumnShellSx(
   const backgroundOpacity = getBlockBackgroundOpacity(props)
 
   const layout = props.layout ?? 'default'
-  const isHorizontalSplit = layout === 'split-horizontal'
+  const isHorizontalSplit = isHorizontalSectionLayout(layout)
   const isVerticalSplit = layout === 'split-vertical'
 
   return {
-    flex: column === 'primary' ? props.splitRatio : 100 - props.splitRatio,
+    flex: weight,
     minWidth: 0,
     display: 'flex',
     flexDirection: 'column',

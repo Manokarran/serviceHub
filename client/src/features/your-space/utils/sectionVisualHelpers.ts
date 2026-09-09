@@ -1,3 +1,4 @@
+import { isSplitSectionLayout } from '../constants/sectionLayout'
 import { DEFAULT_HERO_SPLIT_VISUAL_ANIMATION } from '../constants/heroVisual'
 import { isEffectiveAnimatedBackgroundMode } from './sectionStyleHelpers'
 import type { SectionBlockProps, SectionVisualPlacement, SplitVisualConfig } from '../types'
@@ -40,7 +41,7 @@ export function shouldRenderSectionColumnVisual(
   props: SectionBlockProps,
   column: 'primary' | 'secondary'
 ): boolean {
-  if (props.layout !== 'split-horizontal' && props.layout !== 'split-vertical') {
+  if (!isSplitSectionLayout(props.layout)) {
     return false
   }
 
