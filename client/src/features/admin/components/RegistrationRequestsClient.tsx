@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -32,6 +33,7 @@ import {
   approveTenantRegistrationWithCreditsAction,
   grantTenantCreditsAction
 } from '@/app/actions/credits.actions'
+import { prepareImpersonationAction } from '@/app/actions/impersonation.actions'
 import type { TenantApprovalStatus } from '@/lib/constants/tenant'
 import type { TenantRegistrationRequest } from '@/services/tenant/tenant-admin.service'
 
@@ -65,6 +67,7 @@ function formatDate(iso: string) {
 
 export function RegistrationRequestsClient({ initialRequests, pendingCount }: Props) {
   const router = useRouter()
+  const { update } = useSession()
   const [filter, setFilter] = useState<FilterTab>('pending')
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -96,6 +99,23 @@ export function RegistrationRequestsClient({ initialRequests, pendingCount }: Pr
       setGrantTarget(null)
       setBonusCredits('0')
       setGrantAmount('20')
+      router.refresh()
+    })
+  }
+
+  const impersonateOwner = (ownerId: string) => {
+    setError(null)
+    startTransition(async () => {
+      const prepared = await prepareImpersonationAction(ownerId)
+
+      if (!prepared.success) {
+        setError(prepared.error)
+
+        return
+      }
+
+      await update({ impersonateUserId: prepared.userId })
+      router.push('/home')
       router.refresh()
     })
   }
@@ -196,6 +216,17 @@ export function RegistrationRequestsClient({ initialRequests, pendingCount }: Pr
                   </TableCell>
                   <TableCell align='right'>
                     <Box className='flex flex-wrap justify-end gap-2'>
+                      {row.owner ? (
+                        <Button
+                          size='small'
+                          variant='outlined'
+                          disabled={pending}
+                          startIcon={<i className='ri-user-shared-line' />}
+                          onClick={() => impersonateOwner(row.owner!.id)}
+                        >
+                          Login as
+                        </Button>
+                      ) : null}
                       {row.approvalStatus !== 'approved' ? (
                         <Button
                           size='small'

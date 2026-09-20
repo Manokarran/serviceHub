@@ -119,6 +119,42 @@ export class SitePageRepository {
     return SitePageModel.find({ tenantId }).sort({ sortOrder: 1, createdAt: 1 }).exec()
   }
 
+  /**
+   * Tenants that have at least one published page with content — for template import pickers.
+   */
+  async listPublishedTenantIds(): Promise<
+    Array<{ tenantId: string; pageCount: number; lastPublishedAt: Date }>
+  > {
+    await connectDB()
+
+    const rows = await SitePageModel.aggregate<{
+      _id: { toString(): string }
+      pageCount: number
+      lastPublishedAt: Date
+    }>([
+      {
+        $match: {
+          publishedAt: { $ne: null },
+          publishedBlocks: { $exists: true, $type: 'array', $not: { $size: 0 } }
+        }
+      },
+      {
+        $group: {
+          _id: '$tenantId',
+          pageCount: { $sum: 1 },
+          lastPublishedAt: { $max: '$publishedAt' }
+        }
+      },
+      { $sort: { lastPublishedAt: -1 } }
+    ]).exec()
+
+    return rows.map(row => ({
+      tenantId: row._id.toString(),
+      pageCount: row.pageCount,
+      lastPublishedAt: row.lastPublishedAt
+    }))
+  }
+
   async replaceBlockSets(
     tenantId: string,
     slug: string,

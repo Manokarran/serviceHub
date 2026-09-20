@@ -9,6 +9,7 @@ import {
 } from '@/lib/site-template/resolve-builder-tenant'
 import type { Block } from '@/features/your-space/types'
 import type { SiteStyles } from '@/features/your-space/types/siteStyles'
+import type { FooterBlockProps, HeaderBlockProps } from '@/features/your-space/types'
 import { DEFAULT_SITE_STYLES } from '@/features/your-space/constants/siteStylePresets'
 import { mergeSiteStyles } from '@/features/your-space/utils/siteStylesHelpers'
 import type { SuggestedBasePage } from '@/lib/ai-builder/suggested-base-pages'
@@ -515,5 +516,173 @@ export async function addBasePageFromTemplateAction(
     }
   } catch (error) {
     return formatScopeError(error, 'Failed to add that page.')
+  }
+}
+
+type ApplyChromeResult =
+  | { success: true; updatedPages: number; updatedBlocks: number; skippedPages: number }
+  | { success: false; error: string }
+
+type FixNavigationAllPagesResult =
+  | { success: true; updatedPages: number; changeCount: number }
+  | { success: false; error: string }
+
+/**
+ * Copy the current header/footer props onto every other page that already has that block.
+ * Pages without a matching chrome block are left unchanged (not inserted).
+ */
+export async function applyChromeBlockToAllPagesAction(
+  chromeType: 'header' | 'footer',
+  props: HeaderBlockProps | FooterBlockProps,
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
+): Promise<ApplyChromeResult> {
+  try {
+    const { applyChromePropsToBlocks } = await import('@/features/your-space/utils/applyChromeToAllPages')
+
+    let updatedPages = 0
+    let updatedBlocks = 0
+    let skippedPages = 0
+
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      const templateId = requireTemplateId(libraryTemplateId)
+      const pages = await siteTemplateService.listTemplatePages(templateId)
+
+      for (const summary of pages) {
+        const page = await siteTemplateService.getTemplatePage(templateId, summary.slug)
+
+        if (!page) {
+          skippedPages += 1
+          continue
+        }
+
+        const { blocks, updatedCount } = applyChromePropsToBlocks(
+          page.draftBlocks as Block[],
+          chromeType,
+          props
+        )
+
+        if (updatedCount === 0) {
+          skippedPages += 1
+          continue
+        }
+
+        await siteTemplateService.saveTemplatePageDraft(
+          templateId,
+          summary.slug,
+          blocks,
+          page.draftSiteStyles ?? undefined
+        )
+        updatedPages += 1
+        updatedBlocks += updatedCount
+      }
+
+      return { success: true, updatedPages, updatedBlocks, skippedPages }
+    }
+
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const pages = await sitePageService.listPages(tenantId)
+
+    for (const summary of pages) {
+      const page = await sitePageService.getPage(tenantId, summary.slug)
+
+      if (!page) {
+        skippedPages += 1
+        continue
+      }
+
+      const { blocks, updatedCount } = applyChromePropsToBlocks(page.draftBlocks as Block[], chromeType, props)
+
+      if (updatedCount === 0) {
+        skippedPages += 1
+        continue
+      }
+
+      await sitePageService.saveDraft(
+        tenantId,
+        summary.slug,
+        blocks,
+        page.draftSiteStyles ?? undefined
+      )
+      updatedPages += 1
+      updatedBlocks += updatedCount
+    }
+
+    return { success: true, updatedPages, updatedBlocks, skippedPages }
+  } catch (error) {
+    return formatScopeError(error, `Failed to apply ${chromeType} to all pages.`)
+  }
+}
+
+/**
+ * Fix header/footer navigation (including submenu items) on every draft page
+ * by matching link labels to existing page names.
+ */
+export async function fixNavigationOnAllPagesAction(
+  tenantSlug: string,
+  scope: BuilderScope = 'organization',
+  libraryTemplateId?: string
+): Promise<FixNavigationAllPagesResult> {
+  try {
+    const { fixNavigationOnBlocks } = await import('@/lib/ai-builder/fix-navigation')
+    let updatedPages = 0
+    let changeCount = 0
+
+    if (scope === 'library_template') {
+      await requireLibraryTemplateEditor()
+      const templateId = requireTemplateId(libraryTemplateId)
+      const pages = await siteTemplateService.listTemplatePages(templateId)
+
+      for (const summary of pages) {
+        const page = await siteTemplateService.getTemplatePage(templateId, summary.slug)
+        const result = fixNavigationOnBlocks(page.draftBlocks as Block[], pages, tenantSlug, summary.slug)
+
+        if (result.changes.length === 0) {
+          continue
+        }
+
+        await siteTemplateService.saveTemplatePageDraft(
+          templateId,
+          summary.slug,
+          result.blocks,
+          page.draftSiteStyles ?? undefined
+        )
+        updatedPages += 1
+        changeCount += result.changes.length
+      }
+
+      return { success: true, updatedPages, changeCount }
+    }
+
+    const { tenantId } = await resolveBuilderTenant(scope)
+    const pages = await sitePageService.listPages(tenantId)
+
+    for (const summary of pages) {
+      const page = await sitePageService.getPage(tenantId, summary.slug)
+
+      if (!page) {
+        continue
+      }
+
+      const result = fixNavigationOnBlocks(page.draftBlocks as Block[], pages, tenantSlug, summary.slug)
+
+      if (result.changes.length === 0) {
+        continue
+      }
+
+      await sitePageService.saveDraft(
+        tenantId,
+        summary.slug,
+        result.blocks,
+        page.draftSiteStyles ?? undefined
+      )
+      updatedPages += 1
+      changeCount += result.changes.length
+    }
+
+    return { success: true, updatedPages, changeCount }
+  } catch (error) {
+    return formatScopeError(error, 'Failed to fix navigation across pages.')
   }
 }

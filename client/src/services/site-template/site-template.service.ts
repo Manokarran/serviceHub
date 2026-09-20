@@ -10,8 +10,10 @@ import { toPlainJson } from '@/lib/utils/plain-json'
 import { slugify } from '@/lib/utils/slug'
 import {
   createSiteTemplateSchema,
+  importSiteTemplateFromTenantSchema,
   updateSiteTemplateSchema,
   type CreateSiteTemplateInput,
+  type ImportSiteTemplateFromTenantInput,
   type UpdateSiteTemplateInput
 } from '@/lib/validators/site-template.validator'
 import type {
@@ -27,6 +29,15 @@ import { siteTemplateRepository } from '@/repositories/site-template.repository'
 import { tenantRepository } from '@/repositories/tenant.repository'
 import { sitePageService } from '@/services/site-page'
 import { siteWorkspaceService } from '@/services/site-workspace'
+
+export type PublishedSiteImportOption = {
+  id: string
+  name: string
+  slug: string
+  pageCount: number
+  lastPublishedAt: string
+  isBaseTemplate: boolean
+}
 
 async function maybeGenerateTemplatePreviewThumbnail(params: {
   templateName: string
@@ -292,7 +303,11 @@ export class SiteTemplateService {
     }
   }
 
-  async captureFromTenant(templateId: string, sourceTenantId: string): Promise<SiteTemplateDetail> {
+  async captureFromTenant(
+    templateId: string,
+    sourceTenantId: string,
+    options?: { publishedOnly?: boolean }
+  ): Promise<SiteTemplateDetail> {
     const template = await siteTemplateRepository.findById(templateId)
 
     if (!template || template.status === 'archived') {
@@ -306,14 +321,24 @@ export class SiteTemplateService {
     }
 
     const pages = await sitePageRepository.listByTenant(sourceTenantId)
+    const publishedOnly = options?.publishedOnly === true
+    const sourcePages = publishedOnly
+      ? pages.filter(page => Boolean(page.publishedAt && page.publishedBlocks?.length))
+      : pages
 
-    if (!pages.length) {
-      throw new AppError('Source workspace has no pages to capture', 400, 'NO_PAGES')
+    if (!sourcePages.length) {
+      throw new AppError(
+        publishedOnly
+          ? 'That site has no published pages to import'
+          : 'Source workspace has no pages to capture',
+        400,
+        'NO_PAGES'
+      )
     }
 
-    const snapshots: ISiteTemplatePageSnapshot[] = pages.map(page => {
+    const snapshots: ISiteTemplatePageSnapshot[] = sourcePages.map(page => {
       const isHome = isHomePageSlug(page.slug)
-      const usePublished = Boolean(page.publishedAt && page.publishedBlocks?.length)
+      const usePublished = publishedOnly || Boolean(page.publishedAt && page.publishedBlocks?.length)
       const draftBlocks = (page.draftBlocks?.length ? page.draftBlocks : page.blocks ?? []) as unknown as Block[]
       const publishedBlocks = (page.publishedBlocks ?? []) as unknown as Block[]
       const blocks = usePublished ? publishedBlocks : draftBlocks
@@ -362,6 +387,73 @@ export class SiteTemplateService {
     }
 
     return mapTemplateDetail(doc)
+  }
+
+  /**
+   * Create a named library template from any tenant's published live site.
+   */
+  async importTemplateFromPublishedTenant(
+    userId: string,
+    input: ImportSiteTemplateFromTenantInput
+  ): Promise<SiteTemplateDetail> {
+    const parsed = importSiteTemplateFromTenantSchema.safeParse(input)
+
+    if (!parsed.success) {
+      throw new AppError(parsed.error.issues[0]?.message ?? 'Invalid import data', 400, 'VALIDATION_ERROR')
+    }
+
+    const template = await this.createTemplate(userId, {
+      name: parsed.data.name,
+      description: parsed.data.description,
+      category: parsed.data.category
+    })
+
+    try {
+      return await this.captureFromTenant(template.id, parsed.data.sourceTenantId, { publishedOnly: true })
+    } catch (error) {
+      try {
+        await this.archiveTemplate(template.id)
+      } catch (cleanupError) {
+        console.error('[site-template] Failed to archive empty import template', cleanupError)
+      }
+
+      throw error
+    }
+  }
+
+  async listPublishedSitesForImport(): Promise<PublishedSiteImportOption[]> {
+    const published = await sitePageRepository.listPublishedTenantIds()
+
+    if (!published.length) {
+      return []
+    }
+
+    const options: PublishedSiteImportOption[] = []
+
+    for (const row of published) {
+      const tenant = await tenantRepository.findById(row.tenantId)
+
+      if (!tenant || tenant.status === 'suspended') {
+        continue
+      }
+
+      options.push({
+        id: row.tenantId,
+        name: tenant.name,
+        slug: tenant.slug,
+        pageCount: row.pageCount,
+        lastPublishedAt: row.lastPublishedAt.toISOString(),
+        isBaseTemplate: tenant.settings?.kind === 'base_template'
+      })
+    }
+
+    return options.sort((a, b) => {
+      if (a.isBaseTemplate !== b.isBaseTemplate) {
+        return a.isBaseTemplate ? 1 : -1
+      }
+
+      return a.name.localeCompare(b.name)
+    })
   }
 
   async applyTemplateToTenant(templateId: string, tenantId: string): Promise<void> {

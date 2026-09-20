@@ -17,6 +17,16 @@ export const createSiteTemplateSchema = z.object({
   tags: z.array(z.string().trim().min(1).max(32)).max(10).optional()
 })
 
+export const importSiteTemplateFromTenantSchema = z.object({
+  name: z.string().trim().min(2, 'Name is required').max(120),
+  description: z.string().trim().max(500).optional(),
+  category: z.enum(SITE_TEMPLATE_CATEGORIES).optional(),
+  sourceTenantId: z
+    .string()
+    .trim()
+    .regex(/^[a-fA-F0-9]{24}$/, 'Select a published site')
+})
+
 export const updateSiteTemplateSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
   description: z.string().trim().max(500).optional(),
@@ -27,4 +37,5 @@ export const updateSiteTemplateSchema = z.object({
 })
 
 export type CreateSiteTemplateInput = z.infer<typeof createSiteTemplateSchema>
+export type ImportSiteTemplateFromTenantInput = z.infer<typeof importSiteTemplateFromTenantSchema>
 export type UpdateSiteTemplateInput = z.infer<typeof updateSiteTemplateSchema>

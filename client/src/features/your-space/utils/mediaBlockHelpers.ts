@@ -1,4 +1,5 @@
 import type { SxProps, Theme } from '@mui/material/styles'
+import type { SystemStyleObject } from '@mui/system'
 
 import type { ImageContinuousAnimation, ImageEntranceAnimation, ImageHoverEffect } from '../types'
 import type { ImageAspectRatio, SiteMisc } from '../types/siteStyles'
@@ -325,7 +326,7 @@ export function getFixedBlockShellSx(
   type: 'header' | 'footer',
   fixed: boolean,
   scrolled = false
-): SxProps<Theme> {
+): SystemStyleObject<Theme> {
   if (!fixed) {
     return {}
   }
@@ -357,7 +358,7 @@ export function getFixedBlockShellSx(
 export function getStickyChromeFloatShadowSx(
   scrolled: boolean,
   borderRadius?: number
-): SxProps<Theme> {
+): SystemStyleObject<Theme> {
   const restRadius = borderRadius ?? 0
   const floatRadius = Math.max(restRadius, STICKY_CHROME_FLOAT_RADIUS_PX)
 
@@ -387,7 +388,7 @@ export function getStickyChromeBarSx({
   borderRadius,
   edge,
   edgeColor = 'rgba(0,0,0,0.06)'
-}: StickyChromeBarOptions): SxProps<Theme> {
+}: StickyChromeBarOptions): SystemStyleObject<Theme> {
   const restRadius = borderRadius ?? 0
   const floatRadius = Math.max(restRadius, STICKY_CHROME_FLOAT_RADIUS_PX)
   const edgeBorder = scrolled ? '1px solid transparent' : `1px solid ${edgeColor}`

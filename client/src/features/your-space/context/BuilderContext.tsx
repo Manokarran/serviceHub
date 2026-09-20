@@ -41,11 +41,12 @@ import {
   findBlockInTree,
   moveBlockInTree,
   resolveDropTarget,
+  resolvePasteTargetAfterBlock,
   updateBlockInTree,
   type BlockLocation,
   type NestTargetHints
 } from '../utils/blockTreeUtils'
-import { mergeSiteStyles } from '../utils/siteStylesHelpers'
+import { mergeSiteStyles, resolveBuilderCanvasStyles } from '../utils/siteStylesHelpers'
 import { reharmonizeBlockTreeToTheme } from '../utils/themePropagation'
 import { applyAiBuilderPlan, type AiPlanApplyResult } from '../utils/aiPlanApply'
 import type { AiBuilderPlan, AiBuilderRestyleScope } from '@/lib/ai-builder/types'
@@ -58,6 +59,7 @@ import {
 } from '../utils/builderContainerChrome'
 import { siteStylesEqual } from '../utils/siteStylesEqual'
 import { recordPaletteUse } from '../utils/paletteUsage'
+import { useBuilderHistory } from '../hooks/useBuilderHistory'
 import type { TenantLocation } from '@/lib/location/types'
 
 type BuilderState = {
@@ -122,7 +124,7 @@ type BuilderAction =
   | { type: 'UPDATE_SITE_STYLES'; siteStyles: SiteStyles }
   | { type: 'APPLY_THEME'; themeId: string; restyleControls?: AiBuilderRestyleScope }
   | { type: 'APPLY_AI_RESULT'; blocks: Block[]; siteStyles: SiteStyles; selectedBlockId: string | null }
-  | { type: 'RESTORE_DRAFT'; snapshot: BuilderDraftSnapshot }
+  | { type: 'RESTORE_DRAFT'; snapshot: BuilderDraftSnapshot; isDirty?: boolean }
   | { type: 'SET_LOADING'; isLoading: boolean }
   | { type: 'SET_SAVING'; isSaving: boolean }
   | { type: 'SET_PUBLISHING'; isPublishing: boolean }
@@ -285,7 +287,8 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         siteStyles: action.snapshot.siteStyles,
         selectedBlockId: action.snapshot.selectedBlockId,
         selectedNestedItemId: null,
-        isDirty: true,
+        // Undo back to the last saved snapshot clears the dirty flag.
+        isDirty: action.isDirty ?? true,
         saveError: null,
         publishError: null
       }
@@ -408,6 +411,12 @@ type BuilderContextValue = BuilderState & {
    */
   applyAiDesign: (input: { blocks: Block[]; siteStyles: SiteStyles | null; targetBlockId: string | null }) => boolean
   restoreDraft: (snapshot: BuilderDraftSnapshot) => void
+
+  /** Page-draft undo/redo for unsaved (and autosaved) session edits on the open page. */
+  canUndo: boolean
+  canRedo: boolean
+  undo: () => boolean
+  redo: () => boolean
   savePage: () => Promise<void>
   publishPage: () => Promise<void>
   switchPage: (slug: string) => Promise<void>
@@ -505,7 +514,8 @@ export function BuilderProvider({
   const [state, dispatch] = useReducer(builderReducer, {
     blocks: [],
     publishedBlocks: initialPublishedBlocks,
-    siteStyles: mergeSiteStyles(initialDraftSiteStyles ?? {}, DEFAULT_SITE_STYLES),
+    // Prefer draft, then published — and recover from a white Plain draft when live is themed.
+    siteStyles: resolveBuilderCanvasStyles(initialDraftSiteStyles, initialPublishedSiteStyles),
     publishedSiteStyles: mergeSiteStyles(
       initialPublishedSiteStyles ?? initialDraftSiteStyles ?? {},
       DEFAULT_SITE_STYLES
@@ -563,6 +573,35 @@ export function BuilderProvider({
     isDirtyRef.current = state.isDirty
   }, [state.isDirty])
 
+  const getDraftSnapshot = useCallback(
+    (): BuilderDraftSnapshot => ({
+      blocks: blocksRef.current,
+      siteStyles: siteStylesRef.current,
+      selectedBlockId: selectedBlockIdRef.current
+    }),
+    []
+  )
+
+  const {
+    canUndo,
+    canRedo,
+    recordBeforeChange,
+    undo: undoHistory,
+    redo: redoHistory,
+    clearHistory
+  } = useBuilderHistory(getDraftSnapshot)
+
+  /** Blocks + styles as of the last successful save / page load — undo floor for the dirty flag. */
+  const cleanDraftRef = useRef<{ blocks: Block[]; siteStyles: SiteStyles } | null>(null)
+
+  const markCleanBaseline = useCallback((blocks: Block[], siteStyles: SiteStyles, resetHistory = false) => {
+    cleanDraftRef.current = { blocks, siteStyles }
+
+    if (resetHistory) {
+      clearHistory()
+    }
+  }, [clearHistory])
+
   const refreshPages = useCallback(async () => {
     const { listSitePagesAction } = await import('@/app/actions/site-page.actions')
     const result = await listSitePagesAction(builderScope, libraryTemplateId ?? undefined)
@@ -573,7 +612,12 @@ export function BuilderProvider({
   }, [builderScope, libraryTemplateId])
 
   const persistDraft = useCallback(
-    async (pageSlug: string, blocks: Block[], siteStyles: SiteStyles): Promise<boolean> => {
+    async (
+      pageSlug: string,
+      blocks: Block[],
+      siteStyles: SiteStyles,
+      options?: { resetHistory?: boolean }
+    ): Promise<boolean> => {
       dispatch({ type: 'SET_SAVING', isSaving: true })
 
       const stylesChanged = !siteStylesEqual(siteStyles, publishedSiteStylesRef.current)
@@ -607,12 +651,14 @@ export function BuilderProvider({
       }
 
       dispatch({ type: 'MARK_SAVED', savedAt: result.savedAt })
+      // Always move the dirty floor to this save. Manual save also clears undo past this point.
+      markCleanBaseline(blocks, siteStyles, options?.resetHistory === true)
       localStorage.removeItem(getStorageKey(tenantSlug, pageSlug))
       void refreshPages()
 
       return true
     },
-    [tenantSlug, refreshPages, builderScope, libraryTemplateId]
+    [tenantSlug, refreshPages, builderScope, libraryTemplateId, markCleanBaseline]
   )
 
   useEffect(() => {
@@ -623,11 +669,13 @@ export function BuilderProvider({
 
       if (initialDraftBlocks) {
         if (!cancelled) {
+          const styles = resolveBuilderCanvasStyles(initialDraftSiteStyles, initialPublishedSiteStyles)
+
           dispatch({
             type: 'SET_INITIAL',
             blocks: initialDraftBlocks,
             publishedBlocks: initialPublishedBlocks,
-            siteStyles: mergeSiteStyles(initialDraftSiteStyles ?? {}, DEFAULT_SITE_STYLES),
+            siteStyles: styles,
             publishedSiteStyles: mergeSiteStyles(
               initialPublishedSiteStyles ?? initialDraftSiteStyles ?? {},
               DEFAULT_SITE_STYLES
@@ -639,6 +687,7 @@ export function BuilderProvider({
             currentPageTitle: initialPageTitle,
             pages: initialPages
           })
+      markCleanBaseline(normalizeBlocks(initialDraftBlocks), styles, true)
         }
 
         return
@@ -659,6 +708,7 @@ export function BuilderProvider({
             currentPageTitle: initialPageTitle,
             pages: initialPages
           })
+          markCleanBaseline(normalizeBlocks(localBlocks), siteStylesRef.current, true)
         }
 
         const result = await saveSitePageDraftAction(
@@ -672,6 +722,7 @@ export function BuilderProvider({
         if (!cancelled) {
           if (result.success) {
             dispatch({ type: 'MARK_SAVED', savedAt: result.savedAt })
+            markCleanBaseline(normalizeBlocks(localBlocks), siteStylesRef.current, true)
             localStorage.removeItem(getStorageKey(tenantSlug, initialPageSlug))
           } else {
             dispatch({ type: 'SET_SAVE_ERROR', error: result.error })
@@ -695,6 +746,7 @@ export function BuilderProvider({
           currentPageTitle: initialPageTitle,
           pages: initialPages
         })
+        markCleanBaseline(normalizeBlocks(starterBlocks), siteStylesRef.current, true)
       }
     }
 
@@ -716,7 +768,8 @@ export function BuilderProvider({
     initialPages,
     tenantSlug,
     builderScope,
-    libraryTemplateId
+    libraryTemplateId,
+    markCleanBaseline
   ])
 
   const hasUnpublishedChanges = useMemo(() => {
@@ -747,27 +800,37 @@ export function BuilderProvider({
       const block = createBlock(type, siteStylesRef.current, paletteId, tenantLocation)
       const dropTarget = target ?? resolveDropTarget(blocksRef.current, 'canvas-drop-zone', type)
 
+      recordBeforeChange({ label: `Add ${type}` })
       dispatch({ type: 'ADD_BLOCK', block, target: dropTarget })
       recordPaletteUse(paletteId)
 
       return block
     },
-    [tenantLocation]
+    [recordBeforeChange, tenantLocation]
   )
 
-  const updateBlock = useCallback((id: string, props: BlockPropsPatch) => {
-    dispatch({ type: 'UPDATE_BLOCK', id, props })
-  }, [])
+  const updateBlock = useCallback(
+    (id: string, props: BlockPropsPatch) => {
+      recordBeforeChange({ coalesceKey: `block:${id}`, label: 'Edit block' })
+      dispatch({ type: 'UPDATE_BLOCK', id, props })
+    },
+    [recordBeforeChange]
+  )
 
-  const deleteBlock = useCallback((id: string) => {
-    dispatch({ type: 'DELETE_BLOCK', id })
-  }, [])
+  const deleteBlock = useCallback(
+    (id: string) => {
+      recordBeforeChange({ label: 'Delete block' })
+      dispatch({ type: 'DELETE_BLOCK', id })
+    },
+    [recordBeforeChange]
+  )
 
   // Block clipboard — persists across page switches (component-level state, not in reducer)
   const [copiedBlock, setCopiedBlock] = useState<Block | null>(null)
 
   const copyBlock = useCallback((block: Block) => {
-    setCopiedBlock(block)
+    // Snapshot so later edits to the original do not change the clipboard.
+    setCopiedBlock(toPlainJson(block) as Block)
   }, [])
 
   const pasteBlock = useCallback(
@@ -775,26 +838,22 @@ export function BuilderProvider({
       if (!copiedBlock) return
 
       const clone = cloneBlockWithNewIds(copiedBlock)
+      const anchorId = afterBlockId ?? selectedBlockIdRef.current ?? undefined
+      const target = resolvePasteTargetAfterBlock(blocksRef.current, anchorId, clone.type)
 
-      // Find root-level index to insert after; fall back to end
-      let index = blocksRef.current.length
-
-      if (afterBlockId) {
-        const rootIndex = blocksRef.current.findIndex(b => b.id === afterBlockId)
-
-        if (rootIndex !== -1) {
-          index = rootIndex + 1
-        }
-      }
-
-      dispatch({ type: 'ADD_BLOCK', block: clone, target: { container: 'root', index } })
+      recordBeforeChange({ label: 'Paste block' })
+      dispatch({ type: 'ADD_BLOCK', block: clone, target })
     },
-    [copiedBlock]
+    [copiedBlock, recordBeforeChange]
   )
 
-  const moveBlockAction = useCallback((activeId: string, overId: string | number, nestHints?: NestTargetHints) => {
-    dispatch({ type: 'MOVE_BLOCK', activeId, overId, nestHints })
-  }, [])
+  const moveBlockAction = useCallback(
+    (activeId: string, overId: string | number, nestHints?: NestTargetHints) => {
+      recordBeforeChange({ coalesceKey: `move:${activeId}`, label: 'Move block' })
+      dispatch({ type: 'MOVE_BLOCK', activeId, overId, nestHints })
+    },
+    [recordBeforeChange]
+  )
 
   const selectBlock = useCallback((id: string | null) => {
     dispatch({ type: 'SELECT_BLOCK', id })
@@ -832,13 +891,21 @@ export function BuilderProvider({
     dispatch({ type: 'SET_SIDEBAR_PANEL', panel })
   }, [])
 
-  const updateSiteStyles = useCallback((partial: Partial<SiteStyles>) => {
-    dispatch({ type: 'UPDATE_SITE_STYLES', siteStyles: mergeSiteStyles(partial, siteStylesRef.current) })
-  }, [])
+  const updateSiteStyles = useCallback(
+    (partial: Partial<SiteStyles>) => {
+      recordBeforeChange({ coalesceKey: 'site-styles', label: 'Update styles' })
+      dispatch({ type: 'UPDATE_SITE_STYLES', siteStyles: mergeSiteStyles(partial, siteStylesRef.current) })
+    },
+    [recordBeforeChange]
+  )
 
-  const applyThemePreset = useCallback((themeId: string, restyleControls?: AiBuilderRestyleScope) => {
-    dispatch({ type: 'APPLY_THEME', themeId, restyleControls })
-  }, [])
+  const applyThemePreset = useCallback(
+    (themeId: string, restyleControls?: AiBuilderRestyleScope) => {
+      recordBeforeChange({ label: 'Apply theme' })
+      dispatch({ type: 'APPLY_THEME', themeId, restyleControls })
+    },
+    [recordBeforeChange]
+  )
 
   const applyAiPlan = useCallback(
     (plan: AiBuilderPlan, refToId: Record<string, string>) => {
@@ -852,6 +919,7 @@ export function BuilderProvider({
       })
 
       if (result.changes.length > 0) {
+        recordBeforeChange({ label: 'AI plan' })
         dispatch({
           type: 'APPLY_AI_RESULT',
           blocks: result.blocks,
@@ -862,7 +930,7 @@ export function BuilderProvider({
 
       return result
     },
-    [tenantLocation]
+    [recordBeforeChange, tenantLocation]
   )
 
   const applyAiDesign = useCallback(
@@ -876,6 +944,7 @@ export function BuilderProvider({
           return false
         }
 
+        recordBeforeChange({ label: 'AI design' })
         dispatch({
           type: 'APPLY_AI_RESULT',
           blocks: updateBlockInTree(blocksRef.current, input.targetBlockId, replacement.props),
@@ -890,6 +959,7 @@ export function BuilderProvider({
         return false
       }
 
+      recordBeforeChange({ label: 'AI design' })
       dispatch({
         type: 'APPLY_AI_RESULT',
         blocks: incoming,
@@ -899,15 +969,39 @@ export function BuilderProvider({
 
       return true
     },
-    []
+    [recordBeforeChange]
   )
 
-  const restoreDraft = useCallback((snapshot: BuilderDraftSnapshot) => {
-    dispatch({ type: 'RESTORE_DRAFT', snapshot })
+  const applyDraftSnapshot = useCallback((snapshot: BuilderDraftSnapshot) => {
+    const clean = cleanDraftRef.current
+    const matchesClean =
+      clean != null &&
+      blocksEqual(snapshot.blocks, clean.blocks) &&
+      siteStylesEqual(snapshot.siteStyles, clean.siteStyles)
+
+    dispatch({ type: 'RESTORE_DRAFT', snapshot, isDirty: !matchesClean })
+
+    return { hitFloor: matchesClean }
   }, [])
 
+  const restoreDraft = useCallback(
+    (snapshot: BuilderDraftSnapshot) => {
+      applyDraftSnapshot(snapshot)
+    },
+    [applyDraftSnapshot]
+  )
+
+  const undo = useCallback(() => undoHistory(applyDraftSnapshot), [applyDraftSnapshot, undoHistory])
+  const redo = useCallback(() => {
+    return redoHistory(snapshot => {
+      applyDraftSnapshot(snapshot)
+    })
+  }, [applyDraftSnapshot, redoHistory])
+
   const savePage = useCallback(async () => {
-    await persistDraft(currentPageSlugRef.current, blocksRef.current, siteStylesRef.current)
+    await persistDraft(currentPageSlugRef.current, blocksRef.current, siteStylesRef.current, {
+      resetHistory: true
+    })
   }, [persistDraft])
 
   const publishPage = useCallback(async () => {
@@ -977,20 +1071,23 @@ export function BuilderProvider({
       const versionsResult = await listSitePageVersionsAction(slug, builderScope, libraryTemplateId ?? undefined)
       const versions = versionsResult.success ? versionsResult.versions : []
 
+      const nextBlocks = normalizeBlocks(toPlainJson(result.page.draftBlocks) as Block[])
+
       dispatch({
         type: 'SWITCH_PAGE',
         slug: result.page.slug,
         title: result.page.title,
-        blocks: toPlainJson(result.page.draftBlocks) as Block[],
+        blocks: nextBlocks,
         publishedBlocks: toPlainJson(result.page.publishedBlocks) as Block[],
         savedAt: result.page.draftUpdatedAt,
         publishedAt: result.page.publishedAt,
         versions
       })
+      markCleanBaseline(nextBlocks, siteStylesRef.current, true)
 
       void refreshPages()
     },
-    [persistDraft, refreshPages, builderScope, libraryTemplateId]
+    [markCleanBaseline, persistDraft, refreshPages, builderScope, libraryTemplateId]
   )
 
   const createPage = useCallback(
@@ -1058,9 +1155,10 @@ export function BuilderProvider({
 
       const sourceBlocks = normalizeBlocks(toPlainJson(result.page.draftBlocks) as Block[])
 
+      recordBeforeChange({ label: 'Paste page content' })
       dispatch({ type: 'SET_BLOCKS', blocks: sourceBlocks, savedAt: state.lastSavedAt ?? new Date().toISOString() })
     },
-    [state.lastSavedAt, builderScope, libraryTemplateId]
+    [recordBeforeChange, state.lastSavedAt, builderScope, libraryTemplateId]
   )
 
   const deletePage = useCallback(
@@ -1116,21 +1214,27 @@ export function BuilderProvider({
     ]
   )
 
-  const restoreVersionToDraft = useCallback((blocks: Block[], savedAt: string) => {
-    dispatch({ type: 'SET_BLOCKS', blocks: toPlainJson(blocks), savedAt })
-  }, [])
+  const restoreVersionToDraft = useCallback(
+    (blocks: Block[], savedAt: string) => {
+      recordBeforeChange({ label: 'Restore published version' })
+      dispatch({ type: 'SET_BLOCKS', blocks: toPlainJson(blocks), savedAt })
+    },
+    [recordBeforeChange]
+  )
 
   const setVersions = useCallback((versions: PublishedVersionSummary[]) => {
     dispatch({ type: 'SET_VERSIONS', versions })
   }, [])
 
   const resetToStarter = useCallback(() => {
+    recordBeforeChange({ label: 'Reset to starter' })
     dispatch({ type: 'RESET_TO_STARTER' })
-  }, [])
+  }, [recordBeforeChange])
 
   const resetToEmpty = useCallback(() => {
+    recordBeforeChange({ label: 'Clear page' })
     dispatch({ type: 'RESET_TO_EMPTY' })
-  }, [])
+  }, [recordBeforeChange])
 
   useEffect(() => {
     if (
@@ -1190,6 +1294,10 @@ export function BuilderProvider({
       applyAiPlan,
       applyAiDesign,
       restoreDraft,
+      canUndo,
+      canRedo,
+      undo,
+      redo,
       savePage,
       publishPage,
       switchPage,
@@ -1232,6 +1340,10 @@ export function BuilderProvider({
       applyAiPlan,
       applyAiDesign,
       restoreDraft,
+      canUndo,
+      canRedo,
+      undo,
+      redo,
       savePage,
       publishPage,
       switchPage,

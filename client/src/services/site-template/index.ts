@@ -1,1 +1,1 @@
-export { siteTemplateService, SiteTemplateService } from './site-template.service'
+export { siteTemplateService, SiteTemplateService, type PublishedSiteImportOption } from './site-template.service'

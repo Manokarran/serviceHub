@@ -13,7 +13,7 @@ export const authConfig = {
   trustHost: true,
   debug: process.env.NODE_ENV === 'development',
   pages: {
-    signIn: '/login',
+    signIn: '/register',
     error: '/login'
   },
   session: {
@@ -37,8 +37,16 @@ export const authConfig = {
         session.user.tenantApproved = Boolean(token.tenantApproved)
         session.user.tenantApprovalStatus = token.tenantApprovalStatus as TenantApprovalStatus | undefined
         session.user.tenantWorkspaceOpen = token.tenantWorkspaceOpen !== false
-        session.user.isSuperAdmin =
-          Boolean(token.isSuperAdmin) || isSuperAdminEmail(session.user.email)
+        const impersonating = Boolean(token.impersonating)
+
+        session.user.impersonating = impersonating
+        session.user.impersonatedUserId = token.impersonatedUserId as string | undefined
+        session.user.originalSuperAdminEmail = token.originalSuperAdminEmail as string | undefined
+
+        // While impersonating, session reflects the target user (no super-admin powers).
+        session.user.isSuperAdmin = impersonating
+          ? false
+          : Boolean(token.isSuperAdmin) || isSuperAdminEmail(session.user.email)
         session.user.context = (token.context as 'staff' | 'customer' | undefined) ?? 'staff'
         session.user.customerId = token.customerId as string | undefined
       }
@@ -50,7 +58,9 @@ export const authConfig = {
       const isRegistered = Boolean(auth?.user?.registrationComplete)
       const pathname = nextUrl.pathname
       const isSuperAdminRoute = pathname.startsWith('/super-admin')
-      const isSuperAdminUser = isSuperAdminEmail(auth?.user?.email)
+      const isImpersonating = Boolean(auth?.user?.impersonating)
+      const isSuperAdminUser =
+        !isImpersonating && isSuperAdminEmail(auth?.user?.email)
 
       const workspaceRoutes =
         pathname.startsWith('/your-space') ||

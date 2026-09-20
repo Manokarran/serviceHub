@@ -12,7 +12,7 @@ export async function requireOpenTenantOrRedirect() {
   const session = await auth()
 
   if (!session?.user) {
-    redirect('/login')
+    redirect('/register')
   }
 
   if (!session.user.registrationComplete || !session.user.tenantId) {
@@ -40,7 +40,7 @@ export async function requireApprovedTenantOrRedirect() {
   const session = await auth()
 
   if (!session?.user) {
-    redirect('/login')
+    redirect('/register')
   }
 
   if (!session.user.registrationComplete || !session.user.tenantId) {

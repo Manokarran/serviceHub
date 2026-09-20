@@ -73,7 +73,22 @@ function WebsiteBuilderInner({
   const builderRootRef = useRef<HTMLDivElement>(null)
   const { isFullscreen, toggleFullscreen } = useBuilderFullscreen()
 
-  const { blocks, mode, selectedBlock, selectBlock, addBlock, moveBlock } = useBuilder()
+  const {
+    blocks,
+    mode,
+    selectedBlock,
+    selectBlock,
+    addBlock,
+    moveBlock,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    copyBlock,
+    pasteBlock,
+    copiedBlock,
+    deleteBlock
+  } = useBuilder()
   const { hints: nestHints, setCanvasDragging } = useBuilderNestTargets()
   const [activeDrag, setActiveDrag] = useState<ActiveDragItem | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -226,6 +241,66 @@ function WebsiteBuilderInner({
   }, [isEditMode])
 
   useEffect(() => {
+    if (!isEditMode) {
+      return
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || !(event.metaKey || event.ctrlKey) || event.altKey) {
+        return
+      }
+
+      const target = event.target as HTMLElement | null
+
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+      const isUndo = key === 'z' && !event.shiftKey
+      const isRedo = key === 'y' || (key === 'z' && event.shiftKey)
+
+      if (isUndo && canUndo) {
+        event.preventDefault()
+        event.stopPropagation()
+        undo()
+
+        return
+      }
+
+      if (isRedo && canRedo) {
+        event.preventDefault()
+        event.stopPropagation()
+        redo()
+
+        return
+      }
+
+      if (key === 'c' && selectedBlock) {
+        event.preventDefault()
+        event.stopPropagation()
+        copyBlock(selectedBlock)
+
+        return
+      }
+
+      if (key === 'v' && copiedBlock) {
+        event.preventDefault()
+        event.stopPropagation()
+        pasteBlock(selectedBlock?.id)
+
+        return
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown, true)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [canRedo, canUndo, copiedBlock, copyBlock, isEditMode, pasteBlock, redo, selectedBlock, undo])
+
+  useEffect(() => {
     if (!isEditMode || isMobileLayout) {
       return
     }
@@ -259,6 +334,18 @@ function WebsiteBuilderInner({
         }
       }
 
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        if (!selectedBlock) {
+          return
+        }
+
+        event.preventDefault()
+        event.stopPropagation()
+        deleteBlock(selectedBlock.id)
+
+        return
+      }
+
       if (event.repeat) {
         return
       }
@@ -282,7 +369,18 @@ function WebsiteBuilderInner({
     return () => {
       window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [closePanel, handleTogglePanel, isEditMode, isMobileLayout, leftPanel, leftPinned, propertyPanelOpen, propertyPinned])
+  }, [
+    closePanel,
+    deleteBlock,
+    handleTogglePanel,
+    isEditMode,
+    isMobileLayout,
+    leftPanel,
+    leftPinned,
+    propertyPanelOpen,
+    propertyPinned,
+    selectedBlock
+  ])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),

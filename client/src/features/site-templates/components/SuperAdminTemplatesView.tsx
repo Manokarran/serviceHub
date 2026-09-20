@@ -12,6 +12,7 @@ import { getSiteTemplateAction } from '@/app/actions/site-template.actions'
 import type { SiteTemplateSummary } from '@/models/site-template'
 
 import { CreateTemplateDialog } from './CreateTemplateDialog'
+import { ImportFromPublishedSiteDialog } from './ImportFromPublishedSiteDialog'
 import { TemplateGallery } from './TemplateGallery'
 import { TemplateWebsitePreviewDialog, type TemplateWebsitePreviewPage } from './TemplateWebsitePreviewDialog'
 
@@ -22,6 +23,7 @@ type Props = {
 export function SuperAdminTemplatesView({ initialTemplates }: Props) {
   const [templates, setTemplates] = useState(initialTemplates)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewTitle, setPreviewTitle] = useState('')
   const [previewPages, setPreviewPages] = useState<TemplateWebsitePreviewPage[]>([])
@@ -81,6 +83,13 @@ export function SuperAdminTemplatesView({ initialTemplates }: Props) {
               Open studio
             </Button>
           </Link>
+          <Button
+            variant='outlined'
+            startIcon={<i className='ri-download-2-line' />}
+            onClick={() => setImportOpen(true)}
+          >
+            Import published site
+          </Button>
           <Button variant='contained' startIcon={<i className='ri-add-line' />} onClick={() => setDialogOpen(true)}>
             New blank template
           </Button>
@@ -96,7 +105,7 @@ export function SuperAdminTemplatesView({ initialTemplates }: Props) {
         <Link href='/super-admin/studio' className='text-primary font-medium'>
           Design studio
         </Link>
-        , then publish from this library. You can still capture the latest base template into a blank template.
+        , or import any live published customer site into this library.
       </Alert>
 
       {previewError ? (
@@ -133,6 +142,15 @@ export function SuperAdminTemplatesView({ initialTemplates }: Props) {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onCreated={template => {
+          setTemplates(current => [...current, template])
+          window.location.assign(`/super-admin/templates/${template.id}`)
+        }}
+      />
+
+      <ImportFromPublishedSiteDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={template => {
           setTemplates(current => [...current, template])
           window.location.assign(`/super-admin/templates/${template.id}`)
         }}

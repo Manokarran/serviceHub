@@ -11,6 +11,7 @@ import { PropertyToggleRow } from '../PropertyToggleRow'
 import { TextTypographyControls } from '../TextTypographyControls'
 import { useSiteStyles } from '../../SiteStylesScope'
 import { ChromeBlockStyleControls } from '../../ChromeBlockStyleControls'
+import { ApplyChromeToAllPagesControl } from './ApplyChromeToAllPagesControl'
 import { ChromeBlockBrandingFields, ChromeBlockStructureFields } from './ChromeBlockShared'
 import { normalizeNavLinks } from '../../../utils/blockMigration'
 
@@ -28,6 +29,7 @@ export function FooterBlockProperties({ block, activeTab }: Props) {
   if (activeTab === 'design') {
     return (
       <PropertyFields>
+        <ApplyChromeToAllPagesControl chromeType='footer' props={props} />
         <ChromeBlockBrandingFields
           logoText={props.logoText}
           logoUrl={props.logoUrl ?? ''}
@@ -57,6 +59,7 @@ export function FooterBlockProperties({ block, activeTab }: Props) {
   if (activeTab === 'layout') {
     return (
       <PropertyFields>
+        <ApplyChromeToAllPagesControl chromeType='footer' props={props} />
         <ChromeBlockStructureFields
           layout={props.layout}
           logoPosition={props.logoPosition ?? 'left'}
@@ -74,6 +77,7 @@ export function FooterBlockProperties({ block, activeTab }: Props) {
 
   return (
     <PropertyFields>
+      <ApplyChromeToAllPagesControl chromeType='footer' props={props} />
       <ChromeBlockStyleControls
         props={props}
         accentColor={siteStyles.colors.accent}

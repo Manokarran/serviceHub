@@ -10,6 +10,11 @@ import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogContentText from '@mui/material/DialogContentText'
+import DialogTitle from '@mui/material/DialogTitle'
 import Divider from '@mui/material/Divider'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import IconButton from '@mui/material/IconButton'
@@ -23,7 +28,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
 import { proposeDesignRestyleAction, rewordDesignScopeAction } from '@/app/actions/ai-design-studio.actions'
-import { listSuggestedBasePagesAction } from '@/app/actions/site-page.actions'
+import { listSuggestedBasePagesAction, fixNavigationOnAllPagesAction, applyChromeBlockToAllPagesAction } from '@/app/actions/site-page.actions'
 import { useSiteWorkspaceOptional } from '@/features/site-templates/context/SiteWorkspaceContext'
 import { consumePendingBuildIntent, peekPendingBuildIntent } from '@/features/register/utils/pending-build-intent'
 import type { DesignProposal, DesignScope } from '@/lib/ai-design-studio/types'
@@ -51,7 +56,7 @@ import { planAiInsertAtTarget } from '../utils/aiInsertAtTarget'
 import { resolveAiInsertTarget } from '../utils/quickAddHelpers'
 import { BuilderFloatingFrame, DockToolButton } from './BuilderFloatingFrame'
 import type { PanelRect, PanelSize } from '../utils/builderPanelFrame'
-import type { BuilderDraftSnapshot } from '../context/BuilderContext'
+import type { FooterBlockProps, HeaderBlockProps } from '../types'
 import type { AiBuilderPlan } from '@/lib/ai-builder/types'
 
 type Props = {
@@ -73,13 +78,6 @@ type ChatMessage = {
   /** Per-operation outcomes, shown as fine print under the reply. */
   details?: string[]
 }
-
-type UndoEntry = {
-  snapshot: BuilderDraftSnapshot
-  label: string
-}
-
-const MAX_UNDO_STEPS = 10
 
 /** A redesign of everything is the one change big enough to be worth confirming first. */
 const REDESIGN_INTENT =
@@ -103,7 +101,7 @@ const CREATION_INTENT = /\b(build|create|generate|launch|start)\b/i
  */
 type QuickAction = {
   label: string
-  kind: 'restyle' | 'reword' | 'fix-nav' | 'prompt'
+  kind: 'restyle' | 'reword' | 'fix-nav' | 'apply-chrome' | 'prompt'
   instruction?: string
   /** Free-text command routed through the local/remote planner. */
   prompt?: string
@@ -136,6 +134,10 @@ const CONTROL_ACTIONS: QuickAction[] = [
   { label: 'Animated backdrop', kind: 'restyle', instruction: 'use a theme-matched animated gradient background with tasteful motion' }
 ]
 
+const HEADER_FOOTER_ACTIONS: QuickAction[] = [
+  { label: 'Apply to all pages', kind: 'apply-chrome' }
+]
+
 const PRICING_LAYOUT_ACTIONS: QuickAction[] = [
   { label: 'Cards layout', kind: 'prompt', prompt: 'switch to cards layout' },
   { label: 'Compare layout', kind: 'prompt', prompt: 'switch to comparison layout' },
@@ -148,6 +150,26 @@ const CAROUSEL_STYLE_ACTIONS: QuickAction[] = [
   { label: 'Cards style', kind: 'prompt', prompt: 'switch to cards carousel style' },
   { label: 'Coverflow style', kind: 'prompt', prompt: 'switch to coverflow carousel style' }
 ]
+
+/** Explicit: apply/copy header or footer across pages. */
+const APPLY_CHROME_EXPLICIT_INTENT =
+  /\b(apply|copy|sync|push|replicate)\b[\s\w-]{0,48}\b(header|footer)\b[\s\w-]{0,40}\b(all|every|other)\s+pages?\b/i
+
+/** Shorter phrasing when a header/footer control is already selected. */
+const APPLY_CHROME_SELECTED_INTENT =
+  /\b(apply|copy|sync|push|replicate)\b[\s\w-]{0,40}\b(all|every|other)\s+pages?\b|\b(to|across)\s+(all|every|other)\s+pages?\b/i
+
+function isApplyChromeIntent(prompt: string, selectedType?: string | null): boolean {
+  if (APPLY_CHROME_EXPLICIT_INTENT.test(prompt)) {
+    return true
+  }
+
+  if ((selectedType === 'header' || selectedType === 'footer') && APPLY_CHROME_SELECTED_INTENT.test(prompt)) {
+    return true
+  }
+
+  return false
+}
 
 /**
  * Generating a whole site replaces every page, so only take that path when the request is
@@ -497,11 +519,15 @@ export function AiWebsiteChat({
     pages,
     tenantSlug,
     builderScope,
+    libraryTemplateId,
     applyAiPlan,
     applyAiDesign,
     applyThemePreset,
-    restoreDraft,
-    addBasePageFromTemplate
+    addBasePageFromTemplate,
+    refreshPages,
+    savePage,
+    canUndo,
+    undo
   } = useBuilder()
 
   const workOverlay = useOptionalBuilderWorkOverlay()
@@ -528,11 +554,12 @@ export function AiWebsiteChat({
   const [error, setError] = useState<string | null>(null)
   const [themePickerOpen, setThemePickerOpen] = useState(false)
   const [createPagePickerOpen, setCreatePagePickerOpen] = useState(false)
+  const [chromeApplyConfirmOpen, setChromeApplyConfirmOpen] = useState(false)
+  const [chromeApplyType, setChromeApplyType] = useState<'header' | 'footer' | null>(null)
   const [selectedThemeId, setSelectedThemeId] = useState<string | null>(siteStyles.themeId)
   const [scope, setScope] = useState<DesignScope>('page')
   const [rewriteCopy, setRewriteCopy] = useState(false)
   const [proposal, setProposal] = useState<DesignProposal | null>(null)
-  const [undoStack, setUndoStack] = useState<UndoEntry[]>([])
   const [suggestedPages, setSuggestedPages] = useState<SuggestedBasePage[]>([])
   const [addingPageSlug, setAddingPageSlug] = useState<string | null>(null)
   const pendingBuildHandled = useRef(false)
@@ -641,28 +668,6 @@ export function AiWebsiteChat({
     }
   }
 
-  const pushUndo = (label: string) => {
-    setUndoStack(current =>
-      [
-        ...current,
-        { label, snapshot: { blocks, siteStyles, selectedBlockId: selectedBlock?.id ?? null } }
-      ].slice(-MAX_UNDO_STEPS)
-    )
-  }
-
-  const undoLastChange = () => {
-    const entry = undoStack.at(-1)
-
-    if (!entry) {
-      return
-    }
-
-    restoreDraft(entry.snapshot)
-    setUndoStack(current => current.slice(0, -1))
-    setError(null)
-    appendMessage('assistant', `Undid: ${entry.label}`)
-  }
-
   const scopeLabel = (value: DesignScope) =>
     value === 'control' && selectedBlock ? `the ${selectedBlock.type} control` : `the ${currentPageSlug} page`
 
@@ -707,10 +712,7 @@ export function AiWebsiteChat({
       notifyCreditsChanged()
     }
 
-    pushUndo(`reworded ${scopeLabel(value)}`)
-
     if (!applyAiDesign({ blocks: result.result.blocks, siteStyles: null, targetBlockId: result.result.targetBlockId })) {
-      setUndoStack(current => current.slice(0, -1))
       setError('That control moved while I was writing. Select it again and retry.')
 
       return
@@ -737,8 +739,6 @@ export function AiWebsiteChat({
 
       try {
         await runWithWorkOverlay('restyle', () => {
-          pushUndo(`${proposal.concept} on ${proposal.targetLabel}`)
-
           if (
             !applyAiDesign({
               blocks: proposal.blocks,
@@ -746,7 +746,6 @@ export function AiWebsiteChat({
               targetBlockId: proposal.targetBlockId
             })
           ) {
-            setUndoStack(current => current.slice(0, -1))
             setError('The draft changed while you were reviewing. Ask me again to get a fresh proposal.')
 
             return
@@ -855,7 +854,7 @@ export function AiWebsiteChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  const runPlan = async (plan: AiBuilderPlan, label: string) => {
+  const runPlan = async (plan: AiBuilderPlan, _label: string) => {
     const themeOp = plan.operations.find(operation => operation.kind === 'apply_theme')
     const kind = themeOp ? 'theme' : 'plan'
     const title = themeOp
@@ -867,12 +866,9 @@ export function AiWebsiteChat({
     await runWithWorkOverlay(
       kind,
       () => {
-        pushUndo(label)
-
         const result = applyAiPlan(plan, refToId)
 
         if (result.changes.length === 0) {
-          setUndoStack(current => current.slice(0, -1))
           setError(result.skipped[0] ?? plan.reply)
 
           return
@@ -923,13 +919,10 @@ export function AiWebsiteChat({
         throw new Error(planned.error)
       }
 
-      pushUndo(`insert ${intent.label}: ${prompt}`)
-
       await runWithWorkOverlay('plan', () => {
         const result = applyAiPlan(planned.plan, bundle.refToId)
 
         if (result.changes.length === 0) {
-          setUndoStack(current => current.slice(0, -1))
           setError(result.skipped[0] ?? planned.plan.reply)
 
           return
@@ -945,33 +938,153 @@ export function AiWebsiteChat({
     }
   }
 
-  const runFixNavigation = () => {
+  const runFixNavigation = async () => {
     setError(null)
 
     const result = fixNavigationOnBlocks(blocks, pages, tenantSlug, currentPageSlug)
 
     if (result.changes.length === 0) {
+      // Still sync other pages in case their chrome menus differ.
+      const siteResult = await fixNavigationOnAllPagesAction(
+        tenantSlug,
+        builderScope,
+        libraryTemplateId ?? undefined
+      )
+
+      if (siteResult.success && siteResult.changeCount > 0) {
+        await refreshPages()
+        appendMessage(
+          'assistant',
+          `Fixed ${siteResult.changeCount} navigation link${siteResult.changeCount === 1 ? '' : 's'} across ${siteResult.updatedPages} other page${siteResult.updatedPages === 1 ? '' : 's'} (including submenu items that matched page names).`
+        )
+
+        return
+      }
+
       appendMessage('assistant', summarizeNavigationFixes(result.changes))
 
       return
     }
 
-    pushUndo('fixed navigation')
-
     if (!applyAiDesign({ blocks: result.blocks, siteStyles: null, targetBlockId: null })) {
-      setUndoStack(current => current.slice(0, -1))
       setError('Could not apply navigation fixes. Try again.')
 
       return
     }
 
+    const siteResult = await fixNavigationOnAllPagesAction(
+      tenantSlug,
+      builderScope,
+      libraryTemplateId ?? undefined
+    )
+
+    if (siteResult.success && siteResult.updatedPages > 0) {
+      await refreshPages()
+    }
+
+    const extra =
+      siteResult.success && siteResult.changeCount > result.changes.length
+        ? ` Also updated menus on ${siteResult.updatedPages} page${siteResult.updatedPages === 1 ? '' : 's'} site-wide.`
+        : ''
+
     appendMessage(
       'assistant',
-      summarizeNavigationFixes(result.changes),
+      `${summarizeNavigationFixes(result.changes)}${extra}`,
       result.changes.map(
         change => `${change.control}: “${change.label}” → ${change.pageTitle} (${change.from} → ${change.to})`
       )
     )
+  }
+
+  const resolveChromeBlockForApply = (
+    preferredType?: 'header' | 'footer' | null,
+    promptHint?: string
+  ) => {
+    if (
+      selectedBlock &&
+      (selectedBlock.type === 'header' || selectedBlock.type === 'footer') &&
+      (!preferredType || selectedBlock.type === preferredType)
+    ) {
+      return selectedBlock
+    }
+
+    const hint = promptHint ?? ''
+    const type =
+      preferredType ??
+      (/\bfooter\b/i.test(hint) && !/\bheader\b/i.test(hint) ? 'footer' : 'header')
+
+    return blocks.find(block => block.type === type) ?? null
+  }
+
+  const requestApplyChromeToAllPages = (
+    preferredType?: 'header' | 'footer' | null,
+    promptHint?: string
+  ) => {
+    const chrome = resolveChromeBlockForApply(preferredType, promptHint)
+
+    if (!chrome || (chrome.type !== 'header' && chrome.type !== 'footer')) {
+      setError('Select a header or footer first, or add one to this page.')
+
+      return
+    }
+
+    setChromeApplyType(chrome.type)
+    setChromeApplyConfirmOpen(true)
+  }
+
+  const confirmApplyChromeToAllPages = async () => {
+    const chromeType = chromeApplyType
+    const chrome = resolveChromeBlockForApply(chromeType)
+
+    if (!chromeType || !chrome || chrome.type !== chromeType) {
+      setChromeApplyConfirmOpen(false)
+      setError(`No ${chromeType ?? 'header/footer'} found on this page.`)
+
+      return
+    }
+
+    setBusy(true)
+    setError(null)
+
+    try {
+      await savePage()
+
+      const result = await applyChromeBlockToAllPagesAction(
+        chromeType,
+        chrome.props as HeaderBlockProps | FooterBlockProps,
+        builderScope,
+        libraryTemplateId ?? undefined
+      )
+
+      setChromeApplyConfirmOpen(false)
+
+      if (!result.success) {
+        setError(result.error)
+
+        return
+      }
+
+      await refreshPages()
+
+      if (result.updatedPages === 0) {
+        appendMessage(
+          'assistant',
+          `No other pages have a ${chromeType} to update. Add a ${chromeType} on those pages first, or keep editing this one.`
+        )
+
+        return
+      }
+
+      appendMessage(
+        'assistant',
+        `Applied this ${chromeType} (links, branding, and style) to ${result.updatedPages} page${result.updatedPages === 1 ? '' : 's'}. Draft only — publish when you’re ready.`
+      )
+    } catch {
+      setError(`Failed to apply ${chromeType} to all pages.`)
+      setChromeApplyConfirmOpen(false)
+    } finally {
+      setBusy(false)
+    }
   }
 
   const sendPrompt = async (promptValue = draft) => {
@@ -995,7 +1108,22 @@ export function AiWebsiteChat({
     const requestScope: DesignScope = PAGE_OVERRIDE.test(prompt) ? 'page' : scope
 
     if (isFixNavigationIntent(prompt)) {
-      runFixNavigation()
+      void runFixNavigation()
+
+      return
+    }
+
+    if (isApplyChromeIntent(prompt, selectedBlock?.type)) {
+      const preferred =
+        selectedBlock?.type === 'header' || selectedBlock?.type === 'footer'
+          ? selectedBlock.type
+          : /\bfooter\b/i.test(prompt) && !/\bheader\b/i.test(prompt)
+            ? 'footer'
+            : /\bheader\b/i.test(prompt)
+              ? 'header'
+              : null
+
+      requestApplyChromeToAllPages(preferred, prompt)
 
       return
     }
@@ -1127,6 +1255,9 @@ export function AiWebsiteChat({
       ? [
           ...(selectedBlock?.type === 'pricing' ? PRICING_LAYOUT_ACTIONS : []),
           ...(selectedBlock?.type === 'carousel' ? CAROUSEL_STYLE_ACTIONS : []),
+          ...(selectedBlock?.type === 'header' || selectedBlock?.type === 'footer'
+            ? HEADER_FOOTER_ACTIONS
+            : []),
           ...CONTROL_ACTIONS
         ]
       : PAGE_ACTIONS
@@ -1134,7 +1265,17 @@ export function AiWebsiteChat({
   const runQuickAction = (action: QuickAction) => {
     if (action.kind === 'fix-nav') {
       appendMessage('user', 'Fix Navigation')
-      runFixNavigation()
+      void runFixNavigation()
+
+      return
+    }
+
+    if (action.kind === 'apply-chrome') {
+      const chromeType =
+        selectedBlock?.type === 'header' || selectedBlock?.type === 'footer' ? selectedBlock.type : null
+
+      appendMessage('user', `Apply ${chromeType ?? 'header/footer'} to all pages`)
+      requestApplyChromeToAllPages(chromeType)
 
       return
     }
@@ -1319,7 +1460,6 @@ export function AiWebsiteChat({
                 await runWithWorkOverlay(
                   'theme',
                   () => {
-                    pushUndo(`${selectedTheme.name} theme`)
                     applyThemePreset(selectedTheme.id)
                     appendMessage('assistant', `Applied the ${selectedTheme.name} theme to your draft.`)
                   },
@@ -1459,16 +1599,16 @@ export function AiWebsiteChat({
                 onDiscard={() => setProposal(null)}
               />
             ) : null}
-            {undoStack.length > 0 ? (
+            {canUndo ? (
               <Button
                 size='small'
                 variant='text'
                 startIcon={<i className='ri-arrow-go-back-line' />}
-                onClick={undoLastChange}
+                onClick={() => undo()}
                 disabled={busy}
                 sx={{ alignSelf: 'flex-start', minHeight: 28, px: 0.5, fontSize: '0.7rem' }}
               >
-                {`Undo (${undoStack.length})`}
+                Undo
               </Button>
             ) : null}
             {!aiInsertIntent ? (
@@ -1549,19 +1689,64 @@ export function AiWebsiteChat({
     </Paper>
   )
 
+  const chromeApplyDialog = (
+    <Dialog
+      open={chromeApplyConfirmOpen}
+      onClose={() => (busy ? null : setChromeApplyConfirmOpen(false))}
+      fullWidth
+      maxWidth='xs'
+    >
+      <DialogTitle sx={BUILDER_TYPOGRAPHY.title}>
+        Apply {chromeApplyType ?? 'header'} to all pages?
+      </DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          This copies links, branding, and style from this {chromeApplyType ?? 'header'} onto every other page that
+          already has a {chromeApplyType ?? 'header'}. Pages without one are left unchanged.
+        </DialogContentText>
+        <DialogContentText sx={{ mt: 1.5 }}>
+          Draft pages only — publish when you’re ready for the live site.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={() => setChromeApplyConfirmOpen(false)} disabled={busy}>
+          Cancel
+        </Button>
+        <Button
+          variant='contained'
+          onClick={() => void confirmApplyChromeToAllPages()}
+          disabled={busy}
+          startIcon={
+            busy ? <CircularProgress size={14} color='inherit' /> : <i className='ri-file-copy-2-line' />
+          }
+        >
+          {busy ? 'Applying…' : `Apply ${chromeApplyType ?? 'header'}`}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+
   if (!isDesktopLayout) {
-    return content
+    return (
+      <>
+        {content}
+        {chromeApplyDialog}
+      </>
+    )
   }
 
   return (
-    <BuilderFloatingFrame
-      overlay={!pinned}
-      overlayId='ai'
-      rect={rect}
-      onCommit={onCommit}
-      onEnsureLayout={onEnsureLayout}
-    >
-      {content}
-    </BuilderFloatingFrame>
+    <>
+      <BuilderFloatingFrame
+        overlay={!pinned}
+        overlayId='ai'
+        rect={rect}
+        onCommit={onCommit}
+        onEnsureLayout={onEnsureLayout}
+      >
+        {content}
+      </BuilderFloatingFrame>
+      {chromeApplyDialog}
+    </>
   )
 }

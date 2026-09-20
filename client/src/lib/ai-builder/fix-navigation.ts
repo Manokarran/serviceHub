@@ -9,7 +9,8 @@ import type {
   ShowcaseBlockProps,
   ShowcaseItem
 } from '@/features/your-space/types'
-import { buildPageLink } from '@/features/your-space/utils/pageLinkHelpers'
+import { normalizeNavLinks } from '@/features/your-space/utils/blockMigration'
+import { buildPageLink, resolveInternalPageSlug } from '@/features/your-space/utils/pageLinkHelpers'
 import { mapBlocks } from '@/lib/ai-site-wizard/block-media'
 import { isHomePageSlug } from '@/lib/utils/page-slug'
 import type { SitePageSummary } from '@/models/site-page/site-page.types'
@@ -154,6 +155,12 @@ function hrefAlreadyPointsToPage(href: string, target: PageTarget, tenantSlug: s
     return true
   }
 
+  const resolvedSlug = resolveInternalPageSlug(trimmed, tenantSlug, pages)
+
+  if (resolvedSlug === target.slug) {
+    return true
+  }
+
   for (const page of pages) {
     if (page.slug !== target.slug) {
       continue
@@ -202,7 +209,10 @@ function recordChange(
   })
 }
 
-function fixNavLinks(
+/**
+ * Fix top-level and nested submenu links when the label matches a page name.
+ */
+export function fixNavLinks(
   links: NavLinkItem[] | undefined,
   targets: PageTarget[],
   tenantSlug: string,
@@ -214,26 +224,29 @@ function fixNavLinks(
     return links
   }
 
-  return links.map(link => {
+  const normalizedLinks = normalizeNavLinks(links)
+
+  return normalizedLinks.map(link => {
     const label = typeof link.label === 'string' ? link.label : ''
     const href = typeof link.href === 'string' ? link.href : ''
     const target = matchPageForLabel(label, targets)
     let nextHref = href
-    let children = link.children
 
     if (target && !shouldSkipExistingHref(href) && !hrefAlreadyPointsToPage(href, target, tenantSlug, pages)) {
       nextHref = target.href
       recordChange(changes, control, label || target.title, target, href, target.href)
     }
 
-    if (Array.isArray(link.children) && link.children.length > 0) {
-      children = fixNavLinks(link.children, targets, tenantSlug, pages, changes, `${control} submenu`)
-    }
+    const childLinks = Array.isArray(link.children) ? link.children : []
+    const nextChildren =
+      childLinks.length > 0
+        ? fixNavLinks(childLinks, targets, tenantSlug, pages, changes, `${control} › submenu`)
+        : undefined
 
     return {
       ...link,
       href: nextHref,
-      ...(children ? { children } : {})
+      ...(nextChildren && nextChildren.length > 0 ? { children: nextChildren } : {})
     }
   })
 }
@@ -268,7 +281,7 @@ function fixLabeledLink(
 }
 
 /**
- * Walk the draft and point menu items / buttons at pages whose names match their labels.
+ * Walk the draft and point menu items / submenu items / buttons at pages whose names match their labels.
  */
 export function fixNavigationOnBlocks(
   blocks: Block[],
@@ -394,13 +407,19 @@ export function isFixNavigationIntent(prompt: string): boolean {
 
 export function summarizeNavigationFixes(changes: NavigationFixChange[]): string {
   if (changes.length === 0) {
-    return 'I checked menus and buttons — everything that matched a page name was already linked correctly.'
+    return 'I checked menus, submenus, and buttons — everything that matched a page name was already linked correctly.'
   }
+
+  const submenuCount = changes.filter(change => change.control.includes('submenu')).length
 
   if (changes.length === 1) {
     const change = changes[0]
 
     return `Linked “${change.label}” (${change.control}) to your ${change.pageTitle} page.`
+  }
+
+  if (submenuCount > 0) {
+    return `Fixed ${changes.length} navigation links (including ${submenuCount} submenu item${submenuCount === 1 ? '' : 's'}) where labels matched your page names.`
   }
 
   return `Fixed ${changes.length} navigation links where labels matched your page names.`

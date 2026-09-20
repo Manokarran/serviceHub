@@ -42,28 +42,44 @@ export function ChromeBlockBackground({
   const showBackgroundVisual = shouldRenderChromeBackgroundVisual(props)
   const visualColors = resolveHeroVisualColors(props, siteStyles.colors.accent)
 
+  // Outer shell stays overflow:visible so header submenus can escape.
+  // Background media/visuals are clipped in an absolute inner layer instead.
   const mergedSx = [
     getBlockBackgroundShellSx(props, photoAnimation, fillOpacity, fallbackColor, {
       fillEnabled: showStaticBackgroundLayers
     }),
-    { position: 'relative', overflow: 'hidden' },
+    { position: 'relative', overflow: 'visible' },
     ...(sx ? [sx] : [])
   ] as SxProps<Theme>
 
   return (
     <Box component={component} sx={mergedSx}>
-      {showBackgroundVisual && (
-        <HeroVisualPanel
-          animation={props.splitVisualAnimation}
-          colorStart={visualColors.start}
-          colorEnd={visualColors.end}
-          mode='section-background'
-        />
+      {(showBackgroundVisual || showStaticBackgroundLayers) && (
+        <Box
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            overflow: 'hidden',
+            borderRadius: 'inherit',
+            pointerEvents: 'none',
+            zIndex: 0
+          }}
+        >
+          {showBackgroundVisual && (
+            <HeroVisualPanel
+              animation={props.splitVisualAnimation}
+              colorStart={visualColors.start}
+              colorEnd={visualColors.end}
+              mode='section-background'
+            />
+          )}
+          {showStaticBackgroundLayers && (
+            <BlockBackgroundLayers props={props} photoOpacity={fillOpacity} fallbackColor={fallbackColor} />
+          )}
+        </Box>
       )}
-      {showStaticBackgroundLayers && (
-        <BlockBackgroundLayers props={props} photoOpacity={fillOpacity} fallbackColor={fallbackColor} />
-      )}
-      <Box sx={{ position: 'relative', zIndex: 1, ...contentSx }}>{children}</Box>
+      <Box sx={{ position: 'relative', zIndex: 1, overflow: 'visible', ...contentSx }}>{children}</Box>
     </Box>
   )
 }

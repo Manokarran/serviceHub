@@ -51,6 +51,82 @@ export function mergeSiteStyles(partial: Partial<SiteStyles>, base: SiteStyles):
   }
 }
 
+/**
+ * Canvas theme for the builder: draft first, then published.
+ * Prefer published when draft is missing, still Plain default, or a flat white
+ * canvas while live has a real background / page motion (common draft drift).
+ */
+export function resolveBuilderCanvasStyles(
+  draft: Partial<SiteStyles> | null | undefined,
+  published: Partial<SiteStyles> | null | undefined
+): SiteStyles {
+  const publishedMerged = mergeSiteStyles(published ?? {}, DEFAULT_SITE_STYLES)
+
+  if (!draft) {
+    return publishedMerged
+  }
+
+  const draftMerged = mergeSiteStyles(draft, DEFAULT_SITE_STYLES)
+
+  if (shouldPreferPublishedCanvasStyles(draftMerged, publishedMerged, Boolean(published))) {
+    return publishedMerged
+  }
+
+  return draftMerged
+}
+
+function isNearWhiteBackground(color?: string): boolean {
+  if (!color?.trim()) {
+    return true
+  }
+
+  const normalized = color.trim().toLowerCase().replace(/\s+/g, '')
+
+  return (
+    normalized === '#fff' ||
+    normalized === '#ffffff' ||
+    normalized === 'white' ||
+    normalized === 'rgb(255,255,255)' ||
+    normalized === 'rgba(255,255,255,1)'
+  )
+}
+
+function shouldPreferPublishedCanvasStyles(
+  draft: SiteStyles,
+  published: SiteStyles,
+  hasPublished: boolean
+): boolean {
+  if (!hasPublished) {
+    return false
+  }
+
+  const draftIsPlainDefault =
+    draft.themeId === DEFAULT_SITE_STYLES.themeId &&
+    isNearWhiteBackground(draft.colors.background) &&
+    draft.colors.accent === DEFAULT_SITE_STYLES.colors.accent
+
+  if (draftIsPlainDefault) {
+    return (
+      published.themeId !== DEFAULT_SITE_STYLES.themeId ||
+      !isNearWhiteBackground(published.colors.background) ||
+      published.colors.accent !== DEFAULT_SITE_STYLES.colors.accent ||
+      (published.misc.pageSplitVisualAnimation ?? 'static') !== 'static'
+    )
+  }
+
+  const publishedHasPageMotion = (published.misc.pageSplitVisualAnimation ?? 'static') !== 'static'
+  const publishedBgIsThemed = !isNearWhiteBackground(published.colors.background)
+  const draftBgIsFlatWhite = isNearWhiteBackground(draft.colors.background)
+  const draftPageIsStatic = (draft.misc.pageSplitVisualAnimation ?? 'static') === 'static'
+
+  // e.g. draft Wellness white/static vs published Professional tint + mesh gradient
+  if (draftBgIsFlatWhite && draftPageIsStatic && (publishedHasPageMotion || publishedBgIsThemed)) {
+    return true
+  }
+
+  return false
+}
+
 export function getCanvasCornerRadius(misc: SiteMisc): number {
   return misc.canvasCornerRadius ?? 0
 }

@@ -38,7 +38,7 @@ export function LiveSiteButton({ siteUrl, displayUrl, hasUnpublishedChanges = fa
   }, [siteUrl])
 
   const tooltipTitle = hasUnpublishedChanges
-    ? `${displayUrl} — unpublished changes on draft`
+    ? `${displayUrl} — draft is ahead of live (publish to update visitors)`
     : displayUrl
 
   return (

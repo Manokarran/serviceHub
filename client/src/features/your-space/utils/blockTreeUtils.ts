@@ -823,6 +823,34 @@ function canPlaceTypeAtLocation(type: BlockType, location: BlockLocation): boole
   return canNestInTabs(type)
 }
 
+/** Insert immediately below a block (same container), matching “Add block below”. */
+export function resolvePasteTargetAfterBlock(
+  blocks: Block[],
+  afterBlockId: string | undefined,
+  type: BlockType
+): BlockLocation {
+  if (!afterBlockId) {
+    return { container: 'root', index: blocks.length }
+  }
+
+  const after = getInsertIndexAfterBlock(blocks, afterBlockId)
+
+  if (canPlaceTypeAtLocation(type, after)) {
+    return after
+  }
+
+  // Root-only / disallowed nest — place after the top-level ancestor instead.
+  for (let index = 0; index < blocks.length; index++) {
+    const rootBlock = blocks[index]
+
+    if (rootBlock.id === afterBlockId || findBlockInTree([rootBlock], afterBlockId)) {
+      return { container: 'root', index: index + 1 }
+    }
+  }
+
+  return { container: 'root', index: blocks.length }
+}
+
 /**
  * Click-to-insert from the palette — mirrors drag/drop intent:
  * - Nest containers (section / carousel / tabs): append into the active slot when allowed

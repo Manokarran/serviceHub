@@ -45,14 +45,22 @@ export default async function YourSpacePage({ searchParams }: PageProps) {
       initialPages = await sitePageService.listPages(user.tenantId)
 
       const resolvedSlug = initialPages.some(page => page.slug === initialPageSlug) ? initialPageSlug : 'home'
-      const sitePage = await sitePageService.getPage(user.tenantId, resolvedSlug)
+      const [sitePage, homePage] = await Promise.all([
+        sitePageService.getPage(user.tenantId, resolvedSlug),
+        resolvedSlug === 'home'
+          ? Promise.resolve(null)
+          : sitePageService.getPage(user.tenantId, 'home')
+      ])
 
       if (sitePage) {
         initialDraftBlocks = sitePage.draftBlocks
         initialPublishedBlocks = sitePage.publishedBlocks
         initialPageTitle = sitePage.title
-        initialDraftSiteStyles = sitePage.draftSiteStyles
-        initialPublishedSiteStyles = sitePage.publishedSiteStyles
+        // Theme is global (stored on home). Non-home pages usually have null style fields.
+        const stylesSource = resolvedSlug === 'home' ? sitePage : (homePage ?? sitePage)
+
+        initialDraftSiteStyles = stylesSource.draftSiteStyles
+        initialPublishedSiteStyles = stylesSource.publishedSiteStyles
         initialSavedAt = requireIsoString(sitePage.draftUpdatedAt)
         initialPublishedAt = toIsoString(sitePage.publishedAt)
         initialVersions = await sitePageService.listPublishedVersions(user.tenantId, resolvedSlug)

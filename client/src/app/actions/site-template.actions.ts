@@ -4,9 +4,9 @@ import { auth } from '@/lib/auth'
 import { requireSuperAdminSession } from '@/lib/auth/require-super-admin'
 import { formatActionError, resolveSessionUserId } from '@/lib/auth/resolve-session-user-id'
 import { AppError } from '@/lib/errors'
-import type { CreateSiteTemplateInput, UpdateSiteTemplateInput } from '@/lib/validators/site-template.validator'
+import type { CreateSiteTemplateInput, ImportSiteTemplateFromTenantInput, UpdateSiteTemplateInput } from '@/lib/validators/site-template.validator'
 import type { SiteTemplateDetail, SiteTemplateSummary } from '@/models/site-template'
-import { siteTemplateService } from '@/services/site-template'
+import { siteTemplateService, type PublishedSiteImportOption } from '@/services/site-template'
 import { getOrCreateBaseTemplateTenantId } from '@/lib/site-template/base-template-tenant'
 
 type TemplatesResult =
@@ -16,6 +16,10 @@ type TemplatesResult =
 type TemplateResult = { success: true; template: SiteTemplateDetail } | { success: false; error: string }
 
 type SimpleResult = { success: true } | { success: false; error: string }
+
+type PublishedSitesResult =
+  | { success: true; sites: PublishedSiteImportOption[] }
+  | { success: false; error: string }
 
 export async function listPublishedSiteTemplatesAction(): Promise<TemplatesResult> {
   try {
@@ -180,6 +184,37 @@ export async function captureSiteTemplateFromWorkspaceAction(id: string): Promis
     }
 
     return { success: false, error: 'Failed to capture site from workspace.' }
+  }
+}
+
+export async function listPublishedSitesForTemplateImportAction(): Promise<PublishedSitesResult> {
+  try {
+    await requireSuperAdminSession()
+    const sites = await siteTemplateService.listPublishedSitesForImport()
+
+    return { success: true, sites }
+  } catch (error) {
+    if (error instanceof AppError) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: false, error: 'Failed to load published sites.' }
+  }
+}
+
+export async function importSiteTemplateFromPublishedTenantAction(
+  input: ImportSiteTemplateFromTenantInput
+): Promise<TemplateResult> {
+  try {
+    const session = await requireSuperAdminSession()
+    const userId = await resolveSessionUserId(session)
+    const template = await siteTemplateService.importTemplateFromPublishedTenant(userId, input)
+
+    return { success: true, template }
+  } catch (error) {
+    console.error('[importSiteTemplateFromPublishedTenantAction]', error)
+
+    return { success: false, error: formatActionError(error, 'Failed to import site as template.') }
   }
 }
 

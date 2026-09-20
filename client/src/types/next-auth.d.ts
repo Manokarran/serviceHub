@@ -22,6 +22,10 @@ declare module 'next-auth' {
       isSuperAdmin?: boolean
       context?: 'staff' | 'customer'
       customerId?: string
+      /** Super admin is viewing the app as another staff user. */
+      impersonating?: boolean
+      impersonatedUserId?: string
+      originalSuperAdminEmail?: string
     } & DefaultSession['user']
   }
 }
@@ -42,5 +46,12 @@ declare module 'next-auth/jwt' {
     isSuperAdmin?: boolean
     context?: 'staff' | 'customer'
     customerId?: string
+    impersonating?: boolean
+    impersonatedUserId?: string
+    originalSuperAdminId?: string
+    originalSuperAdminEmail?: string
+    originalSuperAdminName?: string
+    originalSuperAdminImage?: string | null
+    originalGoogleId?: string
   }
 }

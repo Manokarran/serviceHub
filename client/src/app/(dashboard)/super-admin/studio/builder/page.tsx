@@ -46,14 +46,19 @@ export default async function BaseTemplateBuilderPage({ searchParams }: PageProp
     await sitePageService.ensureBaseWebsitePages(tenantId)
     initialPages = await sitePageService.listPages(tenantId)
     const resolvedSlug = initialPages.some(page => page.slug === initialPageSlug) ? initialPageSlug : 'home'
-    const sitePage = await sitePageService.getPage(tenantId, resolvedSlug)
+    const [sitePage, homePage] = await Promise.all([
+      sitePageService.getPage(tenantId, resolvedSlug),
+      resolvedSlug === 'home' ? Promise.resolve(null) : sitePageService.getPage(tenantId, 'home')
+    ])
 
     if (sitePage) {
       initialDraftBlocks = sitePage.draftBlocks
       initialPublishedBlocks = sitePage.publishedBlocks
       initialPageTitle = sitePage.title
-      initialDraftSiteStyles = sitePage.draftSiteStyles
-      initialPublishedSiteStyles = sitePage.publishedSiteStyles
+      const stylesSource = resolvedSlug === 'home' ? sitePage : (homePage ?? sitePage)
+
+      initialDraftSiteStyles = stylesSource.draftSiteStyles
+      initialPublishedSiteStyles = stylesSource.publishedSiteStyles
       initialSavedAt = requireIsoString(sitePage.draftUpdatedAt)
       initialPublishedAt = toIsoString(sitePage.publishedAt)
       initialVersions = await sitePageService.listPublishedVersions(tenantId, resolvedSlug)

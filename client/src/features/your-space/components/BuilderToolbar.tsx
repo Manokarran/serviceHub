@@ -45,7 +45,7 @@ type Props = {
 
 const STATUS_ICONS: Record<string, string> = {
   info: 'ri-loader-4-line',
-  warning: 'ri-alert-line',
+  warning: 'ri-edit-line',
   success: 'ri-check-line',
   error: 'ri-error-warning-line',
   neutral: 'ri-save-line'
@@ -54,11 +54,14 @@ const STATUS_ICONS: Record<string, string> = {
 function SaveStatusIndicator({
   label,
   tone,
-  detail
+  detail,
+  badge
 }: {
   label: string
   tone: 'info' | 'warning' | 'success' | 'neutral' | 'error'
   detail?: string
+  /** Compact secondary cue, e.g. that the draft is ahead of live. */
+  badge?: string
 }) {
   const theme = useTheme()
 
@@ -86,7 +89,7 @@ function SaveStatusIndicator({
           px: 1.25,
           borderRadius: 1.25,
           backgroundColor: palette.bg,
-          maxWidth: { xs: 132, sm: 180 }
+          maxWidth: { xs: 148, sm: 220 }
         }}
       >
         <Box
@@ -97,7 +100,7 @@ function SaveStatusIndicator({
             justifyContent: 'center',
             flexShrink: 0,
             color: palette.main,
-            fontSize: '0.75rem',
+            fontSize: '0.8rem',
             ...(isActive && {
               animation: 'builderSpin 1s linear infinite',
               '@keyframes builderSpin': {
@@ -107,7 +110,7 @@ function SaveStatusIndicator({
             })
           }}
         >
-          {isActive || tone === 'error' ? (
+          {isActive || tone === 'error' || tone === 'warning' ? (
             <i className={icon} />
           ) : (
             <Box
@@ -132,6 +135,27 @@ function SaveStatusIndicator({
         >
           {label}
         </Typography>
+        {badge ? (
+          <Box
+            component='span'
+            sx={{
+              display: { xs: 'none', md: 'inline-flex' },
+              alignItems: 'center',
+              height: 18,
+              px: 0.75,
+              borderRadius: 1,
+              flexShrink: 0,
+              ...BUILDER_TYPOGRAPHY.label,
+              fontSize: '0.65rem',
+              letterSpacing: '0.02em',
+              color: theme.palette.warning.dark,
+              backgroundColor: alpha(theme.palette.warning.main, 0.14),
+              lineHeight: 1
+            }}
+          >
+            {badge}
+          </Box>
+        ) : null}
       </Box>
     </Tooltip>
   )
@@ -141,20 +165,136 @@ function ToolbarIconButton({
   title,
   icon,
   onClick,
-  ariaLabel
+  ariaLabel,
+  disabled = false
 }: {
   title: string
   icon: string
   onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
   ariaLabel: string
+  disabled?: boolean
 }) {
   const theme = useTheme()
 
   return (
     <Tooltip title={title}>
-      <IconButton size='small' onClick={onClick} aria-label={ariaLabel} sx={builderToolbarIconButtonSx(theme)}>
-        <i className={icon} />
-      </IconButton>
+      <span>
+        <IconButton
+          size='small'
+          onClick={onClick}
+          aria-label={ariaLabel}
+          disabled={disabled}
+          sx={{
+            ...builderToolbarIconButtonSx(theme),
+            '&.Mui-disabled': { opacity: 0.35 }
+          }}
+        >
+          <i className={icon} />
+        </IconButton>
+      </span>
+    </Tooltip>
+  )
+}
+
+function UndoRedoControls({ showLabels }: { showLabels: boolean }) {
+  const theme = useTheme()
+  const { canUndo, canRedo, undo, redo, mode } = useBuilder()
+  const isEditMode = mode === 'edit'
+  const isMac =
+    typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent)
+  const mod = isMac ? '⌘' : 'Ctrl'
+
+  if (!isEditMode) {
+    return null
+  }
+
+  const buttonSx = {
+    height: 32,
+    minWidth: showLabels ? undefined : 32,
+    px: showLabels ? 1.25 : 0,
+    gap: 0.75,
+    border: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 1,
+    background: 'none',
+    color: 'text.secondary',
+    cursor: 'pointer',
+    ...BUILDER_TYPOGRAPHY.action,
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    transition: 'color 0.15s, background-color 0.15s',
+    '&:hover:not(:disabled)': {
+      color: 'text.primary',
+      backgroundColor: alpha(theme.palette.text.primary, 0.06)
+    },
+    '&:disabled': {
+      opacity: 0.35,
+      cursor: 'not-allowed'
+    }
+  } as const
+
+  return (
+    <Tooltip
+      title={
+        canUndo || canRedo
+          ? `Undo (${mod}+Z) · Redo (${mod}+Y)`
+          : 'Undo and redo edits on this page'
+      }
+    >
+      <Box
+        role='group'
+        aria-label='Undo and redo'
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          height: 32,
+          p: '2px',
+          gap: 0,
+          borderRadius: 1.25,
+          border: `1px solid ${alpha(theme.palette.text.primary, canUndo || canRedo ? 0.16 : 0.1)}`,
+          backgroundColor: alpha(
+            theme.palette.primary.main,
+            canUndo || canRedo ? 0.06 : 0.02
+          ),
+          transition: 'border-color 0.15s, background-color 0.15s'
+        }}
+      >
+        <Box
+          component='button'
+          type='button'
+          onClick={() => undo()}
+          disabled={!canUndo}
+          aria-label={`Undo (${mod}+Z)`}
+          title={`Undo (${mod}+Z)`}
+          sx={buttonSx}
+        >
+          <i className='ri-arrow-go-back-line' style={{ fontSize: '0.95rem' }} />
+          {showLabels ? 'Undo' : null}
+        </Box>
+        <Box
+          aria-hidden
+          sx={{
+            width: 1,
+            alignSelf: 'stretch',
+            my: 0.5,
+            backgroundColor: alpha(theme.palette.text.primary, 0.1)
+          }}
+        />
+        <Box
+          component='button'
+          type='button'
+          onClick={() => redo()}
+          disabled={!canRedo}
+          aria-label={`Redo (${mod}+Y)`}
+          title={`Redo (${mod}+Y)`}
+          sx={buttonSx}
+        >
+          <i className='ri-arrow-go-forward-line' style={{ fontSize: '0.95rem' }} />
+          {showLabels ? 'Redo' : null}
+        </Box>
+      </Box>
     </Tooltip>
   )
 }
@@ -167,7 +307,7 @@ function ToolbarDivider() {
 
 function PageSwitcher() {
   const theme = useTheme()
-  const { pages, currentPageSlug, currentPageTitle, isPageSwitching, switchPage } = useBuilder()
+  const { pages, currentPageSlug, currentPageTitle, isPageSwitching, switchPage, isDirty } = useBuilder()
   const [anchor, setAnchor] = useState<null | HTMLElement>(null)
   const open = Boolean(anchor)
 
@@ -181,7 +321,7 @@ function PageSwitcher() {
         onClick={event => setAnchor(event.currentTarget)}
         aria-haspopup='listbox'
         aria-expanded={open}
-        aria-label='Switch page'
+        aria-label={isDirty ? `${currentPageTitle} (unsaved changes)` : 'Switch page'}
         sx={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -207,6 +347,15 @@ function PageSwitcher() {
         />
         <Typography component='span' sx={{ ...BUILDER_TYPOGRAPHY.title, lineHeight: 1, minWidth: 0 }} noWrap>
           {currentPageTitle}
+          {isDirty ? (
+            <Box
+              component='span'
+              aria-hidden
+              sx={{ color: 'warning.main', fontWeight: 800, ml: 0.15 }}
+            >
+              *
+            </Box>
+          ) : null}
         </Typography>
         <i
           className='ri-arrow-down-s-line'
@@ -243,7 +392,16 @@ function PageSwitcher() {
                 <i className={page.isHome ? 'ri-home-4-fill' : 'ri-file-3-line'} />
               </ListItemIcon>
               <ListItemText
-                primary={page.title}
+                primary={
+                  <>
+                    {page.title}
+                    {isActive && isDirty ? (
+                      <Box component='span' sx={{ color: 'warning.main', fontWeight: 800 }}>
+                        *
+                      </Box>
+                    ) : null}
+                  </>
+                }
                 secondary={page.isHome ? 'Home page' : undefined}
                 slotProps={{
                   primary: { sx: BUILDER_TYPOGRAPHY.title },
@@ -295,7 +453,11 @@ export function BuilderToolbar({
     builderScope,
     libraryTemplateId,
     tenantSlug,
-    siteStyles
+    siteStyles,
+    canUndo,
+    canRedo,
+    undo,
+    redo
   } = useBuilder()
 
   const workspace = useSiteWorkspaceOptional()
@@ -320,42 +482,60 @@ export function BuilderToolbar({
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const menuOpen = Boolean(menuAnchor)
 
+  const formatTime = (value: string) =>
+    new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  // Save and publish are separate signals: never call a successful save "Unpublished".
   const statusLabel = isPublishing
     ? 'Publishing'
     : isSaving
-      ? 'Saving'
+      ? 'Saving…'
       : saveError
         ? 'Save failed'
-        : hasUnpublishedChanges
-          ? 'Unpublished'
-          : isDirty
-            ? 'Unsaved'
+        : isDirty
+          ? 'Unsaved*'
+          : hasUnpublishedChanges
+            ? 'Saved'
             : lastPublishedAt
               ? 'Live'
               : 'Saved'
 
-  const formatTime = (value: string) =>
-    new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const statusBadge =
+    !isPublishing && !isSaving && !saveError && !isDirty && hasUnpublishedChanges
+      ? 'Ahead of live'
+      : undefined
 
-  const statusDetail = isPublishing || isSaving
-    ? statusLabel
-    : saveError
-      ? saveError
-      : lastSavedAt
-        ? `Last saved ${formatTime(lastSavedAt)}`
-        : lastPublishedAt
-          ? `Published ${formatTime(lastPublishedAt)}`
-          : statusLabel
+  const statusDetail = isPublishing
+    ? 'Publishing your draft to the live site…'
+    : isSaving
+      ? 'Saving your draft…'
+      : saveError
+        ? saveError
+        : isDirty
+          ? autosaveEnabled
+            ? 'Edits not saved yet — autosave will catch up, or hit Save.'
+            : 'Edits not saved yet — hit Save to keep them.'
+          : hasUnpublishedChanges
+            ? lastSavedAt
+              ? `Saved ${formatTime(lastSavedAt)}. Draft is ahead of your live site — publish when you’re ready.`
+              : 'Draft is ahead of your live site — publish when you’re ready.'
+            : lastPublishedAt
+              ? `Live site matches this draft${lastSavedAt ? ` · saved ${formatTime(lastSavedAt)}` : ''}.`
+              : lastSavedAt
+                ? `All changes saved ${formatTime(lastSavedAt)}.`
+                : 'All changes saved.'
 
   const statusTone: 'info' | 'warning' | 'success' | 'neutral' | 'error' = isPublishing || isSaving
     ? 'info'
     : saveError
       ? 'error'
-      : hasUnpublishedChanges || isDirty
+      : isDirty
         ? 'warning'
-        : lastPublishedAt
+        : hasUnpublishedChanges
           ? 'success'
-          : 'neutral'
+          : lastPublishedAt
+            ? 'success'
+            : 'neutral'
 
   const handleMenuClose = () => setMenuAnchor(null)
 
@@ -443,7 +623,14 @@ export function BuilderToolbar({
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, sm: 1.25 }, flexShrink: 0, ml: 'auto' }}>
-            <SaveStatusIndicator label={statusLabel} tone={statusTone} detail={statusDetail} />
+            <SaveStatusIndicator
+              label={statusLabel}
+              tone={statusTone}
+              detail={statusDetail}
+              badge={statusBadge}
+            />
+
+            <UndoRedoControls showLabels={!isCompact} />
 
             <ToolbarDivider />
 
@@ -614,7 +801,31 @@ export function BuilderToolbar({
             </ListItemIcon>
             <ListItemText>Save draft</ListItemText>
           </MenuItem>
-        ) : undefined}
+        ) : null}
+        <MenuItem
+          onClick={() => {
+            handleMenuClose()
+            undo()
+          }}
+          disabled={!canUndo}
+        >
+          <ListItemIcon>
+            <i className='ri-arrow-go-back-line' />
+          </ListItemIcon>
+          <ListItemText primary='Undo' secondary='Ctrl+Z' />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleMenuClose()
+            redo()
+          }}
+          disabled={!canRedo}
+        >
+          <ListItemIcon>
+            <i className='ri-arrow-go-forward-line' />
+          </ListItemIcon>
+          <ListItemText primary='Redo' secondary='Ctrl+Y' />
+        </MenuItem>
         <MenuItem
           onClick={e => {
             e.preventDefault()
@@ -660,79 +871,83 @@ export function BuilderToolbar({
             />
           </MenuItem>
         ) : null}
-        {canBrowseTemplates || workspace ? (
-          <>
-            <Divider sx={{ my: 0.5 }} />
-            {canBrowseTemplates ? (
+        {canBrowseTemplates || workspace
+          ? [
+              <Divider key='templates-divider' sx={{ my: 0.5 }} />,
+              canBrowseTemplates ? (
+                <MenuItem
+                  key='browse-templates'
+                  onClick={() => {
+                    handleMenuClose()
+                    workspace!.openTemplatePicker(workspace!.isSiteStarted ? 'replace' : 'onboarding')
+                  }}
+                >
+                  <ListItemIcon>
+                    <i className='ri-layout-grid-line' />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary='Browse template library'
+                    secondary='Apply a published layout to your draft'
+                  />
+                </MenuItem>
+              ) : null,
+              workspace ? (
+                <MenuItem
+                  key='generate-website'
+                  onClick={() => {
+                    handleMenuClose()
+                    workspace.openAiWizard()
+                  }}
+                >
+                  <ListItemIcon>
+                    <i className='ri-sparkling-line' />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary='Generate website'
+                    secondary='Build from your brand using our master layout'
+                  />
+                </MenuItem>
+              ) : null
+            ]
+          : null}
+        {!isSystemBuilder
+          ? [
+              <Divider key='reset-divider' sx={{ my: 0.5 }} />,
+              canResetSite ? (
+                <MenuItem
+                  key='start-fresh'
+                  onClick={() => {
+                    handleMenuClose()
+                    workspace!.openStartFreshDialog()
+                  }}
+                >
+                  <ListItemIcon>
+                    <i className='ri-refresh-line' />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary='Start from scratch…'
+                    secondary='Reset draft site to blank or starter'
+                  />
+                </MenuItem>
+              ) : null,
               <MenuItem
+                key='clear-page'
                 onClick={() => {
                   handleMenuClose()
-                  workspace!.openTemplatePicker(workspace!.isSiteStarted ? 'replace' : 'onboarding')
+                  resetToEmpty()
                 }}
+                disabled={blocks.length === 0}
               >
                 <ListItemIcon>
-                  <i className='ri-layout-grid-line' />
+                  <i className='ri-layout-line' />
                 </ListItemIcon>
                 <ListItemText
-                  primary='Browse template library'
-                  secondary='Apply a published layout to your draft'
+                  primary='Clear current page'
+                  secondary='Draft only, this page'
                 />
               </MenuItem>
-            ) : null}
-            {workspace ? (
-              <MenuItem
-                onClick={() => {
-                  handleMenuClose()
-                  workspace.openAiWizard()
-                }}
-              >
-                <ListItemIcon>
-                  <i className='ri-sparkling-line' />
-                </ListItemIcon>
-                <ListItemText
-                  primary='Generate website'
-                  secondary='Build from your brand using our master layout'
-                />
-              </MenuItem>
-            ) : null}
-          </>
-        ) : null}
-        {!isSystemBuilder ? (
-          <>
-            <Divider sx={{ my: 0.5 }} />
-            {canResetSite ? (
-              <MenuItem
-                onClick={() => {
-                  handleMenuClose()
-                  workspace!.openStartFreshDialog()
-                }}
-              >
-                <ListItemIcon>
-                  <i className='ri-refresh-line' />
-                </ListItemIcon>
-                <ListItemText
-                  primary='Start from scratch…'
-                  secondary='Reset draft site to blank or starter'
-                />
-              </MenuItem>
-            ) : null}
-            <MenuItem
-              onClick={() => {
-                handleMenuClose()
-                resetToEmpty()
-              }}
-              disabled={blocks.length === 0}
-            >
-              <ListItemIcon>
-                <i className='ri-layout-line' />
-              </ListItemIcon>
-              <ListItemText
-                primary='Clear current page'
-                secondary='Draft only, this page'
-              />
-            </MenuItem>
-          </>
-        ) : null}
+            ]
+          : null}
       </Menu>
 
       <VersionHistoryDialog

@@ -6,7 +6,6 @@ import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import type { SxProps, Theme } from '@mui/material/styles'
-import { alpha } from '@mui/material/styles'
 
 import type { HeaderBlockProps } from '../../types'
 import { useStickyChromeScroll } from '../../hooks/useStickyHeaderScroll'
@@ -16,6 +15,7 @@ import {
   getStickyChromeBarSx,
   getStickyChromeFloatShadowSx
 } from '../../utils/mediaBlockHelpers'
+import { resolveChromeSubmenuSurface } from '../../utils/chromeBlockHelpers'
 import { normalizeSiteFonts } from '../../utils/siteStylesHelpers'
 import { resolveTextTypographyValues } from '../../utils/textTypographyHelpers'
 import { getSiteNavLinkSx } from '../../utils/siteInteractiveHelpers'
@@ -44,9 +44,11 @@ export function HeaderBlock({ props }: Props) {
   const navLinks = normalizeNavLinks(props.navLinks)
   const textColor = typeof props.textColor === 'string' && props.textColor ? props.textColor : '#111827'
   const lightText = textColor.toLowerCase() === '#ffffff' || textColor.toLowerCase() === 'white'
-  const submenuBg = lightText ? 'rgba(15, 23, 42, 0.92)' : 'rgba(255, 255, 255, 0.94)'
-  const submenuBorder = lightText ? alpha('#ffffff', 0.14) : alpha('#0f172a', 0.12)
-  const submenuHover = lightText ? alpha('#ffffff', 0.12) : alpha('#0f172a', 0.08)
+  const { background: submenuBg, border: submenuBorder, hover: submenuHover } = resolveChromeSubmenuSurface(
+    props,
+    siteStyles.colors
+  )
+  const menuOpen = openMenuIndex !== null
 
   const fonts = normalizeSiteFonts(siteStyles.fonts)
   const navLinkSx = {
@@ -100,14 +102,31 @@ export function HeaderBlock({ props }: Props) {
   }, [])
 
   return (
-    <Box ref={setShellEl} sx={getFixedBlockShellSx('header', isSticky, scrolled)}>
-      <Box sx={getStickyChromeFloatShadowSx(isSticky && scrolled, props.borderRadius)}>
+    <Box
+      ref={setShellEl}
+      sx={[
+        getFixedBlockShellSx('header', isSticky, scrolled),
+        {
+          // Keep open submenus above following page sections.
+          ...(menuOpen
+            ? {
+                position: isSticky ? 'sticky' : 'relative',
+                zIndex: 1200
+              }
+            : !isSticky
+              ? { position: 'relative', zIndex: 2 }
+              : {})
+        }
+      ]}
+    >
+      <Box sx={[{ overflow: 'visible' }, getStickyChromeFloatShadowSx(isSticky && scrolled, props.borderRadius)]}>
         <ChromeBlockBackground
           component='header'
           props={props}
-          fallbackColor='#ffffff'
+          fallbackColor={props.backgroundColor || siteStyles.colors.background || '#ffffff'}
           sx={{
             color: textColor,
+            overflow: 'visible',
             ...getStickyChromeBarSx({
               scrolled: isSticky && scrolled,
               borderRadius: props.borderRadius,
@@ -183,7 +202,8 @@ export function HeaderBlock({ props }: Props) {
                   alignItems: 'center',
                   pb: 1.25,
                   mb: -1.25,
-                  zIndex: 2,
+                  zIndex: isOpen ? 40 : 2,
+                  overflow: 'visible',
                   '& [data-nav-children]': {
                     opacity: isOpen ? 1 : 0,
                     visibility: isOpen ? 'visible' : 'hidden',
@@ -256,7 +276,7 @@ export function HeaderBlock({ props }: Props) {
                       transformOrigin: 'top left',
                       transition:
                         'opacity 240ms cubic-bezier(0.22, 1, 0.36, 1), transform 280ms cubic-bezier(0.22, 1, 0.36, 1), visibility 220ms',
-                      zIndex: 20,
+                      zIndex: 50,
                       '&::before': {
                         content: '""',
                         position: 'absolute',
