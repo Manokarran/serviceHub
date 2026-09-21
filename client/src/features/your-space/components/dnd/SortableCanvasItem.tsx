@@ -157,7 +157,7 @@ export function SortableCanvasItem({
   blockIndex
 }: Props) {
   const theme = useTheme()
-  const { selectedBlockId, mode, selectBlock, deleteBlock, updateBlock } = useBuilder()
+  const { selectedBlockId, mode, selectBlock, deleteBlock, updateBlock, formatPaintMode, copiedFormat } = useBuilder()
   const shell = useBuilderShell()
   const nestTargets = useBuilderNestTargetsOptional()
   const outerRef = useRef<HTMLElement | null>(null)
@@ -165,6 +165,7 @@ export function SortableCanvasItem({
   const isEditMode = mode === 'edit'
   const isPreviewCanvas = preview || mode === 'preview'
   const isContainerBlock = isContainerBlockType(block.type)
+  const isFormatPaintTarget = isEditMode && formatPaintMode !== 'off' && copiedFormat?.sourceId !== block.id
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number
     mouseY: number
@@ -265,9 +266,10 @@ export function SortableCanvasItem({
             : nested
               ? 1
               : undefined,
-        outline: isEditMode && isSelected ? '2px solid' : '2px solid transparent',
+        outline: isEditMode && isSelected ? '2px solid' : isFormatPaintTarget ? '2px dashed' : '2px solid transparent',
         outlineColor: isEditMode && isSelected ? 'primary.main' : 'transparent',
         outlineOffset: -2,
+        cursor: isFormatPaintTarget ? 'copy' : undefined,
         '&:has([data-builder-block-id]:hover) > .hover-block-toolbar': {
           opacity: '0 !important',
           pointerEvents: 'none !important'
@@ -276,7 +278,8 @@ export function SortableCanvasItem({
         ...(isEditMode && !isSelected
           ? {
               '&:hover': {
-                zIndex: BUILDER_Z_INDEX.canvasBlockHover
+                zIndex: BUILDER_Z_INDEX.canvasBlockHover,
+                ...(isFormatPaintTarget ? { outlineColor: 'primary.main' } : {})
               }
             }
           : {}),

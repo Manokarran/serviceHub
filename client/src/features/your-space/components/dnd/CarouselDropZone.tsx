@@ -10,6 +10,8 @@ import { alpha, useTheme } from '@mui/material/styles'
 import type { Block } from '../../types'
 import { builderContainerChromeSx } from '../../utils/builderContainerChrome'
 import { insertDropId, carouselDropId } from '../../utils/blockTreeUtils'
+import { formatPaintRegionsEqual } from '../../utils/formatPaint'
+import { useBuilderOptional } from '../../context/BuilderContext'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { BlockInsertDropZone } from './BlockInsertDropZone'
 import { BlockQuickAddPicker } from './BlockQuickAddPicker'
@@ -35,6 +37,12 @@ export function CarouselDropZone({
 }: Props) {
   const theme = useTheme()
   const { active } = useDndContext()
+  const builder = useBuilderOptional()
+  const selectBlock = builder?.selectBlock
+  const selectedBlockId = builder?.selectedBlockId
+  const selectedRegion = builder?.selectedRegion
+  const formatPaintMode = builder?.formatPaintMode ?? 'off'
+  const copiedFormat = builder?.copiedFormat
   const isDragging = Boolean(active)
   const { setNodeRef, isOver } = useDroppable({
     id: carouselDropId(carouselId, slideId),
@@ -43,6 +51,13 @@ export function CarouselDropZone({
   const location = { container: 'carousel' as const, carouselId, slideId }
   const isEmpty = children.length === 0
   const [pickerAnchor, setPickerAnchor] = useState<HTMLElement | null>(null)
+  const slideRegion = { kind: 'carousel-slide' as const, slideId }
+  const isSlideSelected =
+    selectedBlockId === carouselId && Boolean(selectedRegion && formatPaintRegionsEqual(slideRegion, selectedRegion))
+  const isFormatPaintTarget =
+    formatPaintMode !== 'off' &&
+    Boolean(copiedFormat?.region) &&
+    !formatPaintRegionsEqual(copiedFormat?.region, slideRegion)
 
   if (!editMode) {
     return (
@@ -57,6 +72,22 @@ export function CarouselDropZone({
   return (
     <Box
       ref={setNodeRef}
+      onClick={e => {
+        if (!editMode) {
+          return
+        }
+
+        const nestedId = (e.target as HTMLElement | null)
+          ?.closest?.('[data-builder-block-id]')
+          ?.getAttribute('data-builder-block-id')
+
+        if (nestedId && nestedId !== carouselId) {
+          return
+        }
+
+        e.stopPropagation()
+        selectBlock?.(carouselId, { region: { kind: 'carousel-slide', slideId } })
+      }}
       sx={{
         width: '100%',
         minHeight: isEmpty ? 140 : 56,
@@ -75,7 +106,11 @@ export function CarouselDropZone({
               backgroundColor: alpha(theme.palette.primary.main, 0.08)
             }
           : {}),
-        p: isEmpty ? 2 : 0.25
+        p: isEmpty ? 2 : 0.25,
+        cursor: isFormatPaintTarget ? 'copy' : undefined,
+        outline: isSlideSelected ? '2px solid' : isFormatPaintTarget ? '2px dashed' : '2px solid transparent',
+        outlineColor: isSlideSelected || isFormatPaintTarget ? 'primary.main' : 'transparent',
+        outlineOffset: -2
       }}
     >
       {isDragging && isOver && <DropTargetCue label={`Drop in ${slideLabel}`} emphasized />}

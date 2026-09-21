@@ -8,6 +8,8 @@ import { alpha, useTheme } from '@mui/material/styles'
 import type { Block } from '../../types'
 import { builderContainerChromeSx } from '../../utils/builderContainerChrome'
 import { insertDropId, tabsDropId } from '../../utils/blockTreeUtils'
+import { formatPaintRegionsEqual } from '../../utils/formatPaint'
+import { useBuilderOptional } from '../../context/BuilderContext'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { BlockInsertDropZone } from './BlockInsertDropZone'
 import { DropTargetCue } from './DropTargetCue'
@@ -32,6 +34,12 @@ export function TabsDropZone({
 }: Props) {
   const theme = useTheme()
   const { active } = useDndContext()
+  const builder = useBuilderOptional()
+  const selectBlock = builder?.selectBlock
+  const selectedBlockId = builder?.selectedBlockId
+  const selectedRegion = builder?.selectedRegion
+  const formatPaintMode = builder?.formatPaintMode ?? 'off'
+  const copiedFormat = builder?.copiedFormat
   const isDragging = Boolean(active)
   const { setNodeRef, isOver } = useDroppable({
     id: tabsDropId(tabsId, panelId),
@@ -39,6 +47,13 @@ export function TabsDropZone({
   })
   const location = { container: 'tabs' as const, tabsId, panelId }
   const isEmpty = children.length === 0
+  const panelRegion = { kind: 'tab-panel' as const, panelId }
+  const isPanelSelected =
+    selectedBlockId === tabsId && Boolean(selectedRegion && formatPaintRegionsEqual(panelRegion, selectedRegion))
+  const isFormatPaintTarget =
+    formatPaintMode !== 'off' &&
+    Boolean(copiedFormat?.region) &&
+    !formatPaintRegionsEqual(copiedFormat?.region, panelRegion)
 
   if (!editMode) {
     return (
@@ -53,6 +68,22 @@ export function TabsDropZone({
   return (
     <Box
       ref={setNodeRef}
+      onClick={e => {
+        if (!editMode) {
+          return
+        }
+
+        const nestedId = (e.target as HTMLElement | null)
+          ?.closest?.('[data-builder-block-id]')
+          ?.getAttribute('data-builder-block-id')
+
+        if (nestedId && nestedId !== tabsId) {
+          return
+        }
+
+        e.stopPropagation()
+        selectBlock?.(tabsId, { region: { kind: 'tab-panel', panelId } })
+      }}
       sx={{
         width: '100%',
         minHeight: isEmpty ? 140 : 56,
@@ -62,7 +93,11 @@ export function TabsDropZone({
         ...(!(isDragging && isOver) && !isDragging
           ? { backgroundColor: alpha(theme.palette.text.primary, 0.02) }
           : {}),
-        p: isEmpty ? 2 : 0.75
+        p: isEmpty ? 2 : 0.75,
+        cursor: isFormatPaintTarget ? 'copy' : undefined,
+        outline: isPanelSelected ? '2px solid' : isFormatPaintTarget ? '2px dashed' : '2px solid transparent',
+        outlineColor: isPanelSelected || isFormatPaintTarget ? 'primary.main' : 'transparent',
+        outlineOffset: -2
       }}
     >
       {isDragging && isOver && <DropTargetCue label={`Drop in ${panelLabel}`} emphasized />}

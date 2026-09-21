@@ -87,7 +87,12 @@ function WebsiteBuilderInner({
     copyBlock,
     pasteBlock,
     copiedBlock,
-    deleteBlock
+    deleteBlock,
+    copyFormat,
+    applyCopiedFormat,
+    cancelFormatPaint,
+    formatPaintMode,
+    copiedFormat
   } = useBuilder()
   const { hints: nestHints, setCanvasDragging } = useBuilderNestTargets()
   const [activeDrag, setActiveDrag] = useState<ActiveDragItem | null>(null)
@@ -276,6 +281,22 @@ function WebsiteBuilderInner({
         return
       }
 
+      if (key === 'c' && event.shiftKey && selectedBlock) {
+        event.preventDefault()
+        event.stopPropagation()
+        copyFormat(selectedBlock)
+
+        return
+      }
+
+      if (key === 'v' && event.shiftKey && copiedFormat && selectedBlock) {
+        event.preventDefault()
+        event.stopPropagation()
+        applyCopiedFormat(selectedBlock.id)
+
+        return
+      }
+
       if (key === 'c' && selectedBlock) {
         event.preventDefault()
         event.stopPropagation()
@@ -298,7 +319,20 @@ function WebsiteBuilderInner({
     return () => {
       window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [canRedo, canUndo, copiedBlock, copyBlock, isEditMode, pasteBlock, redo, selectedBlock, undo])
+  }, [
+    applyCopiedFormat,
+    canRedo,
+    canUndo,
+    copiedBlock,
+    copiedFormat,
+    copyBlock,
+    copyFormat,
+    isEditMode,
+    pasteBlock,
+    redo,
+    selectedBlock,
+    undo
+  ])
 
   useEffect(() => {
     if (!isEditMode || isMobileLayout) {
@@ -317,6 +351,14 @@ function WebsiteBuilderInner({
       }
 
       if (event.key === 'Escape') {
+        if (formatPaintMode !== 'off') {
+          event.preventDefault()
+          event.stopPropagation()
+          cancelFormatPaint()
+
+          return
+        }
+
         if (propertyPanelOpen && !propertyPinned) {
           event.preventDefault()
           event.stopPropagation()
@@ -370,8 +412,10 @@ function WebsiteBuilderInner({
       window.removeEventListener('keydown', onKeyDown, true)
     }
   }, [
+    cancelFormatPaint,
     closePanel,
     deleteBlock,
+    formatPaintMode,
     handleTogglePanel,
     isEditMode,
     isMobileLayout,

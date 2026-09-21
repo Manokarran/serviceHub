@@ -15,12 +15,14 @@ import {
   isMediaBackground,
   isSimpleColor
 } from '../../utils/sectionStyleHelpers'
+import { useBuilderOptional } from '../../context/BuilderContext'
 import { useBuilderNestTargetsOptional } from '../../context/BuilderNestTargetsContext'
 import { builderContainerChromeSx } from '../../utils/builderContainerChrome'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { DropTargetCue } from './DropTargetCue'
 import { SortableBlockList } from './SortableBlockList'
 import { sectionDropId } from '../../utils/blockTreeUtils'
+import { formatPaintRegionsEqual } from '../../utils/formatPaint'
 
 type Props = {
   sectionId: string
@@ -43,6 +45,12 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
   const theme = useTheme()
   const { active } = useDndContext()
   const nestTargets = useBuilderNestTargetsOptional()
+  const builder = useBuilderOptional()
+  const selectBlock = builder?.selectBlock
+  const selectedBlockId = builder?.selectedBlockId
+  const selectedRegion = builder?.selectedRegion
+  const formatPaintMode = builder?.formatPaintMode ?? 'off'
+  const copiedFormat = builder?.copiedFormat
   const isDragging = Boolean(active)
   const droppableId = sectionDropId(sectionId, column)
   const { setNodeRef, isOver } = useDroppable({
@@ -62,6 +70,14 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
     column === 'default'
       ? 'section'
       : getSectionColumnShortLabel(sectionProps.layout ?? 'default', column)
+  const columnRegion = column === 'default' ? null : ({ kind: 'section-column' as const, column })
+  const isColumnSelected =
+    selectedBlockId === sectionId &&
+    Boolean(columnRegion && selectedRegion && formatPaintRegionsEqual(columnRegion, selectedRegion))
+  const isFormatPaintTarget =
+    formatPaintMode !== 'off' &&
+    Boolean(copiedFormat?.region) &&
+    !formatPaintRegionsEqual(copiedFormat?.region, columnRegion)
 
   if (!editMode) {
     return (
@@ -78,6 +94,22 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
       ref={setNodeRef}
       data-builder-section-id={sectionId}
       data-builder-section-column={column}
+      onClick={e => {
+        if (!editMode || column === 'default') {
+          return
+        }
+
+        const nestedId = (e.target as HTMLElement | null)
+          ?.closest?.('[data-builder-block-id]')
+          ?.getAttribute('data-builder-block-id')
+
+        if (nestedId && nestedId !== sectionId) {
+          return
+        }
+
+        e.stopPropagation()
+        selectBlock?.(sectionId, { region: { kind: 'section-column', column } })
+      }}
       onPointerEnter={() => {
         nestTargets?.setNestTarget(sectionId, {
           kind: 'section',
@@ -114,7 +146,11 @@ export function SectionDropZone({ sectionId, column, children, sectionProps, edi
             }
           : {}),
         p: isEmpty ? 2 : 0.75,
-        transition: 'opacity 0.14s ease, background-color 0.14s ease, border-color 0.14s ease'
+        cursor: isFormatPaintTarget ? 'copy' : undefined,
+        outline: isColumnSelected ? '2px solid' : isFormatPaintTarget ? '2px dashed' : '2px solid transparent',
+        outlineColor: isColumnSelected || isFormatPaintTarget ? 'primary.main' : 'transparent',
+        outlineOffset: -2,
+        transition: 'opacity 0.14s ease, background-color 0.14s ease, border-color 0.14s ease, outline-color 0.14s ease'
       }}
     >
       {isDragging && isOver && <DropTargetCue label={`Drop in ${columnLabel}`} emphasized />}

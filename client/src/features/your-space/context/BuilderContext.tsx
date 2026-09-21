@@ -46,6 +46,14 @@ import {
   type BlockLocation,
   type NestTargetHints
 } from '../utils/blockTreeUtils'
+import {
+  collectFormatPaintPatches,
+  copyBlockFormat,
+  formatPaintRegionsEqual,
+  type CopiedFormat,
+  type FormatPaintMode,
+  type FormatPaintRegion
+} from '../utils/formatPaint'
 import { mergeSiteStyles, resolveBuilderCanvasStyles } from '../utils/siteStylesHelpers'
 import { reharmonizeBlockTreeToTheme } from '../utils/themePropagation'
 import { applyAiBuilderPlan, type AiPlanApplyResult } from '../utils/aiPlanApply'
@@ -69,6 +77,7 @@ type BuilderState = {
   publishedSiteStyles: SiteStyles
   selectedBlockId: string | null
   selectedNestedItemId: string | null
+  selectedRegion: FormatPaintRegion | null
   mode: BuilderMode
   viewport: BuilderViewport
   showGrid: boolean
@@ -112,9 +121,10 @@ type BuilderAction =
   | { type: 'SET_BLOCKS'; blocks: Block[]; savedAt?: string | null }
   | { type: 'ADD_BLOCK'; block: Block; target: BlockLocation }
   | { type: 'UPDATE_BLOCK'; id: string; props: BlockPropsPatch }
+  | { type: 'UPDATE_BLOCKS'; patches: Array<{ id: string; props: BlockPropsPatch }> }
   | { type: 'DELETE_BLOCK'; id: string }
   | { type: 'MOVE_BLOCK'; activeId: string; overId: string | number; nestHints?: NestTargetHints }
-  | { type: 'SELECT_BLOCK'; id: string | null }
+  | { type: 'SELECT_BLOCK'; id: string | null; region?: FormatPaintRegion | null }
   | { type: 'SELECT_NESTED_ITEM'; id: string | null }
   | { type: 'SET_MODE'; mode: BuilderMode }
   | { type: 'SET_VIEWPORT'; viewport: BuilderViewport }
@@ -172,6 +182,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         currentPageTitle: action.currentPageTitle ?? state.currentPageTitle,
         pages: action.pages ?? state.pages,
         selectedNestedItemId: null,
+        selectedRegion: null,
         saveError: null,
         publishError: null
       }
@@ -190,6 +201,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         blocks: addBlockToTree(state.blocks, action.block, action.target),
         selectedBlockId: action.block.id,
         selectedNestedItemId: null,
+        selectedRegion: null,
         isDirty: true,
         saveError: null,
         publishError: null
@@ -202,12 +214,27 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         saveError: null,
         publishError: null
       }
+    case 'UPDATE_BLOCKS': {
+      const blocks = action.patches.reduce(
+        (next, patch) => updateBlockInTree(next, patch.id, patch.props),
+        state.blocks
+      )
+
+      return {
+        ...state,
+        blocks,
+        isDirty: true,
+        saveError: null,
+        publishError: null
+      }
+    }
     case 'DELETE_BLOCK':
       return {
         ...state,
         blocks: deleteBlockFromTree(state.blocks, action.id),
         selectedBlockId: state.selectedBlockId === action.id ? null : state.selectedBlockId,
         selectedNestedItemId: state.selectedBlockId === action.id ? null : state.selectedNestedItemId,
+        selectedRegion: state.selectedBlockId === action.id ? null : state.selectedRegion,
         isDirty: true,
         saveError: null,
         publishError: null
@@ -224,7 +251,8 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
       return {
         ...state,
         selectedBlockId: action.id,
-        selectedNestedItemId: action.id && action.id === state.selectedBlockId ? state.selectedNestedItemId : null
+        selectedNestedItemId: action.id && action.id === state.selectedBlockId ? state.selectedNestedItemId : null,
+        selectedRegion: action.id ? (action.region ?? null) : null
       }
     case 'SELECT_NESTED_ITEM':
       return { ...state, selectedNestedItemId: action.id }
@@ -233,7 +261,8 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         ...state,
         mode: action.mode,
         selectedBlockId: action.mode === 'preview' ? null : state.selectedBlockId,
-        selectedNestedItemId: action.mode === 'preview' ? null : state.selectedNestedItemId
+        selectedNestedItemId: action.mode === 'preview' ? null : state.selectedNestedItemId,
+        selectedRegion: action.mode === 'preview' ? null : state.selectedRegion
       }
     case 'SET_VIEWPORT':
       return { ...state, viewport: action.viewport }
@@ -275,6 +304,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         siteStyles: action.siteStyles,
         selectedBlockId: action.selectedBlockId,
         selectedNestedItemId: null,
+        selectedRegion: null,
         isDirty: true,
         saveError: null,
         publishError: null
@@ -287,6 +317,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         siteStyles: action.snapshot.siteStyles,
         selectedBlockId: action.snapshot.selectedBlockId,
         selectedNestedItemId: null,
+        selectedRegion: null,
         // Undo back to the last saved snapshot clears the dirty flag.
         isDirty: action.isDirty ?? true,
         saveError: null,
@@ -309,6 +340,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         publishedBlocks: normalizeBlocks(action.publishedBlocks),
         selectedBlockId: null,
         selectedNestedItemId: null,
+        selectedRegion: null,
         isDirty: false,
         isPageSwitching: false,
         isLoading: false,
@@ -353,6 +385,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         blocks: createStarterBlocks(),
         selectedBlockId: null,
         selectedNestedItemId: null,
+        selectedRegion: null,
         isDirty: true,
         saveError: null,
         publishError: null
@@ -363,6 +396,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
         blocks: [],
         selectedBlockId: null,
         selectedNestedItemId: null,
+        selectedRegion: null,
         isDirty: true,
         saveError: null,
         publishError: null
@@ -391,8 +425,27 @@ type BuilderContextValue = BuilderState & {
 
   /** Paste the clipboard block after a given block id (root-level). Clears clipboard after paste. */
   pasteBlock: (afterBlockId?: string) => void
+
+  /** Copied visual format (not the block itself) for format paint. */
+  copiedFormat: CopiedFormat | null
+
+  /** Word-style format painter: off, apply once, or keep applying until cancelled. */
+  formatPaintMode: FormatPaintMode
+
+  /** Copy matching visual properties from a control. Does not arm the painter. */
+  copyFormat: (block: Block) => void
+
+  /** Copy format and arm the painter so the next control click applies it. */
+  startFormatPaint: (block: Block, mode?: Exclude<FormatPaintMode, 'off'>) => void
+
+  /** Apply the copied format onto a target control or panel. Records one undo step. */
+  applyCopiedFormat: (targetId?: string, targetRegion?: FormatPaintRegion | null) => boolean
+
+  /** Leave paint mode without clearing the copied format. */
+  cancelFormatPaint: () => void
   moveBlock: (activeId: string, overId: string | number, nestHints?: NestTargetHints) => void
-  selectBlock: (id: string | null) => void
+  selectBlock: (id: string | null, options?: { region?: FormatPaintRegion | null }) => void
+  selectedRegion: FormatPaintRegion | null
   selectNestedItem: (id: string | null) => void
   setMode: (mode: BuilderMode) => void
   setViewport: (viewport: BuilderViewport) => void
@@ -522,6 +575,7 @@ export function BuilderProvider({
     ),
     selectedBlockId: null,
     selectedNestedItemId: null,
+    selectedRegion: null,
     mode: 'edit',
     viewport: 'desktop',
     showGrid: readBuilderGridMode(),
@@ -548,10 +602,15 @@ export function BuilderProvider({
   const currentPageSlugRef = useRef(state.currentPageSlug)
   const isDirtyRef = useRef(state.isDirty)
   const selectedBlockIdRef = useRef(state.selectedBlockId)
+  const selectedRegionRef = useRef(state.selectedRegion)
 
   useEffect(() => {
     selectedBlockIdRef.current = state.selectedBlockId
   }, [state.selectedBlockId])
+
+  useEffect(() => {
+    selectedRegionRef.current = state.selectedRegion
+  }, [state.selectedRegion])
 
   useEffect(() => {
     blocksRef.current = state.blocks
@@ -827,6 +886,18 @@ export function BuilderProvider({
 
   // Block clipboard — persists across page switches (component-level state, not in reducer)
   const [copiedBlock, setCopiedBlock] = useState<Block | null>(null)
+  const [copiedFormat, setCopiedFormat] = useState<CopiedFormat | null>(null)
+  const [formatPaintMode, setFormatPaintMode] = useState<FormatPaintMode>('off')
+  const copiedFormatRef = useRef<CopiedFormat | null>(null)
+  const formatPaintModeRef = useRef<FormatPaintMode>('off')
+
+  useEffect(() => {
+    copiedFormatRef.current = copiedFormat
+  }, [copiedFormat])
+
+  useEffect(() => {
+    formatPaintModeRef.current = formatPaintMode
+  }, [formatPaintMode])
 
   const copyBlock = useCallback((block: Block) => {
     // Snapshot so later edits to the original do not change the clipboard.
@@ -847,6 +918,79 @@ export function BuilderProvider({
     [copiedBlock, recordBeforeChange]
   )
 
+  const copyFormat = useCallback((block: Block) => {
+    const region =
+      selectedBlockIdRef.current === block.id &&
+      (block.type === 'section' || block.type === 'tabs' || block.type === 'carousel')
+        ? selectedRegionRef.current
+        : null
+    const next = copyBlockFormat(block, region)
+    copiedFormatRef.current = next
+    setCopiedFormat(next)
+  }, [])
+
+  const startFormatPaint = useCallback((block: Block, mode: Exclude<FormatPaintMode, 'off'> = 'once') => {
+    const region =
+      selectedBlockIdRef.current === block.id &&
+      (block.type === 'section' || block.type === 'tabs' || block.type === 'carousel')
+        ? selectedRegionRef.current
+        : null
+    const next = copyBlockFormat(block, region)
+    copiedFormatRef.current = next
+    formatPaintModeRef.current = mode
+    setCopiedFormat(next)
+    setFormatPaintMode(mode)
+  }, [])
+
+  const cancelFormatPaint = useCallback(() => {
+    formatPaintModeRef.current = 'off'
+    setFormatPaintMode('off')
+  }, [])
+
+  const applyCopiedFormat = useCallback(
+    (targetId?: string, targetRegion?: FormatPaintRegion | null) => {
+      const copied = copiedFormatRef.current
+      const id = targetId ?? selectedBlockIdRef.current
+      const region = targetRegion !== undefined ? targetRegion : selectedRegionRef.current
+
+      if (!copied || !id) {
+        return false
+      }
+
+      const target = findBlockInTree(blocksRef.current, id)
+
+      if (!target) {
+        if (formatPaintModeRef.current === 'once') {
+          formatPaintModeRef.current = 'off'
+          setFormatPaintMode('off')
+        }
+
+        return false
+      }
+
+      const panelRegion =
+        region && (copied.region || target.type === 'section' || target.type === 'tabs' || target.type === 'carousel')
+          ? region
+          : null
+      const patches = collectFormatPaintPatches(copied, target, panelRegion)
+
+      if (patches.length === 0) {
+        return false
+      }
+
+      recordBeforeChange({ label: 'Apply format' })
+      dispatch({ type: 'UPDATE_BLOCKS', patches })
+
+      if (formatPaintModeRef.current === 'once') {
+        formatPaintModeRef.current = 'off'
+        setFormatPaintMode('off')
+      }
+
+      return true
+    },
+    [recordBeforeChange]
+  )
+
   const moveBlockAction = useCallback(
     (activeId: string, overId: string | number, nestHints?: NestTargetHints) => {
       recordBeforeChange({ coalesceKey: `move:${activeId}`, label: 'Move block' })
@@ -855,17 +999,54 @@ export function BuilderProvider({
     [recordBeforeChange]
   )
 
-  const selectBlock = useCallback((id: string | null) => {
-    dispatch({ type: 'SELECT_BLOCK', id })
-  }, [])
+  const selectBlock = useCallback(
+    (id: string | null, options?: { region?: FormatPaintRegion | null }) => {
+      const region = options?.region ?? null
+      selectedRegionRef.current = id ? region : null
+      dispatch({ type: 'SELECT_BLOCK', id, region })
+
+      if (!id) {
+        if (formatPaintModeRef.current !== 'off') {
+          formatPaintModeRef.current = 'off'
+          setFormatPaintMode('off')
+        }
+
+        return
+      }
+
+      const copied = copiedFormatRef.current
+
+      if (formatPaintModeRef.current === 'off' || !copied) {
+        return
+      }
+
+      const sameControl = copied.sourceId === id
+      const samePanel = Boolean(copied.region && region && formatPaintRegionsEqual(copied.region, region))
+
+      if (sameControl && (!copied.region || samePanel)) {
+        return
+      }
+
+      applyCopiedFormat(id, region)
+    },
+    [applyCopiedFormat]
+  )
 
   const selectNestedItem = useCallback((id: string | null) => {
     dispatch({ type: 'SELECT_NESTED_ITEM', id })
   }, [])
 
-  const setMode = useCallback((mode: BuilderMode) => {
-    dispatch({ type: 'SET_MODE', mode })
-  }, [])
+  const setMode = useCallback(
+    (mode: BuilderMode) => {
+      if (mode !== 'edit' && formatPaintModeRef.current !== 'off') {
+        formatPaintModeRef.current = 'off'
+        setFormatPaintMode('off')
+      }
+
+      dispatch({ type: 'SET_MODE', mode })
+    },
+    []
+  )
 
   const setViewport = useCallback((viewport: BuilderViewport) => {
     dispatch({ type: 'SET_VIEWPORT', viewport })
@@ -1084,10 +1265,11 @@ export function BuilderProvider({
         versions
       })
       markCleanBaseline(nextBlocks, siteStylesRef.current, true)
+      cancelFormatPaint()
 
       void refreshPages()
     },
-    [markCleanBaseline, persistDraft, refreshPages, builderScope, libraryTemplateId]
+    [cancelFormatPaint, markCleanBaseline, persistDraft, refreshPages, builderScope, libraryTemplateId]
   )
 
   const createPage = useCallback(
@@ -1281,6 +1463,12 @@ export function BuilderProvider({
       copiedBlock,
       copyBlock,
       pasteBlock,
+      copiedFormat,
+      formatPaintMode,
+      copyFormat,
+      startFormatPaint,
+      applyCopiedFormat,
+      cancelFormatPaint,
       moveBlock: moveBlockAction,
       selectBlock,
       selectNestedItem,
@@ -1327,6 +1515,12 @@ export function BuilderProvider({
       copiedBlock,
       copyBlock,
       pasteBlock,
+      copiedFormat,
+      formatPaintMode,
+      copyFormat,
+      startFormatPaint,
+      applyCopiedFormat,
+      cancelFormatPaint,
       moveBlockAction,
       selectBlock,
       selectNestedItem,

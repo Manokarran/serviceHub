@@ -27,7 +27,7 @@ const VIEWPORT_OPTIONS: { value: BuilderViewport; icon: string; label: string }[
 export function BuilderCanvasToolbar() {
   const theme = useTheme()
   const isNarrow = useMediaQuery(theme.breakpoints.down('md'))
-  const { mode, setMode, viewport, setViewport, showGrid, setShowGrid } = useBuilder()
+  const { mode, setMode, viewport, setViewport, showGrid, setShowGrid, formatPaintMode, cancelFormatPaint } = useBuilder()
 
   return (
     <Box
@@ -97,6 +97,49 @@ export function BuilderCanvasToolbar() {
                 </ToggleButton>
               </Box>
             </Tooltip>
+            {formatPaintMode !== 'off' && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  ml: 0.5,
+                  px: 0.75,
+                  py: 0.375,
+                  borderRadius: 1,
+                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                  color: 'primary.main',
+                  ...BUILDER_TYPOGRAPHY.label,
+                  fontSize: '0.6875rem',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <i className={formatPaintMode === 'locked' ? 'ri-brush-fill' : 'ri-brush-line'} style={{ fontSize: '0.875rem' }} />
+                {!isNarrow && (
+                  <Typography component='span' sx={{ ...BUILDER_TYPOGRAPHY.label, fontSize: '0.6875rem' }}>
+                    {formatPaintMode === 'locked' ? 'Format paint locked' : 'Click a control to apply'}
+                  </Typography>
+                )}
+                <Box
+                  component='button'
+                  type='button'
+                  aria-label='Cancel format paint'
+                  onClick={() => cancelFormatPaint()}
+                  sx={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'inherit',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    p: 0,
+                    ml: 0.25
+                  }}
+                >
+                  <i className='ri-close-line' style={{ fontSize: '0.9rem' }} />
+                </Box>
+              </Box>
+            )}
           </>
         )}
       </Box>

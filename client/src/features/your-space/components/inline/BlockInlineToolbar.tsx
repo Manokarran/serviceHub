@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import Box from '@mui/material/Box'
 import TextField from '@mui/material/TextField'
@@ -24,10 +24,13 @@ import type {
   ShowcaseBlockProps,
   PricingBlockProps,
   FaqBlockProps,
+  TabsBlockProps,
   TextBlockProps,
   VideoBlockProps
 } from '../../types'
 import { findParentSectionId } from '../../utils/blockTreeUtils'
+import { formatPaintRegionsEqual, type FormatPaintRegion } from '../../utils/formatPaint'
+import { getSectionColumnShortLabel } from '../../constants/sectionLayout'
 import { MediaSourceField } from '../property/MediaSourceField'
 import type { PropertyPanelTab } from '../property/PropertyPanelUi'
 import { AlignmentToggleGroup } from './AlignmentToggleGroup'
@@ -121,7 +124,21 @@ export function BlockInlineToolbar({
   onDelete,
   dragHandleProps
 }: Props) {
-  const { blocks, updateBlock, selectBlock, copyBlock, pasteBlock, copiedBlock } = useBuilder()
+  const {
+    blocks,
+    updateBlock,
+    selectBlock,
+    copyBlock,
+    pasteBlock,
+    copiedBlock,
+    copiedFormat,
+    formatPaintMode,
+    startFormatPaint,
+    applyCopiedFormat,
+    cancelFormatPaint,
+    selectedRegion
+  } = useBuilder()
+  const formatPaintClickAtRef = useRef(0)
   const shell = useBuilderShell()
   const siteStyles = useSiteStyles()
   const [mediaAnchor, setMediaAnchor] = useState<HTMLElement | null>(null)
@@ -135,6 +152,12 @@ export function BlockInlineToolbar({
   const [sectionLayoutAnchor, setSectionLayoutAnchor] = useState<HTMLElement | null>(null)
 
   const parentSectionId = nested ? findParentSectionId(blocks, block.id) : null
+  const regionLabel = getSelectedRegionLabel(block, selectedRegion)
+  const isThisFormatSource =
+    copiedFormat?.sourceId === block.id &&
+    (!copiedFormat.region || formatPaintRegionsEqual(copiedFormat.region, selectedRegion))
+  const isSourceArmed = formatPaintMode !== 'off' && isThisFormatSource
+  const canApplyFormat = Boolean(copiedFormat) && !isThisFormatSource
 
   const update = (changes: Partial<Block['props']>) => updateBlock(block.id, changes)
 
@@ -707,7 +730,7 @@ export function BlockInlineToolbar({
           <i className='ri-draggable' style={{ fontSize: '0.85rem' }} />
         </Box>
         {!nested && <InlineToolbarDivider />}
-        <InlineToolbarLabel>{getInlineBlockLabel(block.type)}</InlineToolbarLabel>
+        <InlineToolbarLabel>{regionLabel ?? getInlineBlockLabel(block.type)}</InlineToolbarLabel>
         {parentSectionId && (
           <>
             <InlineToolbarDivider />
@@ -739,6 +762,42 @@ export function BlockInlineToolbar({
             label='More settings'
             onClick={() => openPanel(block.type === 'section' ? 'style' : undefined)}
           />
+          <InlineToolbarButton
+            icon={formatPaintMode === 'locked' ? 'ri-brush-fill' : 'ri-brush-line'}
+            label={
+              isSourceArmed
+                ? formatPaintMode === 'locked'
+                  ? 'Format paint locked — click another panel or control to apply. Click again to cancel.'
+                  : 'Format paint on — click another panel or control to apply. Click again to cancel, or quickly again to keep applying.'
+                : regionLabel
+                  ? `Copy this ${regionLabel}'s style, then click another panel to apply matching styles`
+                  : 'Copy format, then click another control or panel to apply matching styles'
+            }
+            active={isSourceArmed}
+            onClick={() => {
+              const now = Date.now()
+
+              if (isSourceArmed) {
+                if (formatPaintMode === 'once' && now - formatPaintClickAtRef.current < 400) {
+                  startFormatPaint(block, 'locked')
+                } else {
+                  cancelFormatPaint()
+                }
+
+                return
+              }
+
+              formatPaintClickAtRef.current = now
+              startFormatPaint(block, 'once')
+            }}
+          />
+          {canApplyFormat && (
+            <InlineToolbarButton
+              icon='ri-paint-brush-line'
+              label={regionLabel ? `Apply copied format to this ${regionLabel}` : 'Apply copied format to this control'}
+              onClick={() => applyCopiedFormat(block.id, selectedRegion)}
+            />
+          )}
           <InlineToolbarButton icon='ri-file-copy-line' label='Copy block' onClick={() => copyBlock(block)} />
           {copiedBlock && (
             <InlineToolbarButton
@@ -848,6 +907,28 @@ export function BlockInlineToolbar({
       )}
     </>
   )
+}
+
+function getSelectedRegionLabel(block: Block, region: FormatPaintRegion | null): string | null {
+  if (!region) {
+    return null
+  }
+
+  if (region.kind === 'section-column' && block.type === 'section' && region.column !== 'default') {
+    return getSectionColumnShortLabel((block.props as SectionBlockProps).layout, region.column)
+  }
+
+  if (region.kind === 'tab-panel' && block.type === 'tabs') {
+    const tab = (block.props as TabsBlockProps).tabs.find(entry => entry.id === region.panelId)
+
+    return tab?.label ? `Tab: ${tab.label}` : 'Tab panel'
+  }
+
+  if (region.kind === 'carousel-slide' && block.type === 'carousel') {
+    return 'Slide'
+  }
+
+  return null
 }
 
 function getInlineBlockLabel(type: Block['type']): string {

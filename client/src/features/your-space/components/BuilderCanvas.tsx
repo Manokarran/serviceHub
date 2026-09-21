@@ -32,7 +32,7 @@ type Props = {
 
 export function BuilderCanvas({ isMobileLayout = false }: Props) {
   const theme = useTheme()
-  const { blocks, mode, viewport, selectBlock, selectedBlockId, siteStyles, currentPageSlug, showGrid } =
+  const { blocks, mode, viewport, selectBlock, selectedBlockId, siteStyles, currentPageSlug, showGrid, formatPaintMode, cancelFormatPaint } =
     useBuilder()
   const isEditMode = mode === 'edit'
   const { active } = useDndContext()
@@ -62,6 +62,13 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
         return
       }
 
+      if (formatPaintMode !== 'off') {
+        event.preventDefault()
+        cancelFormatPaint()
+
+        return
+      }
+
       selectBlock(null)
     }
 
@@ -70,7 +77,7 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [isEditMode, selectBlock, selectedBlockId])
+  }, [cancelFormatPaint, formatPaintMode, isEditMode, selectBlock, selectedBlockId])
 
   return (
     <Box
@@ -97,6 +104,7 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'flex-start',
+          cursor: isEditMode && formatPaintMode !== 'off' ? 'copy' : undefined,
           ...(isEditMode ? builderCanvasWorkspaceSx(theme) : { backgroundColor: alpha(theme.palette.text.primary, 0.03) })
         }}
       >
