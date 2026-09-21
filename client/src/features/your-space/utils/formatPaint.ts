@@ -63,6 +63,10 @@ function isTypographyPrefix(prefix: string): boolean {
   return prefix === 'typography' || prefix.endsWith('Typography')
 }
 
+function asPropRecord(props: Block['props'] | BlockPropsPatch): Record<string, unknown> {
+  return props as unknown as Record<string, unknown>
+}
+
 function getByPath(props: Record<string, unknown>, key: string): unknown {
   const [parent, child] = key.split('.')
 
@@ -120,7 +124,7 @@ function typographyLeafValue(leaf: string, source: Record<string, unknown>): unk
 }
 
 export function extractFormatValues(block: Block): Record<string, unknown> {
-  const props = block.props as Record<string, unknown>
+  const props = asPropRecord(block.props)
   const values: Record<string, unknown> = {}
 
   for (const prop of getControlProps(block.type)) {
@@ -260,7 +264,7 @@ export function buildFormatPaintPatch(copied: CopiedFormat, target: Block): Bloc
     return null
   }
 
-  const { props } = coerceControlProps(target.type, patchInput, target.props as Record<string, unknown>)
+  const { props } = coerceControlProps(target.type, patchInput, asPropRecord(target.props))
 
   if (Object.keys(props).length === 0) {
     return null
@@ -270,8 +274,8 @@ export function buildFormatPaintPatch(copied: CopiedFormat, target: Block): Bloc
 }
 
 export function formatPaintPatchHasChanges(target: Block, patch: BlockPropsPatch): boolean {
-  const existing = target.props as Record<string, unknown>
-  const next = patch as Record<string, unknown>
+  const existing = asPropRecord(target.props)
+  const next = asPropRecord(patch)
 
   return Object.entries(next).some(([key, value]) => JSON.stringify(existing[key]) !== JSON.stringify(value))
 }
