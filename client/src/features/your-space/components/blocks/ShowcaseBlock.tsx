@@ -562,11 +562,13 @@ export function ShowcaseBlock({ props }: Props) {
     })
   }
 
+  const showPanelLabels = props.layout === 'cards' && items.length > 1
+
   const wrapItem = (item: ShowcaseItem, index: number, child: ReactNode) => (
     <ShowcaseItemEditor
       key={item.id}
       item={item}
-      index={index}
+      panelLabel={showPanelLabels ? `Panel ${index + 1}` : undefined}
       onChange={changes => updateItem(item.id, changes)}
     >
       {child}

@@ -73,7 +73,12 @@ export default async function PublicSiteSubPage({ params }: PageProps) {
   return (
     <>
       <PublicSiteAnalytics />
-      <PublicSiteRenderer blocks={blocks} siteStyles={siteStyles} tenantLocation={site.tenant.location} />
+      <PublicSiteRenderer
+        blocks={blocks}
+        siteStyles={siteStyles}
+        tenantLocation={site.tenant.location}
+        pageSlug={pageSlug}
+      />
     </>
   )
 }

@@ -1,3 +1,4 @@
+import { DEFAULT_PAGE_PATTERN_HOVER, DEFAULT_PAGE_PATTERN_LOAD } from './pagePatterns'
 import type { SiteStyles, SiteThemePreset } from '../types/siteStyles'
 
 export const DEFAULT_BUTTONS: SiteStyles['buttons'] = {
@@ -45,7 +46,11 @@ const DEFAULT_MISC: SiteStyles['misc'] = {
   imageAspectRatio: 'auto',
   pageSplitVisualAnimation: 'static',
   pageSplitVisualColorStart: '',
-  pageSplitVisualColorEnd: ''
+  pageSplitVisualColorEnd: '',
+  pagePattern: 'none',
+  pagePatternLoadStrength: DEFAULT_PAGE_PATTERN_LOAD,
+  pagePatternHoverStrength: DEFAULT_PAGE_PATTERN_HOVER,
+  pagePatternOverrides: {}
 }
 
 export const DEFAULT_SITE_STYLES: SiteStyles = {

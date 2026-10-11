@@ -20,6 +20,7 @@ import { getCanvasCornerRadius } from '../utils/siteStylesHelpers'
 import { siteCanvasContainerSx } from '../utils/siteResponsiveHelpers'
 import { SitePageTransition } from './SitePageTransition'
 import { SiteStylesScope } from './SiteStylesScope'
+import { PagePatternLayer } from './PagePatternLayer'
 import { SitePageBackgroundLayer } from './SitePageBackgroundLayer'
 import { BuilderCanvasToolbar } from './BuilderCanvasToolbar'
 import { BlockInsertDropZone } from './dnd/BlockInsertDropZone'
@@ -222,6 +223,7 @@ export function BuilderCanvas({ isMobileLayout = false }: Props) {
               {isEditMode && <CanvasAppendDropZone index={blocks.length} />}
             </>
           )}
+              <PagePatternLayer pageSlug={currentPageSlug} />
             </Box>
           </Box>
           </SitePageTransition>

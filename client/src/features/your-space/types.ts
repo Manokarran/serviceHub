@@ -45,6 +45,8 @@ export type HeroContentSurface = 'none' | 'glass'
 
 export type HeroTitleStyle = 'solid' | 'gradient'
 
+export type HeroRotatingWordStyle = 'title' | 'accent' | 'theme' | 'soft' | 'vivid'
+
 export type HeroButtonStyle = 'theme' | 'contrast'
 
 export interface SplitVisualConfig {
@@ -261,6 +263,9 @@ export interface HeroBlockProps {
   rotatingWords?: string[]
   /** Milliseconds between word changes. Defaults to 2400. */
   rotatingWordIntervalMs?: number
+
+  /** Color treatment for the sliding word. Defaults to a gradient from the site palette. */
+  rotatingWordStyle?: HeroRotatingWordStyle
   background: string
   backgroundType: BackgroundType
   backgroundOpacity?: number

@@ -46,6 +46,7 @@ import { ServiceDirectoryBlockProperties } from './property/blocks/ServiceDirect
 import { ServiceBookingBlockProperties } from './property/blocks/ServiceBookingBlockProperties'
 import { CustomerBookingsBlockProperties } from './property/blocks/CustomerBookingsBlockProperties'
 import { LocationBlockProperties } from './property/blocks/LocationBlockProperties'
+import { PagePatternControls } from './property/PagePatternControls'
 
 function getBlockIcon(type: Block['type']): string {
   return PALETTE_ITEMS.find(item => item.type === type)?.icon ?? 'ri-layout-grid-line'
@@ -110,36 +111,10 @@ function BlockProperties({ block, activeTab }: { block: Block; activeTab: Proper
   }
 }
 
-function EmptyState() {
-  const theme = useTheme()
-
+function PageProperties() {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flex: 1,
-        p: 2.5,
-        textAlign: 'center',
-        gap: 1.25
-      }}
-    >
-      <Box
-        sx={{
-          width: 40,
-          height: 40,
-          borderRadius: 1.25,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: alpha(theme.palette.text.primary, 0.04),
-          color: 'text.secondary'
-        }}
-      >
-        <i className='ri-cursor-line' style={{ fontSize: '1.1rem' }} />
-      </Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      <PagePatternControls />
       <PropertyBodyText>Select a block on the canvas to edit its properties.</PropertyBodyText>
     </Box>
   )
@@ -169,7 +144,7 @@ export function PropertyPanelContent({
   onPinToggle
 }: PropertyContentProps) {
   const theme = useTheme()
-  const { selectedBlock, mode, deleteBlock } = useBuilder()
+  const { selectedBlock, mode, deleteBlock, currentPageTitle } = useBuilder()
   const [activeTab, setActiveTab] = useState<PropertyPanelTab>('design')
 
   const availableTabs = useMemo(() => (selectedBlock ? getBlockTabs(selectedBlock.type) : []), [selectedBlock])
@@ -209,9 +184,9 @@ export function PropertyPanelContent({
   return (
     <>
       <PropertyPanelHeader
-        title={selectedBlock ? getBlockLabel(selectedBlock.type) : 'Properties'}
-        subtitle={selectedBlock ? 'Block settings' : 'Nothing selected'}
-        icon={selectedBlock ? getBlockIcon(selectedBlock.type) : undefined}
+        title={selectedBlock ? getBlockLabel(selectedBlock.type) : currentPageTitle || 'Page'}
+        subtitle={selectedBlock ? 'Block settings' : 'Page'}
+        icon={selectedBlock ? getBlockIcon(selectedBlock.type) : 'ri-pages-line'}
         onClose={onClose}
         onDelete={selectedBlock ? () => deleteBlock(selectedBlock.id) : undefined}
         draggable={draggable}
@@ -253,7 +228,7 @@ export function PropertyPanelContent({
           ...builderFormOutlineSx(theme)
         }}
       >
-        {selectedBlock ? <BlockProperties block={selectedBlock} activeTab={activeTab} /> : <EmptyState />}
+        {selectedBlock ? <BlockProperties block={selectedBlock} activeTab={activeTab} /> : <PageProperties />}
       </Box>
     </>
   )

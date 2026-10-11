@@ -17,12 +17,14 @@ import { useSiteStyles } from '../SiteStylesScope'
 
 type Props = {
   item: ShowcaseItem
-  index: number
+
+  /** Set when this story is one of several cards. A single split or stack has no panel label. */
+  panelLabel?: string
   onChange: (changes: Partial<ShowcaseItem>) => void
   children: ReactNode
 }
 
-export function ShowcaseItemEditor({ item, index, onChange, children }: Props) {
+export function ShowcaseItemEditor({ item, panelLabel, onChange, children }: Props) {
   const theme = useTheme()
   const editContext = useCanvasBlockEdit()
   const builder = useBuilderOptional()
@@ -35,7 +37,7 @@ export function ShowcaseItemEditor({ item, index, onChange, children }: Props) {
     builder?.selectedBlockId === editContext?.blockId &&
     builder?.selectedNestedItemId === item.id
   const isInlineEditing = Boolean(editContext?.inlineEditingField)
-  const label = `Panel ${index + 1}`
+  const label = panelLabel?.trim() || ''
 
   if (!isEditMode) {
     return children
@@ -73,28 +75,30 @@ export function ShowcaseItemEditor({ item, index, onChange, children }: Props) {
         }
       }}
     >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 10,
-          right: 10,
-          zIndex: 3,
-          px: 0.85,
-          py: 0.35,
-          borderRadius: 999,
-          backgroundColor: isSelected
-            ? theme.palette.primary.main
-            : alpha(theme.palette.common.black, 0.55),
-          color: '#fff',
-          pointerEvents: 'none',
-          ...BUILDER_TYPOGRAPHY.label,
-          fontSize: '0.625rem',
-          letterSpacing: '0.04em',
-          textTransform: 'uppercase'
-        }}
-      >
-        {label}
-      </Box>
+      {label ? (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            zIndex: 3,
+            px: 0.85,
+            py: 0.35,
+            borderRadius: 999,
+            backgroundColor: isSelected
+              ? theme.palette.primary.main
+              : alpha(theme.palette.common.black, 0.55),
+            color: '#fff',
+            pointerEvents: 'none',
+            ...BUILDER_TYPOGRAPHY.label,
+            fontSize: '0.625rem',
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase'
+          }}
+        >
+          {label}
+        </Box>
+      ) : null}
       {children}
       <Popover
         open={isSelected && !isInlineEditing}
@@ -122,7 +126,7 @@ export function ShowcaseItemEditor({ item, index, onChange, children }: Props) {
         onClick={event => event.stopPropagation()}
       >
         <Typography sx={{ ...BUILDER_TYPOGRAPHY.sectionLabel, color: 'text.secondary', m: 0, mb: 1.5 }}>
-          {label} properties
+          {label ? `${label} properties` : 'Showcase'}
         </Typography>
         <ShowcaseItemFields item={item} accentColor={siteStyles.colors.accent} onChange={onChange} />
       </Popover>

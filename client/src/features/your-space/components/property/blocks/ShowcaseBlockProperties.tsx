@@ -6,7 +6,7 @@ import { SHOWCASE_MAX_ITEMS } from '../../../constants/showcaseLayout'
 import { useBuilder } from '../../../context/BuilderContext'
 import type { Block, ShowcaseBlockProps, ShowcaseItem } from '../../../types'
 import { createBlockId } from '../../../utils/blockFactory'
-import { createShowcaseItem, getShowcaseVisibleCount, updateShowcaseItem } from '../../../utils/showcaseBlockHelpers'
+import { createShowcaseItem, getVisibleShowcaseItems, updateShowcaseItem } from '../../../utils/showcaseBlockHelpers'
 import { ShowcaseLayoutControls } from '../../ShowcaseLayoutControls'
 import { ShowcaseStyleControls } from '../../ShowcaseStyleControls'
 import { useSiteStyles } from '../../SiteStylesScope'
@@ -25,8 +25,8 @@ export function ShowcaseBlockProperties({ block, activeTab }: Props) {
   const siteStyles = useSiteStyles()
   const props = block.props as ShowcaseBlockProps
   const update = (changes: Partial<ShowcaseBlockProps>) => updateBlock(block.id, changes)
-  const visibleCount = getShowcaseVisibleCount(props)
-  const items = props.items.slice(0, Math.max(visibleCount, props.items.length))
+  const items = getVisibleShowcaseItems(props)
+  const isCardRow = props.layout === 'cards' && items.length > 1
   const selectedItem = items.find(item => item.id === selectedNestedItemId) ?? items[0] ?? null
 
   if (activeTab === 'layout') {
@@ -82,7 +82,7 @@ export function ShowcaseBlockProperties({ block, activeTab }: Props) {
 
   return (
     <PropertyFields>
-      {items.length > 1 && (
+      {isCardRow && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
           {items.map((item, index) => {
             const selected = selectedItem?.id === item.id
@@ -119,12 +119,12 @@ export function ShowcaseBlockProperties({ block, activeTab }: Props) {
             accentColor={siteStyles.colors.accent}
             onChange={changes => updateItem(selectedItem.id, changes)}
           />
-          {props.items.length > 1 && (
+          {isCardRow && (
             <PropertyRemoveButton label='Remove panel' onClick={() => removeItem(selectedItem.id)} />
           )}
         </>
       )}
-      {props.items.length < SHOWCASE_MAX_ITEMS && (
+      {props.layout === 'cards' && props.items.length < SHOWCASE_MAX_ITEMS && (
         <PropertyAddButton label='Add panel' onClick={addItem} />
       )}
     </PropertyFields>

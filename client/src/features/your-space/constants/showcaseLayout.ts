@@ -126,9 +126,11 @@ export function createShowcaseDefaultProps(
   overrides: Pick<ShowcaseBlockProps, 'layout' | 'columns' | 'cardStyle' | 'textColor' | 'minHeight'> &
     Partial<ShowcaseBlockProps>
 ): ShowcaseBlockProps {
+  const sourceItems = overrides.layout === 'cards' ? DEFAULT_SHOWCASE_ITEMS : DEFAULT_SHOWCASE_ITEMS.slice(0, 1)
+
   return {
     ...SHOWCASE_SHARED_PROPS,
     ...overrides,
-    items: overrides.items ?? DEFAULT_SHOWCASE_ITEMS.map(item => ({ ...item }))
+    items: overrides.items ?? sourceItems.map(item => ({ ...item }))
   }
 }

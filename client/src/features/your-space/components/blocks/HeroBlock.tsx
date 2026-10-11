@@ -147,7 +147,9 @@ function HeroContent({
             title={props.title}
             words={props.rotatingWords ?? []}
             intervalMs={props.rotatingWordIntervalMs}
+            wordStyle={props.rotatingWordStyle}
             accentColor={siteStyles.colors.accent}
+            textColor={props.textColor || siteStyles.colors.text}
           />
         ) : (
           <InlineEditableText value={props.title} field='title' placeholder='Hero title' sx={titleSx} />

@@ -294,7 +294,23 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
               scope === 'rebuild' ? 'force' : 'conservative'
             ).blocks
 
-      return { ...state, blocks, siteStyles: preset.styles, isDirty: true, saveError: null, publishError: null }
+      return {
+        ...state,
+        blocks,
+        siteStyles: {
+          ...preset.styles,
+          misc: {
+            ...preset.styles.misc,
+            pagePattern: state.siteStyles.misc.pagePattern,
+            pagePatternLoadStrength: state.siteStyles.misc.pagePatternLoadStrength,
+            pagePatternHoverStrength: state.siteStyles.misc.pagePatternHoverStrength,
+            pagePatternOverrides: state.siteStyles.misc.pagePatternOverrides
+          }
+        },
+        isDirty: true,
+        saveError: null,
+        publishError: null
+      }
     }
 
     case 'APPLY_AI_RESULT':

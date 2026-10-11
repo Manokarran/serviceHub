@@ -24,12 +24,14 @@ type Props = {
 export function ShowcaseLayoutControls({ props, onUpdate }: Props) {
   const isSplit = props.layout === 'split'
   const isCards = props.layout === 'cards'
+  const isStack = props.layout === 'stack'
+
   const mediaSideHint = isSplit
     ? 'Start places the visual on the left. End places it on the right. Narrow screens always stack.'
     : 'Start places the visual above the copy. End places it below.'
 
   const applyLayout = (layout: ShowcaseLayout) => {
-    const columns: ShowcaseColumns = layout === 'cards' ? props.columns || 3 : 1
+    const columns: ShowcaseColumns = layout === 'cards' ? (props.columns > 1 ? props.columns : 3) : 1
     const visibleCount = getShowcaseVisibleCount({ layout, columns })
 
     onUpdate({
@@ -70,24 +72,30 @@ export function ShowcaseLayoutControls({ props, onUpdate }: Props) {
         />
       </PropertySection>
 
-      <PropertySection title='Columns' collapsible defaultOpen>
-        <PropertyBodyText>Use one column for a single story, or two / three tiles for a feature row.</PropertyBodyText>
-        <LayoutOptionGroup
-          value={String(isCards ? props.columns : 1) as '1' | '2' | '3'}
-          options={SHOWCASE_COLUMN_OPTIONS}
-          onChange={value => applyColumns(Number(value) as ShowcaseColumns)}
-        />
-      </PropertySection>
+      {isCards && (
+        <PropertySection title='Columns' collapsible defaultOpen>
+          <PropertyBodyText>Two or three tiles in a row. One column becomes a single stack.</PropertyBodyText>
+          <LayoutOptionGroup
+            value={String(props.columns) as '1' | '2' | '3'}
+            options={SHOWCASE_COLUMN_OPTIONS}
+            onChange={value => applyColumns(Number(value) as ShowcaseColumns)}
+          />
+        </PropertySection>
+      )}
 
       <PropertySection title='Composition' collapsible defaultOpen>
-        <PropertyBodyText>
-          Layered keeps a logo on top of the image with copy along the bottom. Stacked shows logo, visual, then text.
-        </PropertyBodyText>
-        <LayoutOptionGroup
-          value={props.cardStyle}
-          options={SHOWCASE_CARD_STYLE_OPTIONS}
-          onChange={cardStyle => onUpdate({ cardStyle })}
-        />
+        {(isStack || isCards) && (
+          <>
+            <PropertyBodyText>
+              Layered keeps a logo on top of the image with copy along the bottom. Stacked shows logo, visual, then text.
+            </PropertyBodyText>
+            <LayoutOptionGroup
+              value={props.cardStyle}
+              options={SHOWCASE_CARD_STYLE_OPTIONS}
+              onChange={cardStyle => onUpdate({ cardStyle })}
+            />
+          </>
+        )}
         <LayoutOptionGroup
           value={props.mediaSide}
           options={SHOWCASE_MEDIA_SIDE_OPTIONS}

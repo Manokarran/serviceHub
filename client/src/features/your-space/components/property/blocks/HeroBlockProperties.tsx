@@ -15,6 +15,7 @@ import { PropertyAddButton, PropertyRemoveButton } from '../PropertyActionButton
 import { PropertyToggleRow } from '../PropertyToggleRow'
 import { HeroLayoutControls } from '../../HeroLayoutControls'
 import { HeroStyleControls } from '../../HeroStyleControls'
+import { HeroRotatingWordStyleField } from '../HeroRotatingWordStyleField'
 import {
   DEFAULT_HERO_ROTATING_INTERVAL_MS,
   DEFAULT_HERO_ROTATING_WORDS,
@@ -103,6 +104,14 @@ export function HeroBlockProperties({ block, activeTab }: Props) {
             checked={rotatingEnabled}
             onChange={setRotatingEnabled}
           />
+          {rotatingEnabled ? (
+            <HeroRotatingWordStyleField
+              value={props.rotatingWordStyle}
+              accentColor={siteStyles.colors.accent}
+              textColor={props.textColor || siteStyles.colors.text}
+              onChange={rotatingWordStyle => update({ rotatingWordStyle })}
+            />
+          ) : null}
           {rotatingEnabled ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Typography variant='caption' color='text.secondary' sx={{ fontWeight: 600 }}>

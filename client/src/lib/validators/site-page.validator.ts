@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { HERO_SPLIT_VISUAL_ANIMATION_OPTIONS } from '@/features/your-space/constants/heroVisual'
+import { PAGE_PATTERN_IDS } from '@/features/your-space/constants/pagePatterns'
 import { BLOCK_TYPES } from '@/features/your-space/types'
 
 const blockTypeSchema = z.enum(BLOCK_TYPES)
@@ -73,7 +74,20 @@ export const siteStylesSchema = z.object({
     imageAspectRatio: z.enum(['auto', '16/9', '4/3', '1/1']),
     pageSplitVisualAnimation: heroSplitVisualAnimationSchema.optional(),
     pageSplitVisualColorStart: z.string().max(32).optional(),
-    pageSplitVisualColorEnd: z.string().max(32).optional()
+    pageSplitVisualColorEnd: z.string().max(32).optional(),
+    pagePattern: z.enum(PAGE_PATTERN_IDS).optional(),
+    pagePatternLoadStrength: z.number().min(0).max(100).optional(),
+    pagePatternHoverStrength: z.number().min(0).max(100).optional(),
+    pagePatternOverrides: z
+      .record(
+        z.string().min(1).max(64),
+        z.object({
+          pattern: z.enum(PAGE_PATTERN_IDS),
+          loadStrength: z.number().min(0).max(100),
+          hoverStrength: z.number().min(0).max(100)
+        })
+      )
+      .optional()
   })
 })
 

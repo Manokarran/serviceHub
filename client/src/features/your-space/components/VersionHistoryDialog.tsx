@@ -364,7 +364,7 @@ export function VersionHistoryDialog({
                       userSelect: 'none'
                     }}
                   >
-                    <PublicSiteRenderer blocks={previewBlocks} siteStyles={siteStyles} />
+                    <PublicSiteRenderer blocks={previewBlocks} siteStyles={siteStyles} pageSlug={pageSlug} />
                   </Box>
                 </Box>
               </>

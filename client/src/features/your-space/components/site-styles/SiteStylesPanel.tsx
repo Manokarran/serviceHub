@@ -14,6 +14,7 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import { HERO_SPLIT_VISUAL_ANIMATION_OPTIONS } from '../../constants/heroVisual'
+import { getPagePatternLabel } from '../../constants/pagePatterns'
 import { FONT_FAMILY_OPTIONS, SITE_THEME_PRESETS } from '../../constants/siteStylePresets'
 import {
   BUTTON_PACK_PRESETS,
@@ -29,6 +30,7 @@ import { useOptionalBuilderWorkOverlay } from '../../context/BuilderWorkOverlayC
 import { LayoutOptionGroup, PropertyBodyText, PropertyFieldLabel, PropertySection } from '../property/PropertyPanelUi'
 import type { SiteStylesView } from '../../types/siteStyles'
 import type { ButtonShape, ButtonStyle, ImageHoverEffect, SiteAnimation, SpacingScale } from '../../types/siteStyles'
+import { readSitePattern } from '../../utils/pagePatternHelpers'
 import { resolveSitePageVisualColors } from '../../utils/sitePageVisualHelpers'
 import { getButtonBorderRadius, normalizeSiteFonts } from '../../utils/siteStylesHelpers'
 import {
@@ -45,6 +47,8 @@ import {
   StylePanelHeader,
   StyleSectionCard
 } from './StyleSectionCard'
+import { PagePatternPreview } from '../PagePatternLayer'
+import { PagePatternControls } from '../property/PagePatternControls'
 import { SitePageBackgroundPanel } from './SitePageBackgroundPanel'
 
 type Props = {
@@ -100,6 +104,7 @@ export function SiteStylesPanel({ onClose, embedded = false }: Props) {
     HERO_SPLIT_VISUAL_ANIMATION_OPTIONS.find(option => option.value === pageBackgroundAnimation)?.label ?? 'Static'
   const pageBackgroundColors = resolveSitePageVisualColors(siteStyles)
   const canvasCornerRadius = siteStyles.misc.canvasCornerRadius ?? 0
+  const sitePattern = readSitePattern(siteStyles.misc)
 
   if (view === 'home') {
     return (
@@ -191,6 +196,19 @@ export function SiteStylesPanel({ onClose, embedded = false }: Props) {
               />
               <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', lineHeight: 1.3 }}>
                 {pageBackgroundLabel}
+              </Typography>
+            </Box>
+          </StyleSectionCard>
+
+          <StyleSectionCard label='Background pattern' onClick={() => setView('misc-page-pattern')}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <PagePatternPreview
+                pattern={sitePattern.pattern}
+                color={siteStyles.colors.text}
+                background={siteStyles.colors.background}
+              />
+              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', lineHeight: 1.3 }}>
+                {getPagePatternLabel(sitePattern.pattern)}
               </Typography>
             </Box>
           </StyleSectionCard>
@@ -758,6 +776,17 @@ export function SiteStylesPanel({ onClose, embedded = false }: Props) {
         <StylePanelHeader title='Background animation' onBack={() => setView('home')} onClose={headerClose} />
         <StylePanelBody>
           <SitePageBackgroundPanel />
+        </StylePanelBody>
+      </Box>
+    )
+  }
+
+  if (view === 'misc-page-pattern') {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <StylePanelHeader title='Background pattern' onBack={() => setView('home')} onClose={headerClose} />
+        <StylePanelBody>
+          <PagePatternControls />
         </StylePanelBody>
       </Box>
     )

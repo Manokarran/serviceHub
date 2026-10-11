@@ -482,7 +482,12 @@ export function normalizeBlock(block: Block): Block {
         splitVisualAnimation: props.splitVisualAnimation ?? 'static',
         splitVisualColorStart: props.splitVisualColorStart ?? '',
         splitVisualColorEnd: props.splitVisualColorEnd ?? '',
-        items: items.length > 0 ? items : DEFAULT_SHOWCASE_ITEMS.map(item => ({ ...item }))
+        items:
+          items.length > 0
+            ? items
+            : ((props.layout ?? 'split') === 'cards' ? DEFAULT_SHOWCASE_ITEMS : DEFAULT_SHOWCASE_ITEMS.slice(0, 1)).map(
+                item => ({ ...item })
+              )
       }
     }
   }

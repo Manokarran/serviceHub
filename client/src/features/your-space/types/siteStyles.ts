@@ -1,3 +1,4 @@
+import type { PagePatternConfig, PagePatternId } from '../constants/pagePatterns'
 import type { HeroSplitVisualAnimation } from '../types'
 
 export type ButtonShape = 'square' | 'rounded' | 'pill'
@@ -21,6 +22,7 @@ export type SiteStylesView =
   | 'misc'
   | 'misc-animations'
   | 'misc-page-background'
+  | 'misc-page-pattern'
   | 'misc-spacing'
   | 'misc-canvas'
   | 'misc-image-blocks'
@@ -86,6 +88,12 @@ export interface SiteMisc {
   pageSplitVisualAnimation?: HeroSplitVisualAnimation
   pageSplitVisualColorStart?: string
   pageSplitVisualColorEnd?: string
+
+  /** Site-wide line pattern. Pages listed in `pagePatternOverrides` use their own. */
+  pagePattern?: PagePatternId
+  pagePatternLoadStrength?: number
+  pagePatternHoverStrength?: number
+  pagePatternOverrides?: Record<string, PagePatternConfig>
 }
 
 export interface SiteStyles {

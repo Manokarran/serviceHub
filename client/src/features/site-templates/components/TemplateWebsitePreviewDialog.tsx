@@ -141,7 +141,11 @@ export function TemplateWebsitePreviewDialog({ open, onClose, title, pages, init
               bgcolor: 'background.paper'
             }}
           >
-            <PublicSiteRenderer blocks={activePage.blocks} siteStyles={activePage.siteStyles} />
+            <PublicSiteRenderer
+              blocks={activePage.blocks}
+              siteStyles={activePage.siteStyles}
+              pageSlug={activePage.slug}
+            />
           </Box>
         ) : null}
       </Box>

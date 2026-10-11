@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 
 import Box from '@mui/material/Box'
 
+import type { HeroRotatingWordStyle } from '../../types'
 import {
   getHeroRotatingWordHighlightSx,
   normalizeHeroRotatingWords,
   resolveHeroRotatingIntervalMs,
+  resolveHeroRotatingWordStyle,
   splitHeroTitleAroundRotate
 } from '../../utils/heroRotatingWords'
 
@@ -15,14 +17,16 @@ type Props = {
   title: string
   words: string[]
   intervalMs?: number
+  wordStyle?: HeroRotatingWordStyle
   accentColor: string
+  textColor: string
 }
 
 /**
  * Renders a hero title with `{rotate}` replaced by a slide-up word cycle.
  * Sized with an inline-grid so the slot matches the real font metrics and stays on the title baseline.
  */
-export function HeroRotatingTitle({ title, words, intervalMs, accentColor }: Props) {
+export function HeroRotatingTitle({ title, words, intervalMs, wordStyle, accentColor, textColor }: Props) {
   const rotatingWords = normalizeHeroRotatingWords(words)
   const parts = splitHeroTitleAroundRotate(title)
   const [wordIndex, setWordIndex] = useState(0)
@@ -59,7 +63,12 @@ export function HeroRotatingTitle({ title, words, intervalMs, accentColor }: Pro
   }
 
   const activeWord = rotatingWords[Math.min(wordIndex, rotatingWords.length - 1)] ?? rotatingWords[0]
-  const highlightSx = getHeroRotatingWordHighlightSx(accentColor)
+
+  const highlightSx = getHeroRotatingWordHighlightSx(resolveHeroRotatingWordStyle(wordStyle), {
+    accent: accentColor,
+    text: textColor
+  })
+
   const animate = !reduceMotion && rotatingWords.length > 1
 
   return (
@@ -100,18 +109,16 @@ export function HeroRotatingTitle({ title, words, intervalMs, accentColor }: Pro
             gridArea: '1 / 1',
             whiteSpace: 'nowrap',
             transformOrigin: '50% 85%',
+            ...highlightSx,
             ...(animate
               ? {
-                  ...highlightSx,
                   animation: 'heroWordSlideIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both',
                   '@keyframes heroWordSlideIn': {
                     from: { opacity: 0, transform: 'translate3d(0, 0.45em, 0) rotateX(-38deg)' },
                     to: { opacity: 1, transform: 'translate3d(0, 0, 0) rotateX(0deg)' }
                   }
                 }
-              : {
-                  color: 'inherit'
-                })
+              : {})
           }}
         >
           {activeWord}

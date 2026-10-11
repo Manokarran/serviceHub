@@ -430,7 +430,10 @@ export function BlockInlineToolbar({
                 label={layout.label}
                 active={props.layout === layout.value}
                 onClick={() =>
-                  update({ layout: layout.value, columns: layout.value === 'cards' ? props.columns || 3 : 1 })
+                  update({
+                    layout: layout.value,
+                    columns: layout.value === 'cards' ? (props.columns > 1 ? props.columns : 3) : 1
+                  })
                 }
               />
             ))}

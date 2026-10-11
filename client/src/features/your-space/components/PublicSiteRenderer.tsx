@@ -8,6 +8,7 @@ import type { SiteStyles } from '../types/siteStyles'
 import { mergeSiteStyles } from '../utils/siteStylesHelpers'
 import { siteCanvasContainerSx } from '../utils/siteResponsiveHelpers'
 import { SiteStylesScope } from './SiteStylesScope'
+import { PagePatternLayer } from './PagePatternLayer'
 import { SitePageBackgroundLayer } from './SitePageBackgroundLayer'
 import { BlockRenderer } from './blocks/BlockRenderer'
 import { TenantLocationScope } from './TenantLocationScope'
@@ -20,9 +21,18 @@ type Props = {
 
   /** When false, the page sizes to its content. Use inside scaled preview frames. */
   fillViewport?: boolean
+
+  /** Page slug, so this page can use its own pattern. */
+  pageSlug?: string
 }
 
-export function PublicSiteRenderer({ blocks, siteStyles, tenantLocation, fillViewport = true }: Props) {
+export function PublicSiteRenderer({
+  blocks,
+  siteStyles,
+  tenantLocation,
+  fillViewport = true,
+  pageSlug = 'home'
+}: Props) {
   const styles = siteStyles ? mergeSiteStyles(siteStyles, DEFAULT_SITE_STYLES) : DEFAULT_SITE_STYLES
 
   return (
@@ -39,12 +49,13 @@ export function PublicSiteRenderer({ blocks, siteStyles, tenantLocation, fillVie
           }}
         >
           <SitePageBackgroundLayer />
-          <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Box sx={{ position: 'relative', zIndex: 1, minHeight: fillViewport ? '100vh' : undefined }}>
             {blocks
               .filter(block => Boolean(block?.id && block?.type))
               .map(block => (
                 <BlockRenderer key={block.id} block={block} preview />
               ))}
+            <PagePatternLayer pageSlug={pageSlug} />
           </Box>
         </Box>
       </TenantLocationScope>
